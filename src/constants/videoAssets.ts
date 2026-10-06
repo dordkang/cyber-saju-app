@@ -37,3 +37,16 @@ export function getElementReelVideo(element?: FiveElement | null): ReelVideoAsse
   if (!element) return DEFAULT_REEL_VIDEO;
   return ELEMENT_REEL_VIDEO[element] ?? DEFAULT_REEL_VIDEO;
 }
+
+export type ReelSectionKey = 'life' | 'people' | 'money' | 'health';
+
+/**
+ * 4대 릴스 섹션 배경 영상. `null`이면 영상 없이 다크 네온 그라디언트만 보여 준다.
+ * 인생: 파도(대운의 흐름) / 사람: 카페 / 돈: 도시의 밤 / 건강: 차 한 잔.
+ */
+export const REEL_SECTION_VIDEO: Record<ReelSectionKey, ReelVideoAsset | null> = {
+  life: { uri: clip(15356530, 'sd_960_540_30fps'), tint: '#050A14', landscape: true },
+  people: { uri: clip(13736547, 'hd_720_1280_24fps'), tint: '#0D0814' },
+  money: { uri: clip(18830025, 'sd_540_960_30fps'), tint: '#050D12' },
+  health: { uri: clip(6955735, 'hd_720_1280_30fps'), tint: '#0A0F0D' },
+};

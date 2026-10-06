@@ -482,7 +482,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const renderPeriod = (period: DaeunPeriod) => {
     const isOpen = expanded.includes(period.index);
     const accent = period.isCurrent ? COLOR.cyan : period.isPast ? COLOR.purple : COLOR.dim;
-    const badge = period.isCurrent ? '현재 머무는 대운' : period.isPast ? '지나온 궤적' : '다가올 대운';
+    const badge = period.isCurrent ? '현재 활성 운' : period.isPast ? '지나온 궤적' : '다가올 대운';
     const canExpand = period.isPast && !!period.story;
 
     return (
@@ -783,7 +783,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                 <Text style={styles.summaryMain}>
                   현재 {timeline.currentAgeLabel} · 일간 {timeline.dayMaster} · {timeline.strength} · {timeline.direction}
                 </Text>
-                <Text style={styles.summarySub}>첫 대운은 만 {timeline.firstDaeunAge}세에 시작됩니다.</Text>
+                <Text style={styles.summarySub}>첫 대운은 만 {timeline.firstDaeunAge}세에 시작됩니다 ({timeline.firstDaeunAge}주기 대운).
+                </Text>
               </View>
               {timeline.periods.map(renderPeriod)}
             </>

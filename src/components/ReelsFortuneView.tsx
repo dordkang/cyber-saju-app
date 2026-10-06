@@ -1,5 +1,7 @@
-import React, { createElement, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createElement, memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -13,164 +15,136 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { DEFAULT_REEL_VIDEO, getElementReelVideo } from '../constants/videoAssets';
-import { ELEMENT_SHORT_KR, LUCKY_ITEM_BY_ELEMENT, buildReelsContent } from '../engine/reelsContent';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { REPORT_BUTTON_LABEL } from '../constants/devFlags';
+import { REEL_SECTION_VIDEO } from '../constants/videoAssets';
+import type { ReelSectionKey } from '../constants/videoAssets';
+import type { MoneyEngineResult } from '../engine/moneyEngine';
+import type { NatalSummary } from '../engine/natalSummary';
 import type { FiveElement } from '../engine/types';
 import { startAmbient, stopAmbient } from '../utils/ambientSynth';
 
 const IS_WEB = Platform.OS === 'web';
-const FILM_BLACK = '#070707';
-const FILM_HOLE = 'rgba(238, 230, 214, 0.78)';
-const MONO_FONT = Platform.select({
-  ios: 'Menlo',
-  web: "'SF Mono', Menlo, Consolas, 'Courier New', monospace",
-  default: 'monospace',
-});
-const HANDWRITING_FONT = Platform.select({
-  web: "'Nanum Pen Script', 'Gaegu', 'Segoe Print', cursive",
-  default: undefined,
-});
+
+const COLORS = {
+  space: '#05070D',
+  cyan: '#00FFCC',
+  violet: '#BD93F9',
+  red: '#FF5555',
+  text: '#F2F6FF',
+  muted: '#9AA8BD',
+  ink: '#04100D',
+};
+
+/** 섹션 진입 후 영상만 보여 주는 시간. 이후 버튼과 카드가 서서히 나타난다. */
+const REVEAL_DELAY_MS = 2000;
+const CONTENT_MAX_WIDTH = 480;
+const CHROME_HEIGHT = 56;
 
 /** 한글 단어 중간에서 줄이 끊기지 않도록 한다. 웹 전용 속성이라 타입을 우회한다. */
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
-/** 다크 글래스모피즘: 웹에서는 배경 블러까지 적용한다. */
 const GLASS_BLUR = (
   IS_WEB ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : null
 ) as unknown as ViewStyle | null;
+const DIM_BLUR = (
+  IS_WEB ? { backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' } : null
+) as unknown as ViewStyle | null;
+const SNAP_CONTAINER = (IS_WEB ? { scrollSnapType: 'y mandatory' } : null) as unknown as ViewStyle | null;
+const SNAP_PAGE = (IS_WEB ? { scrollSnapAlign: 'start', scrollSnapStop: 'always' } : null) as unknown as ViewStyle | null;
+const GLOW_CYAN = (IS_WEB ? { boxShadow: '0 0 22px rgba(0, 255, 204, 0.38)' } : null) as unknown as ViewStyle | null;
 
-const FRAME_SIDE = 22;
-const FRAME_VERTICAL = 12;
-const FRAME_RADIUS = 28;
-const HOLE_W = 8;
-const HOLE_H = 14;
-const HOLE_PITCH = 27;
-const RAIL_SIZE = 46;
-
-export type ReelsElement = FiveElement;
-
-const ELEMENT_CAPTION: Record<ReelsElement, { top: string; bottom: string }> = {
-  Wood: { top: '새로 시작하는 기운이 올라오는 날', bottom: '작은 시도 하나가 오늘의 포인트예요' },
-  Fire: { top: '존재감이 한껏 켜지는 날이에요', bottom: '망설이던 말은 오늘 꺼내 보세요' },
-  Earth: { top: '차분히 중심을 잡는 안정의 날', bottom: '서두르지 않아도 흐름은 내 편이에요' },
-  Metal: { top: '결단이 또렷해지는 날이에요', bottom: '정리할 건 정리하고 가볍게 가요' },
-  Water: { top: '직감과 감성이 깊어지는 날이에요', bottom: '흐름에 몸을 맡기면 길이 보여요' },
-};
-
-// ───────────────────────── 웹 전용 에셋(손글씨 폰트, 필름 그레인 애니메이션) ─────────────────────────
-
-const GRAIN_NODE_ID = 'cs-film-grain';
-const GRAIN_SVG =
-  "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'>" +
-  "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/>" +
-  "<feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.4 0 0 0 -0.42'/></filter>" +
-  "<rect width='100%' height='100%' filter='url(#n)'/></svg>";
-const GRAIN_STYLE = {
-  backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(GRAIN_SVG)}")`,
-  backgroundSize: '180px 180px',
-} as unknown as ViewStyle;
-
-let webAssetsInstalled = false;
-
-function installWebAssets(): void {
-  if (!IS_WEB || webAssetsInstalled || typeof document === 'undefined') return;
-  webAssetsInstalled = true;
-  try {
-    const font = document.createElement('link');
-    font.rel = 'stylesheet';
-    font.href = 'https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap';
-    document.head.appendChild(font);
-
-    const style = document.createElement('style');
-    style.textContent =
-      '@keyframes csGrainShift{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}' +
-      '40%{transform:translate(3%,-4%)}60%{transform:translate(-3%,-2%)}80%{transform:translate(4%,2%)}100%{transform:translate(0,0)}}' +
-      `#${GRAIN_NODE_ID}{animation:csGrainShift .9s steps(5) infinite}`;
-    document.head.appendChild(style);
-  } catch {
-    // 폰트·애니메이션은 꾸밈 요소라 실패해도 화면은 그대로 동작한다.
-  }
+interface SectionMeta {
+  key: ReelSectionKey;
+  no: string;
+  chip: string;
+  accent: string;
+  /** 영상이 없거나 불러오는 동안 보이는 다크 네온 그라디언트 */
+  fallback: ViewStyle;
 }
 
-function pad2(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
-function formatClock(date: Date): string {
-  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
-}
-
-/** 글자 사이에 줄바꿈을 넣어 위에서 아래로 흐르는 세로 문구로 만든다. */
-function toVertical(text: string): string {
-  return Array.from(text.trim()).join('\n');
-}
-
-// ───────────────────────── 타임코드 / 파형 (리렌더 범위를 좁히기 위해 분리) ─────────────────────────
-
-const Timecode = memo(function Timecode() {
-  const [text, setText] = useState(() => formatClock(new Date()));
-  useEffect(() => {
-    const id = setInterval(() => setText(formatClock(new Date())), 1000);
-    return () => clearInterval(id);
-  }, []);
+function gradient(glow: string, side: string): ViewStyle {
   return (
-    <Text style={styles.timecode} accessibilityLabel={`현재 시각 ${text}`}>
-      {text}
-    </Text>
-  );
-});
+    IS_WEB
+      ? {
+          backgroundImage:
+            `radial-gradient(120% 70% at ${side}, ${glow}, transparent 62%), ` +
+            'linear-gradient(180deg, #05070D 0%, #0A1020 55%, #05070D 100%)',
+        }
+      : { backgroundColor: '#080C16' }
+  ) as unknown as ViewStyle;
+}
 
-const BAR_COUNT = 22;
+const SECTIONS: readonly SectionMeta[] = [
+  { key: 'life', no: '01', chip: '인생 · 人生 · Life', accent: COLORS.cyan, fallback: gradient('rgba(0, 255, 204, 0.26)', '50% 0%') },
+  { key: 'people', no: '02', chip: '사람 · 도화 & 속마음', accent: COLORS.violet, fallback: gradient('rgba(189, 147, 249, 0.3)', '80% 10%') },
+  { key: 'money', no: '03', chip: '돈 · 비즈니스', accent: COLORS.cyan, fallback: gradient('rgba(0, 255, 204, 0.22)', '20% 100%') },
+  { key: 'health', no: '04', chip: '건강 · 3초 리셋', accent: COLORS.violet, fallback: gradient('rgba(255, 85, 85, 0.2)', '50% 100%') },
+];
 
-const Waveform = memo(function Waveform({ playing }: { playing: boolean }) {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (!playing) return undefined;
-    const id = setInterval(() => setTick((t) => (t + 1) % 10000), 130);
-    return () => clearInterval(id);
-  }, [playing]);
+/** 위아래로 무한히 이어지도록 양 끝에 반대편 섹션을 한 장씩 복제해 둔다. */
+const PAGE_KEYS: readonly ReelSectionKey[] = ['health', 'life', 'people', 'money', 'health', 'life'];
+const REAL_PAGE_COUNT = SECTIONS.length;
 
-  const heights = useMemo(
-    () =>
-      Array.from({ length: BAR_COUNT }, (_, i) => {
-        if (!playing) return 3;
-        const level = (Math.sin((i + tick) * 0.62) + Math.sin((i * 1.7 + tick) * 0.41) + 2) / 4;
-        return 4 + Math.round(level * 18);
-      }),
-    [tick, playing]
-  );
+// ───────────────────────── 공개 타입 ─────────────────────────
 
-  return (
-    <View style={styles.waveRow} importantForAccessibility="no" accessibilityElementsHidden>
-      {heights.map((h, i) => (
-        <View key={i} style={[styles.waveBar, { height: h }, !playing && styles.waveBarIdle]} />
-      ))}
-    </View>
-  );
-});
+export interface ReelsDaeunInfo {
+  /** 예: 만 52세 ~ 61세 */
+  ageLabel: string;
+  /** 예: 丙子 */
+  ganji: string;
+  /** 예: 현재 만 51세 */
+  currentAgeLabel?: string;
+  theme: string;
+}
 
-// ───────────────────────── 배경: 빈티지 필름 비디오 레이어 ─────────────────────────
+export interface ReelsDaeunStripItem {
+  label: string;
+  current: boolean;
+  past: boolean;
+}
 
-const VIDEO_FILTER = 'sepia(0.22) saturate(1.08) contrast(1.05) brightness(0.92)';
+export interface ReelsPartnerInfo {
+  /** 예: 애인 · 1990-05-02 */
+  label: string;
+  /** 딴마음 지수 0~100. 계산하지 못했으면 null */
+  radarScore: number | null;
+  radarLevel: string | null;
+}
 
-const VideoBackdrop = memo(function VideoBackdrop({ element }: { element: ReelsElement }) {
-  const requested = getElementReelVideo(element);
-  const [failedUri, setFailedUri] = useState<string | null>(null);
-  const [readyUri, setReadyUri] = useState<string | null>(null);
+export interface ReelsFortuneViewProps {
+  /** 모달이 열려 있으면 true. 배경 영상을 멈추고 어두운 블러를 덮는다. */
+  paused?: boolean;
+  daeun?: ReelsDaeunInfo | null;
+  daeunStrip?: readonly ReelsDaeunStripItem[];
+  /** 엔진이 계산한 사주 4주 8자와 오행 비율 */
+  natal?: NatalSummary | null;
+  partner?: ReelsPartnerInfo | null;
+  money?: MoneyEngineResult | null;
+  /** 오늘 지갑을 지켜 줄 행운의 물건 */
+  luckyItem?: string;
+  /** 오늘 기록한 오행 배터리 충전량(25/50/75/100). 기록 전이면 null */
+  batteryLevel?: number | null;
+  onOpenTimeline?: () => void;
+  onAddPartner?: () => void;
+  onOpenReport?: () => void;
+  onOpenDailyCard?: () => void;
+  onSettingsPress?: () => void;
+}
+
+// ───────────────────────── 배경: 영상 + 폴백 + 딤 ─────────────────────────
+
+interface SectionVideoProps {
+  uri: string;
+  playing: boolean;
+  preloadAuto: boolean;
+}
+
+const SectionVideo = memo(function SectionVideo({ uri, playing, preloadAuto }: SectionVideoProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const active = failedUri === requested.uri ? DEFAULT_REEL_VIDEO : requested;
-
-  // 브라우저가 자동재생을 막았거나 저전력 모드로 멈춘 경우, 첫 터치에서 다시 재생을 시도한다.
-  useEffect(() => {
-    if (!IS_WEB || typeof document === 'undefined') return undefined;
-    const resume = () => {
-      const video = videoRef.current;
-      if (video?.paused) video.play().catch(() => undefined);
-    };
-    document.addEventListener('pointerdown', resume, { passive: true });
-    return () => document.removeEventListener('pointerdown', resume);
-  }, []);
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
@@ -178,426 +152,670 @@ const VideoBackdrop = memo(function VideoBackdrop({ element }: { element: ReelsE
     // React의 muted 속성은 초기 렌더에서 DOM에 반영되지 않는 경우가 있어 직접 지정한다.
     el.muted = true;
     el.defaultMuted = true;
-    el.play().catch(() => undefined);
+    if (playingRef.current) el.play().catch(() => undefined);
+    else el.pause();
   }, []);
 
-  return (
-    <View pointerEvents="none" style={[styles.fill, { backgroundColor: active.tint }]}>
-      {IS_WEB &&
-        createElement('video', {
-          key: active.uri,
-          ref: setVideoRef,
-          src: active.uri,
-          autoPlay: true,
-          loop: true,
-          muted: true,
-          playsInline: true,
-          preload: 'auto',
-          disablePictureInPicture: true,
-          tabIndex: -1,
-          'aria-hidden': true,
-          onCanPlay: () => setReadyUri(active.uri),
-          onError: () => {
-            if (active.uri !== DEFAULT_REEL_VIDEO.uri) setFailedUri(active.uri);
-          },
-          style: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            pointerEvents: 'none',
-            filter: VIDEO_FILTER,
-            opacity: readyUri === active.uri ? 1 : 0,
-            transition: 'opacity 900ms ease',
-          },
-        })}
-    </View>
-  );
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (playing) el.play().catch(() => undefined);
+    else el.pause();
+  }, [playing]);
+
+  // 브라우저가 자동재생을 막은 경우 첫 터치에서 다시 재생을 시도한다.
+  useEffect(() => {
+    if (!IS_WEB || typeof document === 'undefined') return undefined;
+    const resume = () => {
+      const el = videoRef.current;
+      if (el && playingRef.current && el.paused) el.play().catch(() => undefined);
+    };
+    document.addEventListener('pointerdown', resume, { passive: true });
+    return () => document.removeEventListener('pointerdown', resume);
+  }, []);
+
+  if (!IS_WEB || failed) return null;
+
+  return createElement('video', {
+    ref: setVideoRef,
+    src: uri,
+    autoPlay: true,
+    loop: true,
+    muted: true,
+    playsInline: true,
+    preload: preloadAuto ? 'auto' : 'metadata',
+    disablePictureInPicture: true,
+    tabIndex: -1,
+    'aria-hidden': true,
+    onCanPlay: () => setReady(true),
+    onError: () => setFailed(true),
+    style: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      pointerEvents: 'none',
+      filter: 'saturate(1.1) contrast(1.05) brightness(0.9)',
+      opacity: ready ? 1 : 0,
+      transition: 'opacity 700ms ease',
+    },
+  });
 });
 
-/** 위·아래만 살짝 눌러 자막과 타임코드를 읽히게 하고, 가운데 영상은 최대한 살린다. */
-const VIGNETTE_STOPS = [
-  { at: 0, alpha: 0.5 },
-  { at: 0.3, alpha: 0.1 },
-  { at: 0.58, alpha: 0.06 },
-  { at: 1, alpha: 0.78 },
-] as const;
-const NATIVE_VIGNETTE_BANDS = 24;
+const READABILITY_STYLE = (
+  IS_WEB
+    ? {
+        backgroundImage:
+          'linear-gradient(to bottom, rgba(5,7,13,0.72) 0%, rgba(5,7,13,0.28) 30%, rgba(5,7,13,0.18) 52%, rgba(5,7,13,0.88) 100%)',
+      }
+    : { backgroundColor: 'rgba(5, 7, 13, 0.4)' }
+) as unknown as ViewStyle;
 
-const WEB_VIGNETTE_STYLE = {
-  backgroundImage: `linear-gradient(to bottom, ${VIGNETTE_STOPS.map(
-    (s) => `rgba(0, 0, 0, ${s.alpha}) ${s.at * 100}%`
-  ).join(', ')})`,
-} as unknown as ViewStyle;
-
-function vignetteAlphaAt(position: number): number {
-  for (let i = 1; i < VIGNETTE_STOPS.length; i += 1) {
-    const prev = VIGNETTE_STOPS[i - 1];
-    const next = VIGNETTE_STOPS[i];
-    if (prev && next && position <= next.at) {
-      const ratio = (position - prev.at) / (next.at - prev.at);
-      return prev.alpha + (next.alpha - prev.alpha) * ratio;
-    }
-  }
-  return VIGNETTE_STOPS[VIGNETTE_STOPS.length - 1]?.alpha ?? 0;
-}
-
-const NATIVE_BAND_ALPHAS = Array.from({ length: NATIVE_VIGNETTE_BANDS }, (_, i) =>
-  vignetteAlphaAt((i + 0.5) / NATIVE_VIGNETTE_BANDS)
-);
-
-const VignetteOverlay = memo(function VignetteOverlay() {
-  if (IS_WEB) {
-    return <View pointerEvents="none" style={[styles.fill, WEB_VIGNETTE_STYLE]} />;
-  }
+/** 영상이 멈추는 동안 배경 위에 덮이는 30% 어두운 블러 딤 */
+const DimLayer = memo(function DimLayer({ on }: { on: boolean }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(opacity, {
+      toValue: on ? 1 : 0,
+      duration: on ? 140 : 260,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: !IS_WEB,
+    }).start();
+  }, [on, opacity]);
   return (
-    <View pointerEvents="none" style={styles.fill}>
-      {NATIVE_BAND_ALPHAS.map((alpha, i) => (
-        <View key={i} style={{ flex: 1, backgroundColor: `rgba(0, 0, 0, ${alpha.toFixed(3)})` }} />
-      ))}
-    </View>
-  );
-});
-
-const GrainOverlay = memo(function GrainOverlay() {
-  if (!IS_WEB) return null;
-  return <View pointerEvents="none" nativeID={GRAIN_NODE_ID} style={[styles.grain, GRAIN_STYLE]} />;
-});
-
-// ───────────────────────── 외곽 필름 프레임(둥근 창 + 스프로킷 홀) ─────────────────────────
-
-const WEB_WINDOW_STYLE = {
-  boxShadow: `0 0 0 9999px ${FILM_BLACK}`,
-} as unknown as ViewStyle;
-
-const SprocketColumn = memo(function SprocketColumn({ side, count }: { side: 'left' | 'right'; count: number }) {
-  return (
-    <View
+    <Animated.View
       pointerEvents="none"
-      style={[styles.sprockets, side === 'left' ? { left: (FRAME_SIDE - HOLE_W) / 2 } : { right: (FRAME_SIDE - HOLE_W) / 2 }]}
-    >
-      {Array.from({ length: count }, (_, i) => (
-        <View key={i} style={styles.hole} />
-      ))}
-    </View>
+      style={[styles.fill, styles.dim, DIM_BLUR, { opacity }]}
+    />
   );
 });
 
-const FilmFrame = memo(function FilmFrame({ height }: { height: number }) {
-  const holes = Math.max(6, Math.floor(height / HOLE_PITCH));
-  return (
-    <View pointerEvents="none" style={styles.fill}>
-      {IS_WEB ? (
-        <View style={[styles.filmWindow, WEB_WINDOW_STYLE]} />
-      ) : (
-        <>
-          <View style={[styles.edge, { top: 0, left: 0, right: 0, height: FRAME_VERTICAL }]} />
-          <View style={[styles.edge, { bottom: 0, left: 0, right: 0, height: FRAME_VERTICAL }]} />
-          <View style={[styles.edge, { top: 0, bottom: 0, left: 0, width: FRAME_SIDE }]} />
-          <View style={[styles.edge, { top: 0, bottom: 0, right: 0, width: FRAME_SIDE }]} />
-          <View style={[styles.filmWindow, styles.filmWindowBorder]} />
-        </>
-      )}
-      <SprocketColumn side="left" count={holes} />
-      <SprocketColumn side="right" count={holes} />
-    </View>
-  );
-});
-
-// ───────────────────────── 레일 버튼 ─────────────────────────
-
-interface RailButtonProps {
-  icon: string;
-  label: string;
-  onPress?: () => void;
+interface SectionBackdropProps {
+  meta: SectionMeta;
+  playing: boolean;
+  active: boolean;
+  dimmed: boolean;
 }
 
-const RailButton = memo(function RailButton({ icon, label, onPress }: RailButtonProps) {
+const SectionBackdrop = memo(function SectionBackdrop({ meta, playing, active, dimmed }: SectionBackdropProps) {
+  const asset = REEL_SECTION_VIDEO[meta.key];
   return (
-    <View style={styles.railItem}>
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        hitSlop={6}
-        style={({ pressed }) => [styles.railBtn, pressed && styles.pressed]}
-      >
-        <Text style={styles.railIcon}>{icon}</Text>
-      </Pressable>
-      <Text style={styles.railLabel} numberOfLines={1}>
+    <View pointerEvents="none" style={[styles.fill, { backgroundColor: asset?.tint ?? COLORS.space }, meta.fallback]}>
+      {asset ? <SectionVideo uri={asset.uri} playing={playing} preloadAuto={active} /> : null}
+      <View style={[styles.fill, READABILITY_STYLE]} />
+      <DimLayer on={dimmed} />
+    </View>
+  );
+});
+
+// ───────────────────────── 공통 UI 조각 ─────────────────────────
+
+type ButtonTone = 'cyan' | 'violet' | 'red' | 'ghost';
+
+interface ActionButtonProps {
+  label: string;
+  tone?: ButtonTone;
+  onPress?: () => void;
+  compact?: boolean;
+}
+
+const ActionButton = memo(function ActionButton({ label, tone = 'cyan', onPress, compact = false }: ActionButtonProps) {
+  const toneStyle =
+    tone === 'cyan'
+      ? [styles.btnCyan, GLOW_CYAN]
+      : tone === 'red'
+        ? styles.btnRed
+        : tone === 'violet'
+          ? styles.btnViolet
+          : styles.btnGhost;
+  const textStyle = tone === 'cyan' || tone === 'red' ? styles.btnTextDark : tone === 'violet' ? styles.btnTextViolet : styles.btnTextLight;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.btn, compact && styles.btnCompact, toneStyle, pressed && styles.pressed]}
+    >
+      <Text style={[styles.btnText, compact && styles.btnTextCompact, textStyle]} numberOfLines={2}>
         {label}
       </Text>
+    </Pressable>
+  );
+});
+
+const Meter = memo(function Meter({ label, value, color }: { label: string; value: number; color: string }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  return (
+    <View style={styles.meter}>
+      <View style={styles.meterHead}>
+        <Text style={styles.meterLabel}>{label}</Text>
+        <Text style={[styles.meterValue, { color }]}>{pct}%</Text>
+      </View>
+      <View style={styles.meterTrack}>
+        <View style={[styles.meterFill, { width: `${pct}%`, backgroundColor: color }]} />
+      </View>
     </View>
   );
 });
 
-// ───────────────────────── 릴스 페이지 ─────────────────────────
+const ELEMENT_COLOR: Record<FiveElement, string> = {
+  Wood: '#7CE38B',
+  Fire: '#FF7A59',
+  Earth: '#F5C451',
+  Metal: '#D6DEEB',
+  Water: '#5AA9FF',
+};
 
-interface ReelPage {
-  key: string;
-  /** 우측 상단 굵은 제목. 예: 기록 01 */
-  recordNo: string;
-  /** 우측 상단 세로 손글씨 문구 */
-  handwriting: string;
-  /** 자막 상단의 작은 요약 줄 */
-  meta: string;
-  /** 자막 본문 (최대 2줄) */
-  captions: string[];
-}
-
-const ReelPageView = memo(function ReelPageView({ page, height }: { page: ReelPage; height: number }) {
+const NatalBlock = memo(function NatalBlock({ natal }: { natal: NatalSummary }) {
   return (
-    <View style={[styles.page, { height }]}>
-      <View style={styles.captionBox}>
-        <Text style={styles.captionMeta} numberOfLines={1}>
-          {page.meta}
-        </Text>
-        {page.captions.slice(0, 2).map((line, i) => (
-          <Text key={`${page.key}-c${i}`} style={[styles.captionLine, i > 0 && styles.captionLineSub]} numberOfLines={2}>
-            {line}
-          </Text>
+    <View style={styles.natal}>
+      <Text style={styles.cardLabel}>내 사주 원국 · 일간(본원) {natal.dayMaster}</Text>
+      <View style={styles.natalRow}>
+        {natal.pillars.map((p) => (
+          <View key={p.key} style={[styles.natalCell, p.isDayMaster && styles.natalCellDay]}>
+            <Text style={styles.natalLabel}>{p.isDayMaster ? '일주 · 본원' : p.label}</Text>
+            <Text style={styles.natalChar}>
+              <Text style={{ color: ELEMENT_COLOR[p.stemElement] }}>{p.stem}</Text>
+              <Text style={{ color: ELEMENT_COLOR[p.branchElement] }}>{p.branch}</Text>
+            </Text>
+          </View>
+        ))}
+      </View>
+      <View style={styles.ratioRow}>
+        {natal.ratio.map((r) => (
+          <View key={r.element} style={styles.ratioItem}>
+            <Text style={[styles.ratioLabel, { color: ELEMENT_COLOR[r.element] }]}>
+              {r.label} {r.count}
+            </Text>
+            <Text style={styles.ratioPercent}>{Number(r.percent.toFixed(1))}%</Text>
+          </View>
         ))}
       </View>
     </View>
   );
 });
 
-// ───────────────────────── 메인 뷰 ─────────────────────────
+// ───────────────────────── 02 사람: 딴마음 레이더 ─────────────────────────
 
-export interface ReelsFortuneViewProps {
-  /** 오행 테마. 생략하면 오늘 일진 천간의 오행을 사용한다. */
-  element?: ReelsElement;
-  /** 오늘의 오행 기운 이름. 예: "백금(白金)의 기운" */
-  elementName?: string;
-  /** 오늘의 일진 간지. 예: "丙子(병자)" */
-  dayPillarText?: string;
-  /** 오늘의 기운 키워드 */
-  keyword?: string;
-  /** 3단 점사 요약 또는 일일 운세 한 줄 */
-  fortuneText?: string;
-  /** 오늘의 행운 오브젝트/패션 아이템 */
-  luckyItem?: string;
-  luckyReason?: string;
-  /** 촬영창 보조 라벨. 예: "#2 호스트 · 戊土 일간" */
-  profileLabel?: string;
-  onSettingsPress?: () => void;
-  onTarotPress?: () => void;
-  onMatchPress?: () => void;
-  onSharePress?: () => void;
-  /** 사주 대시보드(하단 시트) 열기. 전달하지 않으면 버튼을 숨긴다. */
-  onOpenDashboard?: () => void;
+function scoreColor(score: number): string {
+  if (score >= 70) return COLORS.red;
+  if (score >= 40) return COLORS.violet;
+  return COLORS.cyan;
 }
 
-export const ReelsFortuneView: React.FC<ReelsFortuneViewProps> = ({
-  element,
-  elementName,
-  dayPillarText,
-  keyword,
-  fortuneText,
-  luckyItem,
-  luckyReason,
-  profileLabel,
-  onSettingsPress,
-  onTarotPress,
-  onMatchPress,
-  onSharePress,
-  onOpenDashboard,
-}) => {
-  const { height } = useWindowDimensions();
-  const [pageHeight, setPageHeight] = useState(0);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [soundOn, setSoundOn] = useState(false);
+interface RadarProps {
+  size: number;
+  score: number | null;
+  running: boolean;
+}
+
+const Radar = memo(function Radar({ size, score, running }: RadarProps) {
+  const spin = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    installWebAssets();
-    return () => stopAmbient();
-  }, []);
-
-  const turnSoundOn = () => {
-    if (startAmbient()) setSoundOn(true);
-  };
-  const toggleSound = () => {
-    if (soundOn) {
-      stopAmbient();
-      setSoundOn(false);
-    } else {
-      turnSoundOn();
+    if (!running) {
+      spin.stopAnimation();
+      return undefined;
     }
+    const loop = Animated.loop(
+      Animated.timing(spin, { toValue: 1, duration: 3800, easing: Easing.linear, useNativeDriver: !IS_WEB })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [running, spin]);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const radius = size / 2;
+  const blipColor = score == null ? COLORS.muted : scoreColor(score);
+  const blipDistance = score == null ? radius * 0.55 : radius * (0.14 + (1 - score / 100) * 0.74);
+  const angle = (-38 * Math.PI) / 180;
+  const blipX = radius + blipDistance * Math.cos(angle) - 7;
+  const blipY = radius + blipDistance * Math.sin(angle) - 7;
+
+  return (
+    <View style={{ width: size, height: size }} accessibilityLabel={score == null ? '딴마음 레이더' : `딴마음 지수 ${score}`}>
+      {[1, 0.68, 0.36].map((ratio) => (
+        <View
+          key={ratio}
+          style={[
+            styles.radarRing,
+            {
+              width: size * ratio,
+              height: size * ratio,
+              borderRadius: (size * ratio) / 2,
+              top: (size - size * ratio) / 2,
+              left: (size - size * ratio) / 2,
+            },
+          ]}
+        />
+      ))}
+      <View style={[styles.radarAxis, { left: radius - 0.5, top: 0, width: 1, height: size }]} />
+      <View style={[styles.radarAxis, { top: radius - 0.5, left: 0, height: 1, width: size }]} />
+      <Animated.View style={[styles.fill, { transform: [{ rotate }] }]}>
+        <View style={[styles.radarSweep, { left: radius - 1, height: radius, backgroundColor: COLORS.cyan }]} />
+      </Animated.View>
+      <View
+        style={[
+          styles.radarBlip,
+          { left: blipX, top: blipY, backgroundColor: blipColor, borderColor: blipColor },
+        ]}
+      />
+      <View style={[styles.radarCenter, { left: radius - 4, top: radius - 4 }]} />
+    </View>
+  );
+});
+
+// ───────────────────────── 04 건강: 오행 배터리 ─────────────────────────
+
+const BATTERY_SEGMENTS = 4;
+
+const Battery = memo(function Battery({ level }: { level: number | null }) {
+  const filled = level == null ? 0 : Math.min(BATTERY_SEGMENTS, Math.max(0, Math.round(level / 25)));
+  const color = level == null ? COLORS.muted : level <= 25 ? COLORS.red : level <= 50 ? COLORS.violet : COLORS.cyan;
+  return (
+    <View style={styles.batteryWrap} accessible accessibilityLabel={level == null ? '오늘 충전 전' : `오늘 충전량 ${level}퍼센트`}>
+      <View style={styles.batteryBody}>
+        {Array.from({ length: BATTERY_SEGMENTS }, (_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.batterySeg,
+              i < filled ? { backgroundColor: color, borderColor: color } : null,
+            ]}
+          />
+        ))}
+      </View>
+      <Text style={[styles.batteryText, { color }]}>
+        {level == null ? '오늘은 아직 충전 전이에요' : `오늘 충전량 ${level}%`}
+      </Text>
+    </View>
+  );
+});
+
+// ───────────────────────── 섹션 ─────────────────────────
+
+function useDelayedReveal(active: boolean) {
+  const [shown, setShown] = useState(false);
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) {
+      setShown(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setShown(true), REVEAL_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [active]);
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: shown ? 1 : 0,
+      duration: shown ? 700 : 120,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: !IS_WEB,
+    }).start();
+  }, [shown, progress]);
+
+  return { shown, progress };
+}
+
+interface ReelSectionProps extends ReelsFortuneViewProps {
+  meta: SectionMeta;
+  height: number;
+  active: boolean;
+  /** 모달이나 카드가 열려 영상을 멈춰야 하는지 */
+  hold: boolean;
+  onCardFocusChange: (open: boolean) => void;
+}
+
+const ReelSection = memo(function ReelSection(props: ReelSectionProps) {
+  const {
+    meta,
+    height,
+    active,
+    hold,
+    daeun,
+    daeunStrip,
+    natal,
+    partner,
+    money,
+    luckyItem,
+    batteryLevel,
+    onOpenTimeline,
+    onAddPartner,
+    onOpenReport,
+    onOpenDailyCard,
+    onCardFocusChange,
+  } = props;
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { shown, progress } = useDelayedReveal(active);
+  const [engineOpen, setEngineOpen] = useState(false);
+  const compact = height < 720;
+
+  useEffect(() => {
+    if (!active && engineOpen) setEngineOpen(false);
+  }, [active, engineOpen]);
+
+  useEffect(() => {
+    if (meta.key === 'money') onCardFocusChange(engineOpen && active);
+  }, [engineOpen, active, meta.key, onCardFocusChange]);
+
+  const playing = active && !hold;
+  const dimmed = active && hold;
+  const radarSize = Math.round(Math.min(width * 0.62, height * (compact ? 0.2 : 0.3), 250));
+
+  const revealStyle = {
+    opacity: progress,
+    transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
   };
 
-  // props가 비어 있어도 화면이 깨지지 않도록 오늘 일진 기준의 기본 문구로 채운다.
-  const fallback = useMemo(() => buildReelsContent(null), []);
-  const resolvedElement: ReelsElement = element ?? fallback.element;
-  const caption = ELEMENT_CAPTION[resolvedElement] ?? ELEMENT_CAPTION.Wood;
+  let titleLines: string;
+  let subtitle: string;
+  switch (meta.key) {
+    case 'life':
+      titleLines = '10년마다 바뀌는\n인생의 파도';
+      subtitle = '지금 타고 있는 파도부터 앞으로 올 파도까지 한눈에 봐요.';
+      break;
+    case 'people':
+      titleLines = '상대방 딴마음\n레이더';
+      subtitle = '내 사람 사주 속 이성 매력(도화) 신호를 잡아내요.';
+      break;
+    case 'money':
+      titleLines = '오늘의 돈 버는 엔진\n지갑 털림 방어선';
+      subtitle = money?.headline ?? '내 사주와 오늘 일진으로 오늘의 돈 흐름을 읽어요.';
+      break;
+    default:
+      titleLines = '하루 3초,\n오행 배터리 충전';
+      subtitle = '오늘 기분 카드 한 장만 고르면 끝나요.';
+  }
 
-  const pages = useMemo<ReelPage[]>(() => {
-    const name = elementName ?? fallback.elementName;
-    const mood = keyword ?? fallback.keyword;
-    const fortune = fortuneText ?? fallback.fortuneText;
-    const item = luckyItem ?? LUCKY_ITEM_BY_ELEMENT[resolvedElement];
-    const reason = luckyReason ?? `${ELEMENT_SHORT_KR[resolvedElement]} 기운을 채워 줘요`;
-    const pillar = dayPillarText ?? fallback.dayPillarText;
-    return [
-      {
-        key: 'energy',
-        recordNo: '기록 01',
-        handwriting: '오늘 내가 두를 기운',
-        meta: pillar
-          ? `나의 ${ELEMENT_SHORT_KR[resolvedElement]} 기운 · 오늘의 일진 ${pillar}`
-          : `나의 ${ELEMENT_SHORT_KR[resolvedElement]} 기운 · ${name}`,
-        captions: [fortune],
-      },
-      {
-        key: 'keyword',
-        recordNo: '기록 02',
-        handwriting: '오늘의 핵심 처세',
-        meta: `오늘의 처세 · ${mood}`,
-        captions: [caption.top, caption.bottom],
-      },
-      {
-        key: 'fit',
-        recordNo: '기록 03',
-        handwriting: '오늘 챙길 행운의 물건',
-        meta: `행운의 물건 · ${item}`,
-        captions: [reason, '오늘은 이 물건 하나면 충분해요'],
-      },
-    ];
-  }, [elementName, dayPillarText, keyword, fortuneText, luckyItem, luckyReason, resolvedElement, fallback, caption]);
+  return (
+    <View style={[styles.page, { height }, SNAP_PAGE]}>
+      <SectionBackdrop meta={meta} playing={playing} active={active} dimmed={dimmed} />
 
-  const current = pages[Math.min(pageIndex, pages.length - 1)] ?? pages[0];
-  const handwritingSize = height < 700 ? 17 : 22;
+      <Animated.View
+        pointerEvents={shown ? 'box-none' : 'none'}
+        style={[
+          styles.content,
+          { paddingTop: insets.top + CHROME_HEIGHT, paddingBottom: Math.max(insets.bottom, 12) + 14 },
+          revealStyle,
+        ]}
+      >
+        <View style={styles.contentInner}>
+          <View>
+            <View style={[styles.chip, { borderColor: meta.accent }]}>
+              <Text style={[styles.chipText, { color: meta.accent }]}>
+                {meta.no} · {meta.chip}
+              </Text>
+            </View>
+            <Text style={[styles.title, compact && styles.titleCompact]}>{titleLines}</Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
+          </View>
+
+          <View style={styles.middle}>
+            {meta.key === 'life' && (
+              <View style={styles.glass}>
+                {daeun ? (
+                  <>
+                    <Text style={styles.cardLabel}>
+                      지금 타고 있는 대운{daeun.currentAgeLabel ? ` · ${daeun.currentAgeLabel}` : ''}
+                    </Text>
+                    <Text style={styles.cardValue}>
+                      {daeun.ageLabel} · {daeun.ganji}
+                    </Text>
+                    {!(compact && natal) && (
+                      <Text style={styles.cardBody} numberOfLines={3}>
+                        {daeun.theme}
+                      </Text>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.cardLabel}>내 대운 파도</Text>
+                    <Text style={styles.cardBody}>생년월일과 성별을 입력하면 지금 어느 파도 위에 있는지 알려 드려요.</Text>
+                  </>
+                )}
+                {!!daeunStrip?.length && (
+                  <View style={styles.strip}>
+                    {daeunStrip.map((item) => (
+                      <View key={item.label} style={styles.stripItem}>
+                        <View
+                          style={[
+                            styles.stripDot,
+                            item.past && styles.stripDotPast,
+                            item.current && styles.stripDotCurrent,
+                          ]}
+                        />
+                        <Text style={[styles.stripLabel, item.current && styles.stripLabelCurrent]}>{item.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {natal && <NatalBlock natal={natal} />}
+              </View>
+            )}
+
+            {meta.key === 'people' && (
+              <View style={styles.radarBox}>
+                <Radar size={radarSize} score={partner?.radarScore ?? null} running={playing} />
+                <Text style={[styles.radarScore, { color: partner?.radarScore != null ? scoreColor(partner.radarScore) : COLORS.muted }]}>
+                  {partner?.radarScore != null
+                    ? `딴마음 지수 ${partner.radarScore} · ${partner.radarLevel ?? ''}`
+                    : '내 사람을 보관하면 레이더가 켜져요'}
+                </Text>
+              </View>
+            )}
+
+            {meta.key === 'money' && money && (
+              <View style={styles.glass}>
+                <Meter label="돈 버는 엔진" value={money.power} color={COLORS.cyan} />
+                <Meter label="지갑 방어선" value={money.defense} color={money.defense < 40 ? COLORS.red : COLORS.violet} />
+              </View>
+            )}
+
+            {meta.key === 'health' && <Battery level={batteryLevel ?? null} />}
+          </View>
+
+          <View style={styles.actions}>
+            {meta.key === 'life' && (
+              <ActionButton label="📈 내 인생 10년 대운 전체보기 (무료)" tone="cyan" onPress={onOpenTimeline} />
+            )}
+
+            {meta.key === 'people' && (
+              <View style={[styles.glass, styles.vault]}>
+                <Text style={styles.vaultCaption}>PARTNER VAULT</Text>
+                <Text style={styles.vaultTitle}>내 사람(비밀) 관찰 보관함</Text>
+                <Text style={styles.vaultBody} numberOfLines={2}>
+                  {partner ? partner.label : '아직 보관된 사람이 없어요. 입력한 정보는 이 기기에만 저장돼요.'}
+                </Text>
+                <View style={styles.vaultButtons}>
+                  <View style={styles.vaultButtonCell}>
+                    <ActionButton label="+ 내 사람 사주 추가" tone="violet" compact onPress={onAddPartner} />
+                  </View>
+                  <View style={styles.vaultButtonCell}>
+                    <ActionButton label={REPORT_BUTTON_LABEL} tone="red" compact onPress={onOpenReport} />
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {meta.key === 'money' &&
+              (engineOpen && money ? (
+                <View style={[styles.glass, { borderColor: COLORS.cyan }]}>
+                  <View style={[styles.statusChip, { borderColor: money.defense < 40 ? COLORS.red : COLORS.cyan }]}>
+                    <Text style={[styles.statusText, { color: money.defense < 40 ? COLORS.red : COLORS.cyan }]}>
+                      엔진 상태 · {money.status}
+                    </Text>
+                  </View>
+                  <Text style={styles.cardLabel}>돈 버는 법</Text>
+                  <Text style={styles.cardBody}>{money.engineLine}</Text>
+                  <Text style={[styles.cardLabel, styles.cardLabelGap]}>지갑 지키는 법</Text>
+                  <Text style={styles.cardBody}>{money.defenseLine}</Text>
+                  {!!luckyItem && (
+                    <Text style={[styles.cardBody, styles.cardLabelGap]}>오늘 곁에 둘 물건 · {luckyItem}</Text>
+                  )}
+                  <View style={styles.closeRow}>
+                    <ActionButton label="확인했어요" tone="ghost" compact onPress={() => setEngineOpen(false)} />
+                  </View>
+                </View>
+              ) : (
+                <ActionButton label="💰 오늘 돈 버는 엔진 활성화" tone="cyan" onPress={() => setEngineOpen(true)} />
+              ))}
+
+            {meta.key === 'health' && (
+              <ActionButton label="⚡ 3초 오행 정산 및 배터리 충전" tone="cyan" onPress={onOpenDailyCard} />
+            )}
+
+            <Text style={styles.swipeHint}>↑ 위로 밀어서 다음 이야기</Text>
+          </View>
+        </View>
+      </Animated.View>
+    </View>
+  );
+});
+
+// ───────────────────────── 메인 뷰 ─────────────────────────
+
+export const ReelsFortuneView: React.FC<ReelsFortuneViewProps> = (props) => {
+  const { paused = false, onSettingsPress } = props;
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const readyRef = useRef(false);
+  const activeRef = useRef(0);
+  const [pageHeight, setPageHeight] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [cardOpen, setCardOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+
+  useEffect(() => () => stopAmbient(), []);
+
+  // 높이가 정해지거나 바뀌면(모바일 주소창 등) 현재 섹션 위치로 다시 맞춘다.
+  useEffect(() => {
+    if (pageHeight <= 0) return undefined;
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: (activeRef.current + 1) * pageHeight, animated: false });
+      readyRef.current = true;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [pageHeight]);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const next = Math.round(e.nativeEvent.layout.height);
     if (next > 0 && next !== pageHeight) setPageHeight(next);
   };
 
-  const handleMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (pageHeight <= 0) return;
-    const index = Math.round(e.nativeEvent.contentOffset.y / pageHeight);
-    setPageIndex(Math.min(pages.length - 1, Math.max(0, index)));
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (pageHeight <= 0 || !readyRef.current) return;
+    const y = e.nativeEvent.contentOffset.y;
+    const page = Math.round(y / pageHeight);
+    const section = (((page - 1) % REAL_PAGE_COUNT) + REAL_PAGE_COUNT) % REAL_PAGE_COUNT;
+    if (section !== activeRef.current) {
+      activeRef.current = section;
+      setActiveIdx(section);
+    }
+    // 복제 페이지에 정확히 도착하면 진짜 페이지로 소리 없이 점프해서 무한 루프를 만든다.
+    if (Math.abs(y - page * pageHeight) <= 2) {
+      if (page === 0) scrollRef.current?.scrollTo({ y: REAL_PAGE_COUNT * pageHeight, animated: false });
+      else if (page === PAGE_KEYS.length - 1) scrollRef.current?.scrollTo({ y: pageHeight, animated: false });
+    }
   };
+
+  const toggleSound = () => {
+    if (soundOn) {
+      stopAmbient();
+      setSoundOn(false);
+    } else if (startAmbient()) {
+      setSoundOn(true);
+    }
+  };
+
+  const hold = paused || cardOpen;
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
 
-      <VideoBackdrop element={resolvedElement} />
-      <GrainOverlay />
-      <VignetteOverlay />
-      <FilmFrame height={height} />
+      <View style={styles.pager} onLayout={handleLayout}>
+        {pageHeight > 0 && (
+          <ScrollView
+            ref={scrollRef}
+            pagingEnabled
+            snapToInterval={pageHeight}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
+            bounces={false}
+            overScrollMode="never"
+            style={SNAP_CONTAINER}
+          >
+            {PAGE_KEYS.map((key, page) => {
+              const meta = SECTIONS.find((s) => s.key === key) ?? SECTIONS[0];
+              if (!meta) return null;
+              const isActive = SECTIONS[activeIdx]?.key === key;
+              return (
+                <ReelSection
+                  key={`${key}-${page}`}
+                  {...props}
+                  meta={meta}
+                  height={pageHeight}
+                  active={isActive}
+                  hold={hold}
+                  onCardFocusChange={setCardOpen}
+                />
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
-        {/* 소리가 꺼져 있을 때 화면 어디를 눌러도 켜진다(브라우저는 터치 이후에만 소리를 허용한다). */}
-        <Pressable
-          style={styles.frame}
-          onPress={soundOn ? undefined : turnSoundOn}
-          accessible={false}
-          focusable={false}
-        >
-          {/* 상단: 좌측 타임코드 / 우측 기록 번호 + 세로 손글씨 */}
-          <View style={styles.topBar} pointerEvents="none">
-            <View style={styles.topLeft}>
-              <Timecode />
-              {!!profileLabel && (
-                <Text style={styles.profileLabel} numberOfLines={1}>
-                  {profileLabel}
-                </Text>
-              )}
-            </View>
-            <View style={styles.topRight}>
-              <Text style={styles.recordNo} numberOfLines={1}>
-                {current?.recordNo}
-              </Text>
-              <Text
-                style={[styles.handwriting, { fontSize: handwritingSize, lineHeight: handwritingSize * 1.08 }]}
-                accessibilityLabel={current?.handwriting}
-              >
-                {toVertical(current?.handwriting ?? '')}
-              </Text>
-            </View>
+      <View pointerEvents="box-none" style={[styles.chrome, { paddingTop: insets.top + 10 }]}>
+        <View style={styles.chromeInner}>
+          <View style={styles.progress} accessibilityLabel={`${activeIdx + 1}번째 이야기`}>
+            {SECTIONS.map((s, i) => (
+              <View
+                key={s.key}
+                style={[styles.progressSeg, i === activeIdx && { backgroundColor: COLORS.cyan }]}
+              />
+            ))}
           </View>
-
-          {/* 상하 스와이프 세로 릴스 페이저: 자막 박스가 바닥에 붙는다 */}
-          <View style={styles.pager} onLayout={handleLayout}>
-            {pageHeight > 0 && (
-              <ScrollView
-                pagingEnabled
-                snapToInterval={pageHeight}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                showsVerticalScrollIndicator={false}
-                onMomentumScrollEnd={handleMomentumEnd}
-                disableIntervalMomentum
-                bounces={false}
-                overScrollMode="never"
-              >
-                {pages.map((page) => (
-                  <ReelPageView key={page.key} page={page} height={pageHeight} />
-                ))}
-              </ScrollView>
-            )}
-
-            <View pointerEvents="none" style={styles.dots}>
-              {pages.map((page, i) => (
-                <View key={page.key} style={[styles.dot, i === pageIndex && styles.dotActive]} />
-              ))}
-            </View>
-          </View>
-
-          {/* 하단: 좌측 볼륨 버튼 / 중앙 파형 / 우측 대시보드 */}
-          <View style={styles.audioBar}>
+          <View style={styles.chromeButtons}>
             <Pressable
               onPress={toggleSound}
+              hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel={soundOn ? '소리 끄기' : '소리 켜기'}
-              hitSlop={8}
-              style={({ pressed }) => [styles.volumeBtn, pressed && styles.pressed]}
+              style={({ pressed }) => [styles.chromeBtn, pressed && styles.pressed]}
             >
-              <Text style={styles.volumeIcon}>{soundOn ? '🔊' : '🔇'}</Text>
+              <Text style={styles.chromeIcon}>{soundOn ? '🔊' : '🔇'}</Text>
             </Pressable>
-
-            <View pointerEvents="none" style={styles.waveCenter}>
-              <Waveform playing={soundOn} />
-              {!soundOn && <Text style={styles.waveHint}>화면을 터치하면 소리가 켜져요</Text>}
-            </View>
-
-            {onOpenDashboard ? (
-              <Pressable
-                onPress={onOpenDashboard}
-                accessibilityRole="button"
-                accessibilityLabel="사주 대시보드 열기"
-                hitSlop={8}
-                style={({ pressed }) => [styles.dashBtn, pressed && styles.pressed]}
-              >
-                <Text style={styles.dashBtnText}>⌃ 대시보드</Text>
-              </Pressable>
-            ) : (
-              <View />
-            )}
+            <Pressable
+              onPress={onSettingsPress}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="내 정보 설정"
+              style={({ pressed }) => [styles.chromeBtn, pressed && styles.pressed]}
+            >
+              <Text style={styles.chromeIcon}>⚙️</Text>
+            </Pressable>
           </View>
-
-          {/* 우측 세로 플로팅 레일 */}
-          <View style={styles.rail}>
-            <RailButton icon="⚙️" label="설정" onPress={onSettingsPress} />
-            <RailButton icon="🃏" label="다시뽑기" onPress={onTarotPress} />
-            <RailButton icon="⚡" label="궁합투시" onPress={onMatchPress} />
-            <RailButton icon="↗️" label="결과공유" onPress={onSharePress} />
-          </View>
-        </Pressable>
-      </SafeAreaView>
+        </View>
+      </View>
     </View>
   );
 };
 
-const GLASS_DARK = 'rgba(10, 8, 8, 0.5)';
-const GLASS_BORDER = 'rgba(255, 255, 255, 0.2)';
-const SHADOW = {
-  textShadowColor: 'rgba(0, 0, 0, 0.7)',
+const GLASS_BG = 'rgba(8, 12, 22, 0.66)';
+const GLASS_BORDER = 'rgba(0, 255, 204, 0.28)';
+const TEXT_SHADOW = {
+  textShadowColor: 'rgba(0, 0, 0, 0.75)',
   textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 4,
+  textShadowRadius: 6,
 } as const;
 
 const styles = StyleSheet.create({
@@ -608,187 +826,167 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     overflow: 'hidden',
-    backgroundColor: FILM_BLACK,
+    backgroundColor: COLORS.space,
   },
   fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  grain: {
-    position: 'absolute',
-    top: '-10%',
-    left: '-10%',
-    width: '120%',
-    height: '120%',
-    opacity: 0.16,
-  },
-  safe: { flex: 1 },
-  frame: { flex: 1, paddingHorizontal: FRAME_SIDE + 14, paddingTop: FRAME_VERTICAL + 8 },
+  dim: { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
+  pager: { flex: 1 },
+  page: { width: '100%', overflow: 'hidden', backgroundColor: COLORS.space },
 
-  filmWindow: {
-    position: 'absolute',
-    top: FRAME_VERTICAL,
-    bottom: FRAME_VERTICAL,
-    left: FRAME_SIDE,
-    right: FRAME_SIDE,
-    borderRadius: FRAME_RADIUS,
-  },
-  filmWindowBorder: { borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)' },
-  edge: { position: 'absolute', backgroundColor: FILM_BLACK },
-  sprockets: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: HOLE_W,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    paddingVertical: 6,
-  },
-  hole: { width: HOLE_W, height: HOLE_H, borderRadius: 3, backgroundColor: FILM_HOLE },
-
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 2 },
-  topLeft: { flexShrink: 1 },
-  timecode: {
-    color: '#FFFFFF',
-    fontSize: 19,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    fontFamily: MONO_FONT,
-    fontVariant: ['tabular-nums'],
-    ...SHADOW,
-  },
-  profileLabel: {
-    marginTop: 4,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 11,
-    fontWeight: '600',
-    ...KEEP_ALL,
-    ...SHADOW,
-  },
-  topRight: { alignItems: 'center', minWidth: 64 },
-  recordNo: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    textAlign: 'right',
-    ...KEEP_ALL,
-    ...SHADOW,
-  },
-  handwriting: {
-    marginTop: 8,
-    color: 'rgba(255, 255, 255, 0.92)',
-    fontFamily: HANDWRITING_FONT,
-    fontStyle: IS_WEB ? 'normal' : 'italic',
-    textAlign: 'center',
-    ...SHADOW,
-  },
-
-  pager: { flex: 1, overflow: 'hidden', marginTop: 8 },
-  page: { justifyContent: 'flex-end', paddingRight: RAIL_SIZE + 14 },
-  captionBox: {
-    paddingVertical: 13,
-    paddingHorizontal: 16,
+  chrome: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 16, zIndex: 10 },
+  chromeInner: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center', gap: 10 },
+  progress: { flexDirection: 'row', gap: 6 },
+  progressSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.22)' },
+  chromeButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
+  chromeBtn: {
+    width: 36,
+    height: 36,
     borderRadius: 18,
-    backgroundColor: GLASS_DARK,
+    backgroundColor: 'rgba(8, 12, 22, 0.5)',
     borderWidth: 1,
-    borderColor: GLASS_BORDER,
-    ...(GLASS_BLUR ?? {}),
+    borderColor: 'rgba(255, 255, 255, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  captionMeta: {
-    color: 'rgba(255, 255, 255, 0.62)',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-    marginBottom: 5,
-    ...KEEP_ALL,
-  },
-  captionLine: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', lineHeight: 22, ...KEEP_ALL },
-  captionLineSub: { fontWeight: '500', color: 'rgba(255, 255, 255, 0.82)' },
+  chromeIcon: { fontSize: 16 },
 
-  dots: {
-    position: 'absolute',
-    left: -8,
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: { width: 3, height: 12, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.28)' },
-  dotActive: { backgroundColor: '#FFFFFF' },
+  content: { flex: 1, paddingHorizontal: 20 },
+  contentInner: { flex: 1, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center', justifyContent: 'space-between' },
+  middle: { flex: 1, justifyContent: 'center', paddingVertical: 12 },
+  actions: { gap: 10 },
 
-  audioBar: {
-    height: 52,
-    marginTop: 4,
-    marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  volumeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderWidth: 1,
-    borderColor: GLASS_BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...(GLASS_BLUR ?? {}),
-  },
-  volumeIcon: { fontSize: 16 },
-  waveCenter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  waveRow: { flexDirection: 'row', alignItems: 'center', height: 24 },
-  waveBar: {
-    width: 2.5,
-    marginHorizontal: 1.2,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-  },
-  waveBarIdle: { backgroundColor: 'rgba(255, 255, 255, 0.5)' },
-  waveHint: {
-    marginTop: 3,
-    color: 'rgba(255, 255, 255, 0.62)',
-    fontSize: 10,
-    fontWeight: '600',
-    ...KEEP_ALL,
-    ...SHADOW,
-  },
-  dashBtn: {
-    paddingVertical: 8,
+  chip: {
+    alignSelf: 'flex-start',
+    paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.55)',
-    backgroundColor: 'rgba(0, 0, 0, 0.32)',
+    backgroundColor: 'rgba(5, 7, 13, 0.55)',
   },
-  dashBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700', letterSpacing: 0.3, ...KEEP_ALL },
+  chipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3, ...KEEP_ALL },
+  title: {
+    marginTop: 14,
+    color: COLORS.text,
+    fontSize: 32,
+    lineHeight: 41,
+    fontWeight: '900',
+    ...KEEP_ALL,
+    ...TEXT_SHADOW,
+  },
+  titleCompact: { fontSize: 26, lineHeight: 34 },
+  subtitle: { marginTop: 8, color: '#D8E1EF', fontSize: 14, lineHeight: 21, ...KEEP_ALL, ...TEXT_SHADOW },
+  swipeHint: { marginTop: 2, color: 'rgba(255, 255, 255, 0.5)', fontSize: 11, textAlign: 'center', ...KEEP_ALL },
 
-  rail: {
-    position: 'absolute',
-    right: FRAME_SIDE + 8,
-    bottom: 78,
-    alignItems: 'center',
-    gap: 12,
-  },
-  railItem: { alignItems: 'center', minWidth: RAIL_SIZE + 10 },
-  railBtn: {
-    width: RAIL_SIZE,
-    height: RAIL_SIZE,
-    borderRadius: RAIL_SIZE / 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+  glass: {
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: GLASS_BG,
     borderWidth: 1,
     borderColor: GLASS_BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
     ...(GLASS_BLUR ?? {}),
   },
-  pressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
-  railIcon: { fontSize: 21 },
-  railLabel: { marginTop: 3, color: '#FFFFFF', fontSize: 10, fontWeight: '700', ...KEEP_ALL, ...SHADOW },
+  cardLabel: { color: COLORS.cyan, fontSize: 12, fontWeight: '800', ...KEEP_ALL },
+  cardLabelGap: { marginTop: 10 },
+  cardValue: { marginTop: 2, color: COLORS.text, fontSize: 22, fontWeight: '900', ...KEEP_ALL },
+  cardBody: { color: COLORS.text, fontSize: 14, lineHeight: 22, ...KEEP_ALL },
+
+  strip: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  stripItem: { alignItems: 'center', gap: 5, flex: 1 },
+  stripDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.35)' },
+  stripDotPast: { backgroundColor: 'rgba(189, 147, 249, 0.55)' },
+  stripDotCurrent: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.cyan },
+  stripLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '700' },
+  stripLabelCurrent: { color: COLORS.cyan, fontWeight: '900' },
+
+  natal: { marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.14)', gap: 8 },
+  natalRow: { flexDirection: 'row', gap: 6 },
+  natalCell: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  natalCellDay: { borderColor: COLORS.cyan, backgroundColor: 'rgba(0, 255, 204, 0.1)' },
+  natalLabel: { color: COLORS.muted, fontSize: 10, fontWeight: '800', ...KEEP_ALL },
+  natalChar: { fontSize: 22, fontWeight: '900', lineHeight: 30 },
+  ratioRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  ratioItem: { flex: 1, alignItems: 'center' },
+  ratioLabel: { fontSize: 12, fontWeight: '900' },
+  ratioPercent: { color: COLORS.muted, fontSize: 10, fontWeight: '700' },
+
+  radarBox: { alignItems: 'center', gap: 10 },
+  radarRing: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(0, 255, 204, 0.38)', backgroundColor: 'rgba(0, 255, 204, 0.03)' },
+  radarAxis: { position: 'absolute', backgroundColor: 'rgba(0, 255, 204, 0.18)' },
+  radarSweep: { position: 'absolute', top: 0, width: 2, opacity: 0.75 },
+  radarBlip: { position: 'absolute', width: 14, height: 14, borderRadius: 7, borderWidth: 2, opacity: 0.95 },
+  radarCenter: { position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.cyan },
+  radarScore: { fontSize: 15, fontWeight: '900', ...KEEP_ALL, ...TEXT_SHADOW },
+
+  meter: { gap: 6, marginBottom: 8 },
+  meterHead: { flexDirection: 'row', justifyContent: 'space-between' },
+  meterLabel: { color: COLORS.text, fontSize: 13, fontWeight: '800', ...KEEP_ALL },
+  meterValue: { fontSize: 13, fontWeight: '900' },
+  meterTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255, 255, 255, 0.12)', overflow: 'hidden' },
+  meterFill: { height: 8, borderRadius: 4 },
+
+  batteryWrap: { alignItems: 'center', gap: 14 },
+  batteryBody: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 8,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(5, 7, 13, 0.5)',
+  },
+  batterySeg: {
+    width: 52,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  batteryText: { fontSize: 15, fontWeight: '900', ...KEEP_ALL, ...TEXT_SHADOW },
+
+  vault: { borderColor: 'rgba(189, 147, 249, 0.5)', gap: 2 },
+  vaultCaption: { color: COLORS.violet, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  vaultTitle: { color: COLORS.text, fontSize: 16, fontWeight: '900', ...KEEP_ALL },
+  vaultBody: { marginTop: 2, color: COLORS.muted, fontSize: 12, lineHeight: 18, ...KEEP_ALL },
+  vaultButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  vaultButtonCell: { flex: 1 },
+
+  statusChip: {
+    alignSelf: 'flex-start',
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 6,
+  },
+  statusText: { fontSize: 12, fontWeight: '900', ...KEEP_ALL },
+  closeRow: { marginTop: 12 },
+
+  btn: {
+    minHeight: 54,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnCompact: { minHeight: 48, paddingHorizontal: 8, borderRadius: 14 },
+  btnCyan: { backgroundColor: COLORS.cyan },
+  btnRed: { backgroundColor: COLORS.red },
+  btnViolet: { backgroundColor: 'rgba(189, 147, 249, 0.12)', borderWidth: 1.5, borderColor: COLORS.violet },
+  btnGhost: { backgroundColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.28)' },
+  btnText: { fontSize: 15, fontWeight: '900', textAlign: 'center', ...KEEP_ALL },
+  btnTextCompact: { fontSize: 12.5 },
+  btnTextDark: { color: COLORS.ink },
+  btnTextViolet: { color: COLORS.violet },
+  btnTextLight: { color: COLORS.text },
+  pressed: { opacity: 0.75, transform: [{ scale: 0.98 }] },
 });
