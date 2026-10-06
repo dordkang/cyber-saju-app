@@ -1,0 +1,1412 @@
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { calculateSaju } from './src/engine/calculator';
+import { calculateSajuMbti, calculateMbtiSync, isValidMbti } from './src/engine/mbtiEngine';
+import { matchCelebrity, CelebrityMatchResult } from './src/engine/celebrityEngine';
+import { getStructuralContext } from './src/engine/timelineEngine';
+import type { SajuResult } from './src/engine/types';
+import {
+  initDatabase,
+  updateUserMbti,
+  saveDailyLog,
+  getDailyLog,
+  saveUserProfile,
+  getUserProfile,
+  getLatestPartnerProfile,
+  getUserOnboardingData,
+  DEFAULT_LIFE_SYNC_RATIO,
+  DEFAULT_FOCUS_INTERESTS,
+  exportBackupJson,
+  importBackupJson,
+  UserProfile,
+  UserOnboardingData,
+  PartnerProfile,
+  CalendarType,
+} from './src/database/db';
+import { AGENT_STORE, AgentType } from './src/prompts/agents';
+import { PersonaPickerModal } from './src/components/PersonaPickerModal';
+import { ElementCircuit } from './src/components/ElementCircuit';
+import { BackupModal } from './src/components/BackupModal';
+import { MbtiPickerModal } from './src/components/MbtiPickerModal';
+import { DailyCardDeck, DailyCardData } from './src/components/DailyCardDeck';
+import { CelebrityShareModal } from './src/components/CelebrityShareModal';
+import { PartnerInputModal } from './src/components/PartnerInputModal';
+import { LifeTimelineModal } from './src/components/LifeTimelineModal';
+import { ReelsFortuneView } from './src/components/ReelsFortuneView';
+import { buildReelsContent } from './src/engine/reelsContent';
+import {
+  ProfileSettingModal,
+  ProfileFormValues,
+  BIRTH_TIME_UNKNOWN,
+  parseBirthDate,
+  parseBirthTime,
+} from './src/components/ProfileSettingModal';
+
+const DEFAULT_PROFILE_NAME = '호스트';
+const DEFAULT_BIRTH_DATE = '1975-06-11';
+const DEFAULT_BIRTH_TIME = '05:00';
+const LOVE_CATEGORY = '치정/바람';
+
+const ONBOARDING_FLAG_KEY = 'cybersaju.onboarding.v1';
+/** 프로필 모달이 닫히는 애니메이션이 끝난 뒤 다음 모달을 열기 위한 대기 시간 */
+const ONBOARDING_TRANSITION_MS = 300;
+const DASHBOARD_SHEET_SETTLE_MS = 600;
+
+type OnboardingStage = 'none' | 'profile' | 'timeline';
+/** 'timeline': 프로필 저장 완료, 대운 확정 대기 / 'done': 온보딩 종료 */
+type OnboardingFlag = 'timeline' | 'done' | null;
+
+const IS_WEB = Platform.OS === 'web';
+
+// 모바일 브라우저는 주소창 때문에 100vh가 실제 보이는 영역보다 커서 하단 UI가 잘린다. dvh는 동적 뷰포트를 따른다.
+const WEB_VIEWPORT_STYLE: ViewStyle | undefined = IS_WEB
+  ? ({ height: '100dvh', minHeight: '100dvh', overflow: 'hidden' } as unknown as ViewStyle)
+  : undefined;
+
+/** react-native-web의 Alert.alert는 아무 동작도 하지 않으므로 브라우저 대화상자로 대체한다. */
+function installWebAlert(): void {
+  if (!IS_WEB || typeof window === 'undefined') return;
+
+  Alert.alert = (title, message, buttons) => {
+    const text = [title, message].filter((part) => typeof part === 'string' && part.length > 0).join('\n\n');
+    const list = Array.isArray(buttons) ? buttons : [];
+
+    if (list.length <= 1) {
+      window.alert(text);
+      list[0]?.onPress?.();
+      return;
+    }
+
+    // 확인/취소 2지선다: 취소 버튼이 있으면 그것을 거부 경로로, 없으면 마지막 버튼을 거부 경로로 본다.
+    const cancelButton = list.find((button) => button.style === 'cancel') ?? list[list.length - 1];
+    const confirmButton = list.find((button) => button !== cancelButton);
+    const guide =
+      confirmButton?.text && cancelButton?.text
+        ? `\n\n▶ 확인: ${confirmButton.text} / 취소: ${cancelButton.text}`
+        : '';
+    if (window.confirm(`${text}${guide}`)) {
+      confirmButton?.onPress?.();
+    } else {
+      cancelButton?.onPress?.();
+    }
+  };
+}
+
+installWebAlert();
+
+/** 한글 단어 중간에서 줄이 끊기지 않도록 웹 전체에 keep-all을 적용한다. */
+function installWebTextStyles(): void {
+  if (!IS_WEB || typeof document === 'undefined') return;
+  const STYLE_ID = 'cyber-saju-keep-all';
+  if (document.getElementById(STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = STYLE_ID;
+  style.textContent = '#root, #root * { word-break: keep-all; overflow-wrap: break-word; }';
+  document.head.appendChild(style);
+}
+
+installWebTextStyles();
+
+const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
+
+type QuickMenuKey = 'daeun' | 'match' | 'tendency' | 'vault';
+
+/** 대시보드 하단 퀵 메뉴. 라벨은 화면에 그대로 노출된다. */
+const QUICK_MENU_ITEMS: ReadonlyArray<{ key: QuickMenuKey; icon: string; label: string }> = [
+  { key: 'daeun', icon: '🪐', label: '일생대운' },
+  { key: 'match', icon: '⚡', label: '상대궁합' },
+  { key: 'tendency', icon: '🧬', label: '오행성향' },
+  { key: 'vault', icon: '💾', label: '데이터보관' },
+];
+
+/** 영문 시스템 오류 문구는 숨기고, 한글 안내 문구만 사용자에게 보여 준다. */
+function describeError(error: unknown): string {
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  return /[가-힣]/.test(message) ? message : '잠시 후 다시 시도해 주세요.';
+}
+
+const memoryFlags = new Map<string, string>();
+
+/** localStorage 기반 키-값 래퍼. 사용할 수 없는 환경(사생활 보호 모드 등)에서는 메모리로 폴백한다. */
+const Storage = {
+  getItemSync(key: string): string | null {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return memoryFlags.get(key) ?? null;
+    }
+  },
+  setItemSync(key: string, value: string): void {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      memoryFlags.set(key, value);
+    }
+  },
+  async getItem(key: string): Promise<string | null> {
+    return Storage.getItemSync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    Storage.setItemSync(key, value);
+  },
+};
+
+function readOnboardingFlag(): OnboardingFlag {
+  try {
+    const value = Storage.getItemSync(ONBOARDING_FLAG_KEY);
+    return value === 'timeline' || value === 'done' ? value : null;
+  } catch (e) {
+    console.warn('온보딩 플래그 읽기 실패:', e);
+    return null;
+  }
+}
+
+function writeOnboardingFlag(value: Exclude<OnboardingFlag, null>): void {
+  try {
+    Storage.setItemSync(ONBOARDING_FLAG_KEY, value);
+  } catch (e) {
+    console.warn('온보딩 플래그 저장 실패:', e);
+  }
+}
+
+/** 앱이 자동 생성한 샘플 프로필(사용자가 아직 정보를 입력하지 않은 상태)인지 판별한다. */
+function isSampleProfile(profile: UserProfile): boolean {
+  return (
+    profile.birthDate === DEFAULT_BIRTH_DATE && profile.birthTime === DEFAULT_BIRTH_TIME && !profile.gender
+  );
+}
+
+interface PartnerInfoPayload {
+  alias: string;
+  gender: string;
+  birthDate: string;
+  relation?: string;
+  dayMaster?: string;
+  dayBranch?: string;
+}
+
+function computeSajuFromProfile(
+  birthDate: string,
+  birthTime: string,
+  calendarType: CalendarType
+): SajuResult {
+  const date = parseBirthDate(birthDate);
+  if (!date) throw new Error('생년월일 형식이 올바르지 않습니다.');
+
+  // 시간을 모르면 정오 기준으로 계산한다.
+  const time = birthTime === BIRTH_TIME_UNKNOWN ? { hour: 12, minute: 0 } : parseBirthTime(birthTime);
+  if (!time) throw new Error('태어난 시간 형식이 올바르지 않습니다.');
+
+  return calculateSaju(date.year, date.month, date.day, time.hour, time.minute, calendarType !== 'lunar');
+}
+
+function buildPartnerInfo(partner: PartnerProfile): PartnerInfoPayload {
+  const info: PartnerInfoPayload = {
+    alias: partner.alias,
+    gender: partner.gender ?? '',
+    birthDate: partner.birthDate,
+    relation: partner.relation || undefined,
+  };
+  try {
+    const saju = computeSajuFromProfile(partner.birthDate, partner.birthTime, partner.calendarType);
+    return { ...info, dayMaster: saju.dayMaster, dayBranch: saju.pillars.day.branch };
+  } catch {
+    // 상대 사주 계산에 실패해도 기본 정보만으로 분석은 계속 진행한다.
+    return info;
+  }
+}
+
+function parseStoredSaju(json: string | null | undefined): SajuResult | null {
+  if (!json) return null;
+  try {
+    const value: unknown = JSON.parse(json);
+    const saju = value as Partial<SajuResult> | null;
+    if (
+      saju &&
+      typeof saju.dayMaster === 'string' &&
+      saju.pillars?.day?.stem &&
+      saju.pillars?.time?.stem &&
+      saju.elementsRatio
+    ) {
+      return saju as SajuResult;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const MBTI_LETTER_LABEL: Record<string, string> = {
+  E: '외향', I: '내향', S: '감각', N: '직관', T: '사고', F: '감정', J: '판단', P: '인식',
+};
+
+function buildMaskComment(sajuMbti: string, actualMbti: string, leakage: number): string {
+  if (leakage <= 0) {
+    return '선천 코어와 실제 성향이 일치합니다. 가면 없이 에너지를 100% 보존 중입니다.';
+  }
+  const innate: string[] = [];
+  const persona: string[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    const a = sajuMbti[i];
+    const b = actualMbti[i];
+    if (a && b && a !== b) {
+      innate.push(`${MBTI_LETTER_LABEL[a] ?? a}(${a})`);
+      persona.push(`${MBTI_LETTER_LABEL[b] ?? b}(${b})`);
+    }
+  }
+  return `선천적 ${innate.join('·')}의 에너지를 지키기 위해 ${persona.join('·')} 페르소나를 가동 중. 일일 ${leakage}% 배터리 누수 발생`;
+}
+
+function getLeakageColor(leakage: number): string {
+  if (leakage >= 75) return '#FF5555';
+  if (leakage >= 50) return '#F1FA8C';
+  return '#00F0FF';
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
+  const [dbReady, setDbReady] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>('DOKSA');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [backupVisible, setBackupVisible] = useState(false);
+  const [sajuMbti, setSajuMbti] = useState<{ mbti: string; description: string } | null>(null);
+  const [mbtiPickerVisible, setMbtiPickerVisible] = useState(false);
+  const [personaModalVisible, setPersonaModalVisible] = useState(false);
+  const [celebrityResult, setCelebrityResult] = useState<CelebrityMatchResult | null>(null);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [onboardingStage, setOnboardingStage] = useState<OnboardingStage>('none');
+  const onboarding = onboardingStage === 'profile';
+  const setOnboarding = (on: boolean) => setOnboardingStage(on ? 'profile' : 'none');
+  // 릴스 룩북 화면이 영구 기본 뷰다. 기존 진단 대시보드는 설정(⚙️)/대시보드 버튼으로만 열리는 하단 시트에 둔다.
+  const [dashboardVisible, setDashboardVisible] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  const deckYRef = useRef(0);
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [partnerProfile, setPartnerProfile] = useState<PartnerProfile | null>(null);
+  const [partnerModalVisible, setPartnerModalVisible] = useState(false);
+  const [timelineVisible, setTimelineVisible] = useState(false);
+  const [lifeOnboarding, setLifeOnboarding] = useState<UserOnboardingData>({
+    syncRatio: DEFAULT_LIFE_SYNC_RATIO,
+    interests: [...DEFAULT_FOCUS_INTERESTS],
+    isSynced: false,
+  });
+
+  const loadData = async () => {
+    const loadedProfile = await getUserProfile();
+    setProfile(loadedProfile);
+    // 백업 복원 직후에도 대운 동기화 확정 상태가 화면과 어긋나지 않게 함께 갱신한다.
+    setLifeOnboarding(await getUserOnboardingData());
+  };
+
+  const applySaju = (saju: SajuResult) => {
+    setSajuMbti(calculateSajuMbti(saju));
+    setCelebrityResult(matchCelebrity(saju));
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function setup() {
+      try {
+        await initDatabase();
+
+        let loaded = await getUserProfile();
+        if (!loaded) {
+          const defaultSaju = computeSajuFromProfile(DEFAULT_BIRTH_DATE, DEFAULT_BIRTH_TIME, 'solar');
+          await saveUserProfile(DEFAULT_PROFILE_NAME, DEFAULT_BIRTH_DATE, DEFAULT_BIRTH_TIME, defaultSaju, {
+            calendarType: 'solar',
+          });
+          loaded = await getUserProfile();
+        }
+        if (!loaded) throw new Error('프로필을 불러오지 못했습니다.');
+
+        const saju =
+          parseStoredSaju(loaded.sajuData) ??
+          computeSajuFromProfile(loaded.birthDate, loaded.birthTime, loaded.calendarType ?? 'solar');
+
+        const savedPartner = await getLatestPartnerProfile().catch(() => null);
+        const savedOnboarding = await getUserOnboardingData().catch(() => null);
+
+        // 온보딩 상태 머신: 종료 플래그가 없을 때만 샘플 프로필(→1단계) 또는 대운 미확정(→2단계 재개)을 판정한다.
+        let stage: OnboardingStage = 'none';
+        if (readOnboardingFlag() !== 'done') {
+          if (isSampleProfile(loaded)) {
+            stage = 'profile';
+          } else if (readOnboardingFlag() === 'timeline' && savedOnboarding?.isSynced !== true) {
+            stage = 'timeline';
+          } else {
+            // 이미 프로필을 입력했거나 동기화를 마친 기존 사용자는 팝업 없이 정식 진입한다.
+            writeOnboardingFlag('done');
+          }
+        }
+
+        if (isMounted) {
+          setProfile(loaded);
+          setPartnerProfile(savedPartner);
+          if (savedOnboarding) setLifeOnboarding(savedOnboarding);
+          applySaju(saju);
+          setOnboardingStage(stage);
+          setProfileModalVisible(stage === 'profile');
+          setTimelineVisible(stage === 'timeline');
+          setDbReady(true);
+        }
+      } catch (e: any) {
+        console.error('DB 초기화 실패:', e);
+      }
+    }
+    setup();
+    return () => {
+      isMounted = false;
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
+  const handleSaveProfile = async (values: ProfileFormValues) => {
+    const saju = computeSajuFromProfile(values.birthDate, values.birthTime, values.calendarType);
+
+    const { timelineSyncReset } = await saveUserProfile(
+      profile?.name ?? DEFAULT_PROFILE_NAME,
+      values.birthDate,
+      values.birthTime,
+      saju,
+      {
+        gender: values.gender,
+        calendarType: values.calendarType,
+        userLore: values.userLore,
+      }
+    );
+
+    const mbtiResult = calculateSajuMbti(saju);
+    const savedActual = profile?.actual_mbti;
+    if (mbtiResult.mbti && isValidMbti(savedActual)) {
+      const { syncRate } = calculateMbtiSync(mbtiResult.mbti, savedActual);
+      await updateUserMbti(mbtiResult.mbti, savedActual, syncRate);
+    }
+
+    applySaju(saju);
+    setAnalysisResult(null);
+    await loadData();
+    // 온보딩 중에는 모달을 닫지 않는다. 다음 단계(대운 타임라인) 전환은 handleProfileSaved가 맡는다.
+    if (onboarding) return;
+    setOnboarding(false);
+    setProfileModalVisible(false);
+    Alert.alert(
+      '⚡ 운명 정보 저장 완료',
+      '입력하신 정보로 사주와 선천 MBTI가 다시 계산되었습니다.' +
+        (timelineSyncReset
+          ? '\n\n🪐 명식이 바뀌어 이전 대운 동기화가 해제되었습니다. [일생 대운 확인]에서 새 대운 흐름을 다시 확인하고 확정해 주세요.'
+          : '')
+    );
+  };
+
+  const handleProfileSaved = (isNewProfile: boolean) => {
+    if (!isNewProfile || onboardingStage !== 'profile') return;
+
+    // 앱이 중간에 종료돼도 다음 실행에서 대운 확정 단계부터 이어가도록 기록한다.
+    writeOnboardingFlag('timeline');
+    setProfileModalVisible(false);
+    // iOS는 모달이 닫히는 도중 다른 모달을 열면 무시되므로 닫힘 이후로 미룬다.
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    transitionTimerRef.current = setTimeout(() => {
+      transitionTimerRef.current = null;
+      setOnboardingStage('timeline');
+      setTimelineVisible(true);
+    }, ONBOARDING_TRANSITION_MS);
+  };
+
+  const handleTimelineClose = () => {
+    // 온보딩을 마쳐도 릴스 메인 화면에 그대로 안착한다. (대시보드 시트는 열지 않음)
+    setTimelineVisible(false);
+    setOnboardingStage('none');
+  };
+
+  const scrollToDeck = () => {
+    // 시트가 열리며 스크롤 영역이 마운트·레이아웃된 뒤에 이동한다.
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, deckYRef.current - 12), animated: true });
+    }, DASHBOARD_SHEET_SETTLE_MS);
+  };
+
+  // 타로 카드 덱은 대시보드 시트 안에 있으므로 시트를 열고 덱 위치로 이동한다.
+  const handleReelsTarot = () => {
+    setDashboardVisible(true);
+    scrollToDeck();
+  };
+
+  const handleReelsMatch = () => {
+    setPartnerModalVisible(true);
+  };
+
+  const handleQuickMenu = (key: QuickMenuKey) => {
+    if (key === 'daeun') setTimelineVisible(true);
+    else if (key === 'match') setPartnerModalVisible(true);
+    else if (key === 'tendency') setMbtiPickerVisible(true);
+    else setBackupVisible(true);
+  };
+
+  const handleReelsShare = () => {
+    if (celebrityResult?.matchedCelebrity) {
+      setShareModalVisible(true);
+      return;
+    }
+    Alert.alert('안내', '공유할 카드를 아직 만들지 못했어요. 운명 정보를 먼저 확인해 주세요.');
+  };
+
+  const handleEventCategorySelect = (category: string) => {
+    if (category === LOVE_CATEGORY && !partnerProfile) {
+      setPartnerModalVisible(true);
+    }
+  };
+
+  const handlePartnerSaved = async () => {
+    const latest = await getLatestPartnerProfile();
+    setPartnerProfile(latest);
+    setAnalysisResult(null);
+    setPartnerModalVisible(false);
+  };
+
+  const handleTimelineSynced = async () => {
+    // 저장된 값을 다시 읽어 DB와 화면 상태가 어긋나지 않게 한다.
+    const latest = await getUserOnboardingData();
+    setLifeOnboarding(latest);
+    // 대운 확정이 끝났으므로 온보딩 종료를 로컬에 기록한다.
+    if (latest.isSynced) writeOnboardingFlag('done');
+  };
+
+  const handleTimelineRequestProfile = () => {
+    setTimelineVisible(false);
+    // iOS는 모달이 닫히는 도중 다른 모달을 열면 무시되므로 닫힘 이후로 미룬다.
+    setTimeout(() => {
+      setOnboarding(false);
+      setProfileModalVisible(true);
+    }, 350);
+  };
+
+  const handleSelectActualMbti = async (selected: string) => {
+    setMbtiPickerVisible(false);
+    if (!sajuMbti?.mbti) return;
+
+    try {
+      const { syncRate } = calculateMbtiSync(sajuMbti.mbti, selected);
+      const saved = await updateUserMbti(sajuMbti.mbti, selected, syncRate);
+      if (!saved) {
+        Alert.alert('안내', '저장할 프로필을 찾지 못했습니다.');
+        return;
+      }
+      await loadData();
+    } catch (e: any) {
+      Alert.alert('저장 오류', `MBTI 보정 내용을 저장하지 못했습니다. ${describeError(e)}`);
+    }
+  };
+
+  const handleSaveDailyCard = async (data: DailyCardData) => {
+    try {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const today = `${yyyy}-${mm}-${dd}`;
+
+      // 정오 기준으로 계산해 자시(23시~) 일진 경계 이슈를 피한다.
+      const dayPillar = calculateSaju(yyyy, now.getMonth() + 1, now.getDate(), 12, 0, true).pillars.day;
+      const dailyGanji = `${dayPillar.stem}${dayPillar.branch}`;
+
+      await saveDailyLog(
+        today,
+        data.emotionElement,
+        data.eventCategory,
+        data.energyLevel,
+        dailyGanji,
+        data.shortMemo,
+        undefined,
+        data.tarotCard
+      );
+      Alert.alert(
+        '⚡ 카드 기록 완료',
+        `오늘의 오행 기운이 이 브라우저에 안전하게 저장되었습니다.${
+          data.shortMemo ? '\n📝 오늘의 넋두리 한 줄도 함께 기록되었습니다.' : ''
+        }`
+      );
+    } catch (e: any) {
+      Alert.alert('저장 오류', `카드 기록을 저장하지 못했습니다. ${describeError(e)}`);
+      throw e;
+    }
+  };
+
+  const handleRequestAiAnalysis = async () => {
+    if (!profile) {
+      Alert.alert('안내', '프로필 정보가 필요합니다.');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      const todayLog = await getDailyLog(today);
+      if (!todayLog) {
+        Alert.alert('안내', '먼저 오늘의 카드를 기록해 주세요.');
+        return;
+      }
+
+      const sajuObj = JSON.parse(profile.sajuData);
+      const currentAgent = AGENT_STORE[selectedAgent];
+
+      const cardData = {
+        emotionElement: todayLog.emotion_element,
+        eventCategory: todayLog.event_category,
+        energyLevel: todayLog.energy_level,
+        shortMemo: todayLog.short_memo ?? '',
+        dailyGanji: todayLog.daily_ganji,
+        tarotCard: todayLog.tarotCard ?? '',
+      };
+
+      // 현재 배포된 게이트웨이는 diaryContent/emotionScore 필드로 프롬프트를 구성하므로 카드 요약을 함께 보낸다.
+      const diaryContent =
+        `[오늘의 3초 카드] 일진 ${cardData.dailyGanji} / 감정 오행 ${cardData.emotionElement} / ` +
+        `사건 영역 ${cardData.eventCategory} / 에너지 잔량 ${cardData.energyLevel}%` +
+        (cardData.tarotCard ? ` / 오늘의 타로 카드: ${cardData.tarotCard}` : '') +
+        (cardData.shortMemo ? ` / 넋두리: "${cardData.shortMemo}"` : '') +
+        (sajuMbti?.mbti
+          ? ` / 선천 MBTI ${sajuMbti.mbti}` +
+            (profile.actual_mbti ? `, 실제 MBTI ${profile.actual_mbti} (일치율 ${profile.mbti_sync ?? 100}%)` : '')
+          : '') +
+        ` [요청] 위 일진·오행 에너지·에너지 잔량·넋두리${cardData.tarotCard ? '·타로 카드' : ''}를 ` +
+        `함께 엮어 해석하고, 당신의 페르소나 말투로 600~800자의 3단 점사 공식(간파, 당위성 부여, 단호한 단일 처방)으로 답하십시오.`;
+
+      const partnerInfo =
+        partnerProfile && cardData.eventCategory === LOVE_CATEGORY
+          ? buildPartnerInfo(partnerProfile)
+          : undefined;
+
+      // 로컬 룰 엔진 연산(외부 통신 없음). 산출 실패 시 undefined라 JSON에서 제외되고 AI 요청은 그대로 진행된다.
+      const structuralContext =
+        getStructuralContext(profile.birthDate, now, {
+          birthTime: profile.birthTime,
+          calendarType: profile.calendarType ?? 'solar',
+          gender: profile.gender ?? null,
+        }) ?? undefined;
+
+      const response = await fetch('https://saju-edge-gateway.cybersaju.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentType: selectedAgent,
+          systemInstruction: currentAgent.systemInstruction,
+          dayMaster: sajuObj?.dayMaster,
+          pillars: sajuObj?.pillars,
+          elementsRatio: sajuObj?.elementsRatio,
+          coreMbti: sajuMbti?.mbti,
+          actualMbti: profile.actual_mbti,
+          mbtiSync: profile.mbti_sync,
+          gender: profile.gender ?? undefined,
+          userLore: profile.userLore ?? '',
+          partnerInfo,
+          // 사용자가 대운 동기화를 확정한 경우에만 보낸다. 미확정이면 undefined라 JSON에서 제외된다.
+          syncRatio: lifeOnboarding.isSynced ? lifeOnboarding.syncRatio : undefined,
+          interests: lifeOnboarding.isSynced ? lifeOnboarding.interests : undefined,
+          structuralContext,
+          cardData,
+          tarotCard: cardData.tarotCard,
+          diaryContent,
+          emotionScore: Math.max(1, Math.min(5, Math.round(cardData.energyLevel / 20))),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || JSON.stringify(data));
+      }
+
+      const resultText =
+        data.analysis ||
+        data.feedback ||
+        (typeof data === 'string' ? data : JSON.stringify(data));
+
+      setAnalysisResult(resultText);
+
+      await saveDailyLog(
+        today,
+        todayLog.emotion_element,
+        todayLog.event_category,
+        todayLog.energy_level,
+        todayLog.daily_ganji,
+        todayLog.short_memo ?? undefined,
+        `[${currentAgent.name}] ${resultText}`,
+        todayLog.tarotCard
+      );
+
+      Alert.alert('인공지능 점사 완료', `[${currentAgent.name}]의 처방이 오늘의 카드 기록에 저장되었습니다.`);
+    } catch (err: any) {
+      Alert.alert(
+        '통신 오류',
+        `인공지능 도사와 연결하지 못했습니다. 네트워크 상태를 확인하신 뒤 다시 시도해 주세요. ${describeError(err)}`
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // 프로필 로드 여부와 관계없이 릴스 화면을 먼저 그린다. (로드 전에는 오늘 일진 기반 기본 문구)
+  const sajuObj = profile ? parseStoredSaju(profile.sajuData) : null;
+  const todayKey = new Date().toDateString();
+  const reelsContent = useMemo(
+    () =>
+      buildReelsContent(sajuObj, new Date(), {
+        aiText: analysisResult,
+        profileId: profile?.id ?? null,
+        profileName: profile?.name ?? null,
+      }),
+    // sajuObj는 profile.sajuData에서 파생되므로 원본 문자열을 의존성으로 쓴다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [profile?.sajuData, profile?.id, profile?.name, analysisResult, todayKey]
+  );
+  const currentAgent = AGENT_STORE[selectedAgent];
+
+  const savedActualMbti = profile?.actual_mbti ?? null;
+  const actualMbti = isValidMbti(savedActualMbti) ? savedActualMbti : null;
+  const mbtiSyncResult =
+    sajuMbti?.mbti && actualMbti ? calculateMbtiSync(sajuMbti.mbti, actualMbti) : null;
+  const leakageColor = getLeakageColor(mbtiSyncResult?.energyLeakage ?? 0);
+  const batteryRemain = 100 - (mbtiSyncResult?.energyLeakage ?? 0);
+
+  return (
+    <View style={[styles.root, WEB_VIEWPORT_STYLE]}>
+      {/* 영구 기본 메인 뷰: 프로필 로드 여부와 관계없이 항상 풀스크린 릴스를 그린다. */}
+      <ReelsFortuneView
+        element={reelsContent.element}
+        elementName={reelsContent.elementName}
+        dayPillarText={reelsContent.dayPillarText}
+        keyword={reelsContent.keyword}
+        fortuneText={reelsContent.fortuneText}
+        luckyItem={reelsContent.luckyItem}
+        luckyReason={reelsContent.luckyReason}
+        profileLabel={reelsContent.profileLabel}
+        onSettingsPress={() => setDashboardVisible(true)}
+        onTarotPress={handleReelsTarot}
+        onMatchPress={handleReelsMatch}
+        onSharePress={handleReelsShare}
+        onOpenDashboard={() => setDashboardVisible(true)}
+      />
+
+      {/* 기존 진단 대시보드: 메인 화면을 가리지 않고 하단 시트로만 열린다. */}
+      <Modal
+        visible={dashboardVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setDashboardVisible(false)}
+      >
+        <View style={styles.sheetBackdrop}>
+          <Pressable
+            style={styles.sheetDismiss}
+            onPress={() => setDashboardVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="대시보드 닫기"
+          />
+          <View style={[styles.sheet, { height: Math.round(windowHeight * 0.88) }]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>⚙️ 사주 대시보드</Text>
+              <TouchableOpacity
+                onPress={() => setDashboardVisible(false)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="대시보드 닫기"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.sheetCloseBtn}
+              >
+                <Text style={styles.sheetCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+    <ScrollView
+      ref={scrollRef}
+      style={styles.scrollView}
+      contentContainerStyle={[styles.container, styles.sheetContent]}
+    >
+      {/* 2단 반응형 헤더 & 명확한 [💾 DB 백업] 버튼 */}
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitleBox}>
+          <Text style={styles.headerTitle}>옥동자의 사이버 작두</Text>
+          <Text style={styles.headerSubtitle}>내 기기에만 저장되는 사주 점사</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.backupHeaderBtn}
+            onPress={() => setBackupVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backupHeaderBtnText}>💾 데이터보관</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsHeaderBtn}
+            onPress={() => {
+              setOnboarding(false);
+              setProfileModalVisible(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="운명 정보 설정"
+          >
+            <Text style={styles.settingsHeaderBtnText}>⚙️</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.timelineBtn}
+        onPress={() => setTimelineVisible(true)}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="일생 대운 시간여행 열기"
+      >
+        <Text style={styles.timelineBtnText}>
+          {lifeOnboarding.isSynced ? '🪐 일생 대운 · 시간여행' : '🪐 일생 대운 확인'}
+        </Text>
+        {lifeOnboarding.isSynced && (
+          <View style={styles.timelineBadge}>
+            <Text style={styles.timelineBtnSub}>🪐 대운 일치율 {lifeOnboarding.syncRatio}%</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>[내 사주 정보 · 이 기기에 저장]</Text>
+        <Text style={styles.text}>식별자: #{profile?.id} | 사용자: {profile?.name}</Text>
+        <Text style={styles.text}>
+          생년월일: {profile?.birthDate} {profile?.birthTime}
+          {profile?.calendarType === 'lunar' ? ' (음력)' : ' (양력)'}
+          {profile?.gender ? ` · ${profile.gender === 'male' ? '남성' : '여성'}` : ''}
+        </Text>
+        {sajuObj && (
+          <Text style={styles.sajuPillars}>
+            {sajuObj.pillars.year.stem}{sajuObj.pillars.year.branch}년{' '}
+            {sajuObj.pillars.month.stem}{sajuObj.pillars.month.branch}월{' '}
+            {sajuObj.pillars.day.stem}{sajuObj.pillars.day.branch}일{' '}
+            {sajuObj.pillars.time.stem}{sajuObj.pillars.time.branch}시 (일간 {sajuObj.dayMaster})
+          </Text>
+        )}
+      </View>
+
+      {!!sajuMbti?.mbti && (
+        <View style={styles.mbtiCard}>
+          <Text style={styles.mbtiCardTitle}>[타고난 성향 · 사주로 본 선천 MBTI]</Text>
+          <Text style={styles.mbtiLetters}>{sajuMbti.mbti}</Text>
+          <Text style={styles.mbtiDescription}>{sajuMbti.description}</Text>
+
+          <View style={styles.mbtiCalibrateRow}>
+            <Text style={styles.mbtiCalibrateHint}>
+              {actualMbti ? `실제 MBTI: ${actualMbti}` : '실제 MBTI와 다른가요?'}
+            </Text>
+            <TouchableOpacity
+              style={styles.mbtiCalibrateBtn}
+              onPress={() => setMbtiPickerVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.mbtiCalibrateBtnText}>MBTI 보정</Text>
+            </TouchableOpacity>
+          </View>
+
+          {mbtiSyncResult && actualMbti && (
+            <View style={styles.leakageBox}>
+              <Text style={[styles.leakageTitle, { color: leakageColor }]}>
+                [사회적 가면 누수율: {mbtiSyncResult.energyLeakage}%]
+              </Text>
+              <View style={styles.batteryRow}>
+                <View style={[styles.batteryBody, { borderColor: leakageColor, shadowColor: leakageColor }]}>
+                  {[0, 1, 2, 3].map((i) => {
+                    const lit = (i + 1) * 25 <= batteryRemain;
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.batteryCell,
+                          lit && { backgroundColor: leakageColor, shadowColor: leakageColor, shadowOpacity: 0.9, shadowRadius: 6 },
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+                <View style={[styles.batteryCap, { backgroundColor: leakageColor }]} />
+              </View>
+              <Text style={styles.leakageSync}>
+                선천 {sajuMbti.mbti} ↔ 실제 {actualMbti} · 일치율 {mbtiSyncResult.syncRate}%
+              </Text>
+              <Text style={styles.leakageComment}>
+                {buildMaskComment(sajuMbti.mbti, actualMbti, mbtiSyncResult.energyLeakage)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {celebrityResult?.matchedCelebrity && (
+        <View style={styles.celebCard}>
+          <Text style={styles.celebCardTitle}>[세계 유명인 사주 거울 · 영혼의 주파수]</Text>
+          <View style={styles.celebSyncBadge}>
+            <Text style={styles.celebSyncText}>⚡ 사주 일치율 {celebrityResult.syncRate}%</Text>
+          </View>
+
+          <Text style={styles.celebName}>{celebrityResult.matchedCelebrity.name}</Text>
+          {!!celebrityResult.matchedCelebrity.title && (
+            <Text style={styles.celebTitle}>{celebrityResult.matchedCelebrity.title}</Text>
+          )}
+          {!!celebrityResult.matchedCelebrity.archetype && (
+            <Text style={styles.celebArchetype}>#{celebrityResult.matchedCelebrity.archetype}</Text>
+          )}
+
+          <View style={styles.celebReasonBox}>
+            <Text style={styles.celebReasonLabel}>명리학 일치 사유</Text>
+            <Text style={styles.celebReasonText}>{celebrityResult.matchReason}</Text>
+          </View>
+
+          {!!celebrityResult.matchedCelebrity.quote && (
+            <Text style={styles.celebQuote}>“{celebrityResult.matchedCelebrity.quote}”</Text>
+          )}
+
+          <TouchableOpacity
+            style={styles.celebShareBtn}
+            onPress={() => setShareModalVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.celebShareBtnText}>[📸 인스타 스토리 공유 카드 생성]</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {sajuObj?.elementsRatio && (
+        <ElementCircuit elementsRatio={sajuObj.elementsRatio} />
+      )}
+
+      <View style={styles.agentCard}>
+        <Text style={styles.agentCardTitle}>[인공지능 도사 고르기]</Text>
+        <TouchableOpacity
+          style={styles.personaTrigger}
+          onPress={() => setPersonaModalVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.personaTriggerEmoji}>{currentAgent.emoji}</Text>
+          <View style={styles.personaTriggerTextBox}>
+            <Text style={styles.personaTriggerName}>{currentAgent.name}</Text>
+            <Text style={styles.personaTriggerTitle} numberOfLines={1}>
+              {currentAgent.title}
+            </Text>
+          </View>
+          <Text style={styles.personaTriggerChange}>▼ 변경</Text>
+        </TouchableOpacity>
+        <View style={styles.agentMetaBox}>
+          <Text style={styles.agentMetaTone}>{currentAgent.tone}</Text>
+        </View>
+      </View>
+
+      <View
+        style={styles.dailyDeckWrap}
+        onLayout={(e) => {
+          deckYRef.current = e.nativeEvent.layout.y;
+        }}
+      >
+        <DailyCardDeck onSave={handleSaveDailyCard} onEventCategorySelect={handleEventCategorySelect} />
+        {partnerProfile && (
+          <View style={styles.partnerChip}>
+            <Text style={styles.partnerChipText} numberOfLines={1}>
+              [대상: {partnerProfile.relation || partnerProfile.alias} ({partnerProfile.birthDate})]
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPartnerModalVisible(true)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="상대방 정보 변경"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.partnerChipChange}>[변경]</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.aiButton, aiLoading && styles.buttonDisabled]}
+        onPress={handleRequestAiAnalysis}
+        disabled={aiLoading}
+      >
+        {aiLoading ? (
+          <ActivityIndicator color="#090D16" />
+        ) : (
+          <Text style={styles.aiButtonText}>
+            ⚡ [{currentAgent.name}] 오행 교차 분석 요청
+          </Text>
+        )}
+      </TouchableOpacity>
+
+      {analysisResult && (
+        <View style={styles.analysisCard}>
+          <Text style={styles.analysisTitle}>[인공지능 점사 결과 · {currentAgent.name}]</Text>
+          <Text style={styles.analysisContent}>{analysisResult}</Text>
+        </View>
+      )}
+    </ScrollView>
+            <View style={styles.quickMenu}>
+              {QUICK_MENU_ITEMS.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={styles.quickItem}
+                  onPress={() => handleQuickMenu(item.key)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                >
+                  <Text style={styles.quickIcon}>{item.icon}</Text>
+                  <Text style={styles.quickLabel} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <BackupModal
+        visible={backupVisible}
+        onClose={() => setBackupVisible(false)}
+        onExport={exportBackupJson}
+        onImport={importBackupJson}
+        onRefresh={loadData}
+      />
+
+      <MbtiPickerModal
+        visible={mbtiPickerVisible}
+        selected={actualMbti}
+        innateMbti={sajuMbti?.mbti}
+        onClose={() => setMbtiPickerVisible(false)}
+        onSelect={handleSelectActualMbti}
+      />
+
+      <PersonaPickerModal
+        visible={personaModalVisible}
+        selected={selectedAgent}
+        onClose={() => setPersonaModalVisible(false)}
+        onSelect={(agent) => {
+          setSelectedAgent(agent);
+          setPersonaModalVisible(false);
+        }}
+      />
+
+      <ProfileSettingModal
+        visible={profileModalVisible}
+        onClose={() => {
+          setProfileModalVisible(false);
+          setOnboarding(false);
+        }}
+        isOnboarding={onboarding}
+        initialValues={
+          profile && !onboarding
+            ? {
+                birthDate: profile.birthDate,
+                birthTime: profile.birthTime,
+                gender: profile.gender ?? undefined,
+                calendarType: profile.calendarType ?? 'solar',
+                userLore: profile.userLore ?? '',
+              }
+            : null
+        }
+        onSave={handleSaveProfile}
+        onSaved={handleProfileSaved}
+      />
+
+      <PartnerInputModal
+        visible={partnerModalVisible}
+        onClose={() => setPartnerModalVisible(false)}
+        initialValues={partnerProfile}
+        onSaved={handlePartnerSaved}
+      />
+
+      <LifeTimelineModal
+        visible={timelineVisible}
+        onClose={handleTimelineClose}
+        isOnboarding={onboardingStage === 'timeline'}
+        birthDate={profile?.birthDate ?? ''}
+        birthTime={profile?.birthTime ?? ''}
+        gender={profile?.gender ?? null}
+        calendarType={profile?.calendarType ?? 'solar'}
+        initialSyncRatio={lifeOnboarding.syncRatio}
+        initialInterests={lifeOnboarding.interests}
+        isSynced={lifeOnboarding.isSynced}
+        onSynced={handleTimelineSynced}
+        onRequestProfile={handleTimelineRequestProfile}
+      />
+
+      <CelebrityShareModal
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        celebrityResult={celebrityResult}
+        userDayMaster={sajuObj?.dayMaster ?? ''}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000000' },
+  sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.55)' },
+  sheetDismiss: { flex: 1 },
+  sheet: {
+    backgroundColor: '#090D16',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: '#00F0FF',
+    overflow: 'hidden',
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    marginTop: 8,
+    backgroundColor: '#263859',
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  sheetTitle: { color: '#00F0FF', fontSize: 14, fontWeight: '900', letterSpacing: 0.4 },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    backgroundColor: '#131B2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetContent: { paddingTop: 12, paddingBottom: 32 },
+  quickMenu: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#1C2A45',
+    backgroundColor: '#0B1220',
+  },
+  quickItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#263859',
+    backgroundColor: '#131B2E',
+  },
+  quickIcon: { fontSize: 20 },
+  quickLabel: { marginTop: 3, color: '#E6F1FF', fontSize: 11, fontWeight: '800', ...KEEP_ALL },
+  sheetCloseText: { color: '#BD93F9', fontSize: 14, fontWeight: '900' },
+  scrollView: { flex: 1, backgroundColor: '#090D16' },
+  container: { padding: 16, paddingTop: 46, alignItems: 'center' },
+  headerRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 2,
+  },
+  headerTitleBox: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  settingsHeaderBtn: {
+    width: 36,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#131B2E',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+  },
+  settingsHeaderBtnText: { fontSize: 16 },
+  headerTitle: {
+    color: '#00F0FF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  headerSubtitle: {
+    color: '#55657E',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginTop: 2,
+  },
+  backupHeaderBtn: {
+    backgroundColor: '#131B2E',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+  },
+  backupHeaderBtnText: {
+    color: '#00F0FF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  timelineBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    shadowColor: '#00F0FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  timelineBtnText: { color: '#00F0FF', fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
+  timelineBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    backgroundColor: 'rgba(189, 147, 249, 0.12)',
+  },
+  timelineBtnSub: { color: '#BD93F9', fontSize: 11, fontWeight: '800' },
+  neonText: { color: '#00F0FF', fontSize: 15 },
+  card: { width: '100%', backgroundColor: '#131B2E', borderRadius: 10, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#1F293D' },
+  cardTitle: { color: '#8B9BB4', fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  text: { color: '#FFFFFF', fontSize: 13, marginVertical: 2 },
+  sajuPillars: { color: '#FFB86C', fontSize: 14, fontWeight: 'bold', marginTop: 4 },
+  mbtiCard: {
+    width: '100%',
+    backgroundColor: '#0B1220',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    alignItems: 'center',
+    shadowColor: '#00F0FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  mbtiCardTitle: { color: '#8B9BB4', fontSize: 12, fontWeight: '700', marginBottom: 8, alignSelf: 'flex-start' },
+  mbtiLetters: {
+    color: '#00F0FF',
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: 10,
+    textShadowColor: 'rgba(0, 240, 255, 0.85)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+    marginVertical: 4,
+  },
+  mbtiDescription: { color: '#BD93F9', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6 },
+  mbtiCalibrateRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#1F293D',
+  },
+  mbtiCalibrateHint: { color: '#8B9BB4', fontSize: 12, flex: 1 },
+  mbtiCalibrateBtn: {
+    backgroundColor: '#131B2E',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+  },
+  mbtiCalibrateBtnText: { color: '#00F0FF', fontSize: 12, fontWeight: 'bold' },
+  leakageBox: { width: '100%', marginTop: 12, alignItems: 'center' },
+  leakageTitle: { fontSize: 13, fontWeight: '800', marginBottom: 8 },
+  batteryRow: { flexDirection: 'row', alignItems: 'center' },
+  batteryBody: {
+    flexDirection: 'row',
+    width: 200,
+    height: 34,
+    padding: 3,
+    gap: 3,
+    borderWidth: 2,
+    borderRadius: 6,
+    backgroundColor: '#0A0F1D',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  batteryCell: { flex: 1, borderRadius: 3, backgroundColor: '#161F33' },
+  batteryCap: { width: 5, height: 14, borderTopRightRadius: 3, borderBottomRightRadius: 3 },
+  leakageSync: { color: '#8B9BB4', fontSize: 11, marginTop: 8 },
+  leakageComment: { color: '#E2E8F0', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 6 },
+  celebCard: {
+    width: '100%',
+    backgroundColor: '#0F0B1E',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    alignItems: 'center',
+    shadowColor: '#BD93F9',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  celebCardTitle: { color: '#8B9BB4', fontSize: 12, fontWeight: '700', marginBottom: 10, alignSelf: 'flex-start' },
+  celebSyncBadge: {
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.08)',
+    marginBottom: 12,
+  },
+  celebSyncText: {
+    color: '#BD93F9',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(189, 147, 249, 0.9)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  celebName: { color: '#FFFFFF', fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
+  celebTitle: { color: '#00F0FF', fontSize: 12, textAlign: 'center', marginTop: 4 },
+  celebArchetype: { color: '#BD93F9', fontSize: 12, fontWeight: '700', textAlign: 'center', marginTop: 4 },
+  celebReasonBox: {
+    width: '100%',
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.07)',
+  },
+  celebReasonLabel: { color: '#00F0FF', fontSize: 10, fontWeight: '800', marginBottom: 4, letterSpacing: 0.5 },
+  celebReasonText: { color: '#E2E8F0', fontSize: 13, lineHeight: 19 },
+  celebQuote: {
+    color: '#C9B8F5',
+    fontSize: 13,
+    lineHeight: 20,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 12,
+    paddingHorizontal: 6,
+  },
+  celebShareBtn: {
+    width: '100%',
+    marginTop: 14,
+    paddingVertical: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    backgroundColor: '#131B2E',
+    alignItems: 'center',
+  },
+  celebShareBtnText: { color: '#BD93F9', fontSize: 13, fontWeight: 'bold' },
+  agentCard: { width: '100%', backgroundColor: '#161F33', borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#263859' },
+  agentCardTitle: { color: '#00F0FF', fontSize: 11, fontWeight: '800', marginBottom: 8 },
+  personaTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 60,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#0B1220',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#00F0FF',
+    shadowColor: '#00F0FF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  personaTriggerEmoji: { fontSize: 30, width: 44, textAlign: 'center' },
+  personaTriggerTextBox: { flex: 1, marginLeft: 8 },
+  personaTriggerName: { color: '#00F0FF', fontSize: 16, fontWeight: '900' },
+  personaTriggerTitle: { color: '#8B9BB4', fontSize: 11, marginTop: 2 },
+  personaTriggerChange: { color: '#BD93F9', fontSize: 12, fontWeight: '800', marginLeft: 8 },
+  agentMetaBox: { marginTop: 8, padding: 8, backgroundColor: '#0A0F1D', borderRadius: 6 },
+  agentMetaTone: { color: '#94A3B8', fontSize: 11, marginTop: 2 },
+  dailyDeckWrap: { width: '100%', marginBottom: 12 },
+  partnerChip: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    maxWidth: '100%',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    backgroundColor: 'rgba(189, 147, 249, 0.1)',
+    shadowColor: '#BD93F9',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  partnerChipText: { flexShrink: 1, color: '#E2E8F0', fontSize: 12, fontWeight: '700' },
+  partnerChipChange: { color: '#00F0FF', fontSize: 12, fontWeight: '900' },
+  actionButton: { width: '100%', backgroundColor: '#00F0FF', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 10 },
+  buttonText: { color: '#090D16', fontWeight: 'bold', fontSize: 13 },
+  aiButton: { width: '100%', backgroundColor: '#BD93F9', padding: 13, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
+  buttonDisabled: { opacity: 0.6 },
+  aiButtonText: { color: '#090D16', fontWeight: 'bold', fontSize: 13 },
+  analysisCard: { width: '100%', backgroundColor: '#1C1630', borderRadius: 10, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#BD93F9' },
+  analysisTitle: { color: '#BD93F9', fontSize: 12, fontWeight: 'bold', marginBottom: 6 },
+  analysisContent: { color: '#E2E8F0', fontSize: 13, lineHeight: 19 },
+});
+

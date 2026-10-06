@@ -1,0 +1,162 @@
+[
+  {
+    "id": "steve-jobs",
+    "name": "스티브 잡스",
+    "title": "애플 창업자 / 혁신적 비전가",
+    "dayMaster": "丙",
+    "dominantElement": "Earth",
+    "archetype": "미학을 밀어붙이는 비전가",
+    "quote": "늘 갈망하고, 우직하게 나아가라. (Stay hungry, stay foolish.)",
+    "birthDate": "1955-02-24"
+  },
+  {
+    "id": "elon-musk",
+    "name": "일론 머스크",
+    "title": "테슬라·스페이스X CEO / 화성을 향한 승부사",
+    "dayMaster": "甲",
+    "dominantElement": "Wood",
+    "archetype": "확률을 깨는 돌파형 개척자",
+    "quote": "중요한 일이라면, 확률이 내 편이 아니어도 해야 한다.",
+    "birthDate": "1971-06-28"
+  },
+  {
+    "id": "bill-gates",
+    "name": "빌 게이츠",
+    "title": "마이크로소프트 공동 창업자 / 체계적 문제 해결사",
+    "dayMaster": "壬",
+    "dominantElement": "Earth",
+    "archetype": "치밀한 시스템 전략가",
+    "quote": "성공은 형편없는 스승이다. 똑똑한 사람들이 절대 지지 않을 거라고 착각하게 만든다.",
+    "birthDate": "1955-10-28"
+  },
+  {
+    "id": "sam-altman",
+    "name": "샘 올트먼",
+    "title": "OpenAI CEO / AI 시대의 승부사",
+    "dayMaster": "辛",
+    "dominantElement": "Metal",
+    "archetype": "확신으로 판을 짜는 베팅형 전략가",
+    "quote": "가장 성공한 사람들은 거의 망상에 가까울 만큼 스스로를 믿는다.",
+    "birthDate": "1985-04-22"
+  },
+  {
+    "id": "hayao-miyazaki",
+    "name": "미야자키 하야오",
+    "title": "스튜디오 지브리 감독 / 애니메이션의 거장",
+    "dayMaster": "癸",
+    "dominantElement": "Earth",
+    "archetype": "영감을 빚어내는 몽상가 장인",
+    "quote": "살아야 한다. (生きねば) - 영화 <바람이 분다> 중",
+    "birthDate": "1941-01-05"
+  },
+  {
+    "id": "bong-joon-ho",
+    "name": "봉준호",
+    "title": "영화감독 / 장르를 뒤섞는 이야기꾼",
+    "dayMaster": "壬",
+    "dominantElement": "Water",
+    "archetype": "날카로운 시선의 장르 연금술사",
+    "quote": "1인치 높이의 자막 장벽을 넘으면, 훨씬 더 많은 멋진 영화를 만나게 됩니다.",
+    "birthDate": "1969-09-14"
+  },
+  {
+    "id": "christopher-nolan",
+    "name": "크리스토퍼 놀란",
+    "title": "영화감독 / 시간의 설계자",
+    "dayMaster": "辛",
+    "dominantElement": "Metal",
+    "archetype": "구조를 설계하는 치밀한 설계자",
+    "quote": "감독이란 결국 관객 그 자체다. (What the director is, is the audience.)",
+    "birthDate": "1970-07-30"
+  },
+  {
+    "id": "son-heung-min",
+    "name": "손흥민",
+    "title": "축구 선수 / 월드클래스 공격수",
+    "dayMaster": "乙",
+    "dominantElement": "Metal",
+    "archetype": "성실하게 폭발하는 에이스",
+    "quote": "월드컵은 어린아이의 꿈과 같다.",
+    "birthDate": "1992-07-08"
+  },
+  {
+    "id": "rm-bts",
+    "name": "RM(김남준)",
+    "title": "BTS 리더 / 사유하는 글로벌 아이콘",
+    "dayMaster": "辛",
+    "dominantElement": "Metal",
+    "archetype": "사유하는 소통형 리더",
+    "quote": "스스로를 말함으로써 당신의 이름과 목소리를 찾으세요. (Speak yourself.)",
+    "birthDate": "1994-09-12"
+  },
+  {
+    "id": "shohei-ohtani",
+    "name": "오타니 쇼헤이",
+    "title": "MLB 투타 겸업 슈퍼스타",
+    "dayMaster": "壬",
+    "dominantElement": "Earth",
+    "archetype": "한계를 지워 가는 이도류 개척자",
+    "quote": "동경하는 것을 그만둡시다. (憧れるのをやめましょう) - 2023 WBC 결승 전",
+    "birthDate": "1994-07-05"
+  },
+  {
+    "id": "messi",
+    "name": "리오넬 메시",
+    "title": "축구 선수 / 월드컵 챔피언",
+    "dayMaster": "甲",
+    "dominantElement": "Fire",
+    "archetype": "고요하게 판을 지배하는 천재",
+    "quote": "꿈에 닿으려면 싸워야 하고, 희생하며 열심히 노력해야 한다.",
+    "birthDate": "1987-06-24"
+  },
+  {
+    "id": "michael-jordan",
+    "name": "마이클 조던",
+    "title": "NBA 농구 전설",
+    "dayMaster": "辛",
+    "dominantElement": "Wood",
+    "archetype": "집요하게 승리하는 승부사",
+    "quote": "나는 살면서 몇 번이고 거듭 실패했다. 그래서 성공했다.",
+    "birthDate": "1963-02-17"
+  },
+  {
+    "id": "albert-einstein",
+    "name": "알베르트 아인슈타인",
+    "title": "이론물리학자 / 상대성이론의 창시자",
+    "dayMaster": "丙",
+    "dominantElement": "Fire",
+    "archetype": "상상으로 우주를 재구성하는 사색가",
+    "quote": "상상력은 지식보다 중요하다.",
+    "birthDate": "1879-03-14"
+  },
+  {
+    "id": "sejong-the-great",
+    "name": "세종대왕",
+    "title": "조선 4대 왕 / 훈민정음 창제자",
+    "dayMaster": "庚",
+    "dominantElement": "Fire",
+    "archetype": "백성을 위해 설계하는 군주",
+    "quote": "사람마다 쉽게 익혀 날마다 씀에 편안케 하고자 할 따름이니라. (훈민정음 서문)",
+    "birthDate": "1397-05-15 (율리우스력, 음력 4월 10일)"
+  },
+  {
+    "id": "yi-sun-sin",
+    "name": "이순신",
+    "title": "조선 수군 장군 / 불패의 전략가",
+    "dayMaster": "庚",
+    "dominantElement": "Metal",
+    "archetype": "필사의 각오로 판을 뒤집는 장수",
+    "quote": "必死則生 必生則死 - 죽고자 하면 살고, 살고자 하면 죽는다.",
+    "birthDate": "1545-04-28 (율리우스력, 음력 3월 8일)"
+  },
+  {
+    "id": "marcus-aurelius",
+    "name": "마르쿠스 아우렐리우스",
+    "title": "로마 황제 / 스토아 철학자",
+    "dayMaster": "壬",
+    "dominantElement": "Water",
+    "archetype": "내면을 다스리는 철인 군주",
+    "quote": "행동을 가로막는 장애물이 곧 행동을 나아가게 한다. 길을 막는 것이 곧 길이 된다. (명상록)",
+    "birthDate": "0121-04-26 (율리우스력)"
+  }
+]
