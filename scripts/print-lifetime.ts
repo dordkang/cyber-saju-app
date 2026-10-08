@@ -44,4 +44,4 @@ for (let y = 2026; y <= 2056; y += 1) {
 
 console.log('\n--- 지난 대운 스토리 ---');
 const d = calculateLifeDaeun(birth, '05:00', 'male', 'solar', '2026-10-07');
-d?.periods.filter((p) => p.story).forEach((p) => console.log(p.story?.title, '|', p.story?.checkPoints.join(' / ')));
+d?.periods.forEach((p) => console.log(p.ganji.label, '|', p.headline, '|', p.factCheck));

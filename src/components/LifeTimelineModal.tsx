@@ -483,14 +483,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     const isOpen = expanded.includes(period.index);
     const accent = period.isCurrent ? COLOR.cyan : period.isPast ? COLOR.purple : COLOR.dim;
     const badge = period.isCurrent ? '현재 활성 운' : period.isPast ? '지나온 궤적' : '다가올 대운';
-    const canExpand = period.isPast && !!period.story;
 
     return (
       <TouchableOpacity
         key={period.index}
-        activeOpacity={canExpand ? 0.8 : 1}
-        disabled={!canExpand}
+        activeOpacity={0.8}
         onPress={() => toggleExpanded(period.index)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isOpen }}
         style={[
           styles.daeunCard,
           { borderColor: accent },
@@ -512,28 +512,16 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           </View>
         </View>
 
-        <Text style={styles.daeunTheme}>{period.theme}</Text>
+        <Text style={[styles.daeunHeadline, { color: accent }]}>{period.headline}</Text>
+        <Text style={styles.daeunSummary}>{period.summary}</Text>
 
-        {period.isCurrent &&
-          period.interactions.slice(0, 2).map((note, i) => (
-            <Text key={`${period.index}-n-${i}`} style={styles.daeunNote}>
-              · {note.detail}
-            </Text>
-          ))}
-
-        {canExpand && isOpen && period.story && (
+        {isOpen && (
           <View style={styles.factBox}>
-            <Text style={styles.factSummary}>{period.story.summary}</Text>
-            {period.story.checkPoints.map((point, i) => (
-              <Text key={`${period.index}-c-${i}`} style={styles.factCheck}>
-                ✔ 팩트체크: {point}
-              </Text>
-            ))}
+            <Text style={styles.factDetail}>{period.detail}</Text>
+            <Text style={styles.factCheck}>✔ 팩트체크: {period.factCheck}</Text>
           </View>
         )}
-        {canExpand && (
-          <Text style={styles.expandHint}>{isOpen ? '▲ 접기' : '▼ 탭하여 팩트체크 보기'}</Text>
-        )}
+        <Text style={styles.expandHint}>{isOpen ? '▲ 접기' : '▼ 탭하여 팩트체크 보기'}</Text>
       </TouchableOpacity>
     );
   };
@@ -1081,8 +1069,8 @@ const styles = StyleSheet.create({
   daeunYears: { color: COLOR.muted, fontSize: 10, marginTop: 2 },
   badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, borderWidth: 1 },
   badgeText: { fontSize: 10, fontWeight: '900' },
-  daeunTheme: { color: COLOR.text, fontSize: 12, lineHeight: 18, marginTop: 10 },
-  daeunNote: { color: COLOR.muted, fontSize: 11, lineHeight: 17, marginTop: 4 },
+  daeunHeadline: { fontSize: 14, fontWeight: '900', lineHeight: 21, marginTop: 12 },
+  daeunSummary: { color: COLOR.text, fontSize: 12, lineHeight: 19, marginTop: 6 },
   factBox: {
     marginTop: 10,
     padding: 10,
@@ -1091,7 +1079,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(189, 147, 249, 0.4)',
   },
-  factSummary: { color: COLOR.text, fontSize: 12, lineHeight: 19 },
+  factDetail: { color: COLOR.text, fontSize: 12, lineHeight: 20 },
   factCheck: { color: COLOR.purple, fontSize: 12, lineHeight: 19, marginTop: 8, fontWeight: '700' },
   expandHint: { color: COLOR.dim, fontSize: 10, marginTop: 8, textAlign: 'right' },
 

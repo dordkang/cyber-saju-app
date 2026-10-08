@@ -14,6 +14,8 @@ for (const p of r.periods) {
   console.log(
     `${p.index}대운 ${p.ganji.label} | ${p.startDate}~${p.endYear} | 만 ${p.startAge}~${p.endAge}세 | ${p.lifeStage} | ${p.stemGod}/${p.branchGod} | ${p.stage12}${p.isCurrent ? ' ◀ 현재' : ''}`
   );
-  console.log(`    ${p.theme}`);
-  if (p.interactions.length) console.log(`    ${p.interactions.slice(0, 2).map((n) => n.detail).join(' / ')}`);
+  console.log(`    [headline] ${p.headline}`);
+  console.log(`    [summary]  ${p.summary}`);
+  console.log(p.detail.split('\n').map((line) => `    [detail]   ${line}`).join('\n'));
+  console.log(`    [fact]     ${p.factCheck}`);
 }

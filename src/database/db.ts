@@ -1,4 +1,4 @@
-﻿export type Gender = 'male' | 'female';
+export type Gender = 'male' | 'female';
 export type CalendarType = 'solar' | 'lunar';
 
 export const USER_LORE_MAX_LENGTH = 200;
@@ -117,6 +117,7 @@ export const STORAGE_KEYS = {
   onboarding: 'cyber_saju_onboarding',
   partners: 'cyber_saju_partner_profiles',
   dailyLogs: 'cyber_saju_daily_logs',
+  persona: 'cyber_saju_persona',
 } as const;
 
 const EMOTION_ELEMENTS: readonly EmotionElement[] = ['목', '화', '토', '금', '수'];
@@ -520,6 +521,18 @@ export async function updateUserMbti(
     mbti_sync: clampedSync,
   });
   return true;
+}
+
+// ───────────────────────── 도사 페르소나 선택 ─────────────────────────
+
+/** 마지막으로 고른 도사 페르소나 키. 값의 유효성 검증은 호출하는 쪽(AGENT_TYPES)이 맡는다. */
+export async function getPersonaPreference(): Promise<string | null> {
+  const raw = readRaw(STORAGE_KEYS.persona);
+  return raw && raw.trim() ? raw.trim() : null;
+}
+
+export async function savePersonaPreference(persona: string): Promise<void> {
+  writeRaw(STORAGE_KEYS.persona, persona);
 }
 
 // ───────────────────────── 온보딩(대운 싱크로) ─────────────────────────

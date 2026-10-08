@@ -22,7 +22,6 @@ import type { ReelSectionKey } from '../constants/videoAssets';
 import type { MoneyEngineResult } from '../engine/moneyEngine';
 import type { NatalSummary } from '../engine/natalSummary';
 import type { FiveElement } from '../engine/types';
-import { startAmbient, stopAmbient } from '../utils/ambientSynth';
 
 const IS_WEB = Platform.OS === 'web';
 
@@ -111,6 +110,17 @@ export interface ReelsPartnerInfo {
   radarLevel: string | null;
 }
 
+export interface ReelsMbtiInfo {
+  /** 사주 8글자로 뽑은 선천 MBTI */
+  innate: string;
+  /** 사용자가 고른 현실 MBTI */
+  actual: string;
+  /** 일치율 0~100 */
+  syncRate: number;
+  /** 에너지 누수율 0~100 */
+  leakage: number;
+}
+
 export interface ReelsFortuneViewProps {
   /** 모달이 열려 있으면 true. 배경 영상을 멈추고 어두운 블러를 덮는다. */
   paused?: boolean;
@@ -124,7 +134,11 @@ export interface ReelsFortuneViewProps {
   luckyItem?: string;
   /** 오늘 기록한 오행 배터리 충전량(25/50/75/100). 기록 전이면 null */
   batteryLevel?: number | null;
+  /** 선천 MBTI와 현실 MBTI 비교 결과. 현실 MBTI를 고르기 전이면 null */
+  mbti?: ReelsMbtiInfo | null;
   onOpenTimeline?: () => void;
+  onOpenCelebrity?: () => void;
+  onOpenMbti?: () => void;
   onAddPartner?: () => void;
   onOpenReport?: () => void;
   onOpenDailyCard?: () => void;
@@ -483,7 +497,10 @@ const ReelSection = memo(function ReelSection(props: ReelSectionProps) {
     money,
     luckyItem,
     batteryLevel,
+    mbti,
     onOpenTimeline,
+    onOpenCelebrity,
+    onOpenMbti,
     onAddPartner,
     onOpenReport,
     onOpenDailyCard,
@@ -505,7 +522,7 @@ const ReelSection = memo(function ReelSection(props: ReelSectionProps) {
 
   const playing = active && !hold;
   const dimmed = active && hold;
-  const radarSize = Math.round(Math.min(width * 0.62, height * (compact ? 0.2 : 0.3), 250));
+  const radarSize = Math.round(Math.min(width * 0.62, height * (compact ? 0.17 : 0.25), 250));
 
   const revealStyle = {
     opacity: progress,
@@ -621,12 +638,26 @@ const ReelSection = memo(function ReelSection(props: ReelSectionProps) {
 
           <View style={styles.actions}>
             {meta.key === 'life' && (
-              <ActionButton label="📈 내 인생 10년 대운 전체보기 (무료)" tone="cyan" onPress={onOpenTimeline} />
+              <View style={styles.buttonPair}>
+                <View style={styles.buttonPairMain}>
+                  <ActionButton label="📈 내 인생 10년 대운 전체보기 (무료)" tone="cyan" compact onPress={onOpenTimeline} />
+                </View>
+                <View style={styles.buttonPairSub}>
+                  <ActionButton label="🌟 사주 싱크 유명인 매칭" tone="violet" compact onPress={onOpenCelebrity} />
+                </View>
+              </View>
             )}
 
             {meta.key === 'people' && (
               <View style={[styles.glass, styles.vault]}>
-                <Text style={styles.vaultCaption}>PARTNER VAULT</Text>
+                <ActionButton label="🎭 선천 사주 코어 vs 현실 MBTI 가면" tone="violet" compact onPress={onOpenMbti} />
+                {mbti && (
+                  <Text style={styles.mbtiResult} accessibilityLiveRegion="polite">
+                    선천 {mbti.innate} → 가면 {mbti.actual} · 일치 {mbti.syncRate}% ·{' '}
+                    <Text style={{ color: mbti.leakage >= 50 ? COLORS.red : COLORS.cyan }}>에너지 누수 {mbti.leakage}%</Text>
+                  </Text>
+                )}
+                <Text style={[styles.vaultCaption, styles.vaultCaptionGap]}>PARTNER VAULT</Text>
                 <Text style={styles.vaultTitle}>내 사람(비밀) 관찰 보관함</Text>
                 <Text style={styles.vaultBody} numberOfLines={2}>
                   {partner ? partner.label : '아직 보관된 사람이 없어요. 입력한 정보는 이 기기에만 저장돼요.'}
@@ -688,9 +719,6 @@ export const ReelsFortuneView: React.FC<ReelsFortuneViewProps> = (props) => {
   const [pageHeight, setPageHeight] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
   const [cardOpen, setCardOpen] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
-
-  useEffect(() => () => stopAmbient(), []);
 
   // 높이가 정해지거나 바뀌면(모바일 주소창 등) 현재 섹션 위치로 다시 맞춘다.
   useEffect(() => {
@@ -720,15 +748,6 @@ export const ReelsFortuneView: React.FC<ReelsFortuneViewProps> = (props) => {
     if (Math.abs(y - page * pageHeight) <= 2) {
       if (page === 0) scrollRef.current?.scrollTo({ y: REAL_PAGE_COUNT * pageHeight, animated: false });
       else if (page === PAGE_KEYS.length - 1) scrollRef.current?.scrollTo({ y: pageHeight, animated: false });
-    }
-  };
-
-  const toggleSound = () => {
-    if (soundOn) {
-      stopAmbient();
-      setSoundOn(false);
-    } else if (startAmbient()) {
-      setSoundOn(true);
     }
   };
 
@@ -786,22 +805,14 @@ export const ReelsFortuneView: React.FC<ReelsFortuneViewProps> = (props) => {
           </View>
           <View style={styles.chromeButtons}>
             <Pressable
-              onPress={toggleSound}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={soundOn ? '소리 끄기' : '소리 켜기'}
-              style={({ pressed }) => [styles.chromeBtn, pressed && styles.pressed]}
-            >
-              <Text style={styles.chromeIcon}>{soundOn ? '🔊' : '🔇'}</Text>
-            </Pressable>
-            <Pressable
               onPress={onSettingsPress}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="내 정보 설정"
-              style={({ pressed }) => [styles.chromeBtn, pressed && styles.pressed]}
+              accessibilityLabel="설정"
+              style={({ pressed }) => [styles.settingsBtn, GLASS_BLUR, pressed && styles.pressed]}
             >
               <Text style={styles.chromeIcon}>⚙️</Text>
+              <Text style={styles.settingsText}>설정</Text>
             </Pressable>
           </View>
         </View>
@@ -838,22 +849,27 @@ const styles = StyleSheet.create({
   progress: { flexDirection: 'row', gap: 6 },
   progressSeg: { flex: 1, height: 3, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.22)' },
   chromeButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  chromeBtn: {
-    width: 36,
-    height: 36,
+  settingsBtn: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
     borderRadius: 18,
     backgroundColor: 'rgba(8, 12, 22, 0.5)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(255, 255, 255, 0.22)',
   },
-  chromeIcon: { fontSize: 16 },
+  settingsText: { color: COLORS.text, fontSize: 13, fontWeight: '800', ...KEEP_ALL },
+  chromeIcon: { fontSize: 15 },
 
   content: { flex: 1, paddingHorizontal: 20 },
   contentInner: { flex: 1, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center', justifyContent: 'space-between' },
   middle: { flex: 1, justifyContent: 'center', paddingVertical: 12 },
   actions: { gap: 10 },
+  buttonPair: { flexDirection: 'row', gap: 8 },
+  buttonPairMain: { flex: 1.25 },
+  buttonPairSub: { flex: 1 },
 
   chip: {
     alignSelf: 'flex-start',
@@ -955,6 +971,8 @@ const styles = StyleSheet.create({
 
   vault: { borderColor: 'rgba(189, 147, 249, 0.5)', gap: 2 },
   vaultCaption: { color: COLORS.violet, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  vaultCaptionGap: { marginTop: 10 },
+  mbtiResult: { marginTop: 8, color: COLORS.text, fontSize: 12, lineHeight: 18, fontWeight: '700', ...KEEP_ALL },
   vaultTitle: { color: COLORS.text, fontSize: 16, fontWeight: '900', ...KEEP_ALL },
   vaultBody: { marginTop: 2, color: COLORS.muted, fontSize: 12, lineHeight: 18, ...KEEP_ALL },
   vaultButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },

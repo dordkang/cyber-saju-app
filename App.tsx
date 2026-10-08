@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,8 +8,9 @@ import type { PartnerRadarResult } from './src/engine/partnerRadar';
 import { buildPartnerPrescription } from './src/engine/partnerPrescription';
 import type { PartnerPrescription } from './src/engine/partnerPrescription';
 import { analyzeTodayMoney } from './src/engine/moneyEngine';
-import { buildNatalSummary } from './src/engine/natalSummary';
 import { buildReelsContent } from './src/engine/reelsContent';
+import { matchCelebrity } from './src/engine/celebrityEngine';
+import { calculateMbtiSync, calculateSajuMbti, isValidMbti } from './src/engine/mbtiEngine';
 import { calculateLifeDaeun } from './src/engine/timelineEngine';
 import type { SajuResult } from './src/engine/types';
 import {
@@ -20,15 +21,25 @@ import {
   getUserProfile,
   getLatestPartnerProfile,
   getUserOnboardingData,
+  getPersonaPreference,
+  savePersonaPreference,
+  updateUserMbti,
+  exportBackupJson,
+  importBackupJson,
   DEFAULT_LIFE_SYNC_RATIO,
   DEFAULT_FOCUS_INTERESTS,
 } from './src/database/db';
 import type { CalendarType, PartnerProfile, UserOnboardingData, UserProfile } from './src/database/db';
+import { BackupModal } from './src/components/BackupModal';
+import { CelebrityShareModal } from './src/components/CelebrityShareModal';
 import { DailyCardDeck } from './src/components/DailyCardDeck';
 import type { DailyCardData } from './src/components/DailyCardDeck';
+import { ElementCircuit } from './src/components/ElementCircuit';
 import { LifeTimelineModal } from './src/components/LifeTimelineModal';
-import { PartnerInputModal } from './src/components/PartnerInputModal';
+import { MbtiPickerModal } from './src/components/MbtiPickerModal';
+import { TargetSettingModal } from './src/components/TargetSettingModal';
 import { PartnerReportModal } from './src/components/PartnerReportModal';
+import { PersonaPickerModal } from './src/components/PersonaPickerModal';
 import {
   ProfileSettingModal,
   BIRTH_TIME_UNKNOWN,
@@ -36,8 +47,12 @@ import {
   parseBirthTime,
 } from './src/components/ProfileSettingModal';
 import type { ProfileFormValues } from './src/components/ProfileSettingModal';
-import { ReelsFortuneView } from './src/components/ReelsFortuneView';
-import type { ReelsDaeunInfo, ReelsDaeunStripItem, ReelsPartnerInfo } from './src/components/ReelsFortuneView';
+import { ReelsContainer } from './src/components/reels/ReelsContainer';
+import { SettingsMenuModal } from './src/components/SettingsMenuModal';
+import type { ReelsContext, ReelsLifePeek, ReelsMbtiPeek, ReelsPeoplePeek } from './src/types/reels';
+import { AGENT_STORE, AGENT_TYPES } from './src/prompts/agents';
+import type { AgentType } from './src/prompts/agents';
+import { startAmbient, stopAmbient } from './src/utils/ambientSynth';
 
 const DEFAULT_PROFILE_NAME = '호스트';
 const DEFAULT_BIRTH_DATE = '1975-06-11';
@@ -45,6 +60,7 @@ const DEFAULT_BIRTH_TIME = '05:30';
 const LEGACY_DEFAULT_BIRTH_TIME = '05:00';
 const LOVE_CATEGORY = '치정/바람';
 const ONBOARDING_FLAG_KEY = 'cybersaju.onboarding.v1';
+const DEFAULT_PERSONA: AgentType = 'DOKSA';
 /** 한 모달이 닫히는 애니메이션이 끝난 뒤 다음 모달을 열기 위한 대기 시간 */
 const MODAL_TRANSITION_MS = 320;
 
@@ -160,6 +176,10 @@ function parseStoredSaju(json: string | null | undefined): SajuResult | null {
   }
 }
 
+function isAgentType(value: unknown): value is AgentType {
+  return typeof value === 'string' && (AGENT_TYPES as readonly string[]).includes(value);
+}
+
 function todayKey(now: Date): string {
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
@@ -189,6 +209,13 @@ function AppContent() {
   const [partnerVisible, setPartnerVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [dailyVisible, setDailyVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [backupVisible, setBackupVisible] = useState(false);
+  const [personaVisible, setPersonaVisible] = useState(false);
+  const [celebrityVisible, setCelebrityVisible] = useState(false);
+  const [mbtiVisible, setMbtiVisible] = useState(false);
+  const [persona, setPersona] = useState<AgentType>(DEFAULT_PERSONA);
+  const [soundOn, setSoundOn] = useState(false);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const saju = useMemo<SajuResult | null>(() => {
@@ -201,10 +228,23 @@ function AppContent() {
     }
   }, [profile]);
 
-  const natal = useMemo(() => (saju ? buildNatalSummary(saju) : null), [saju]);
-
   const reelsContent = useMemo(() => buildReelsContent(saju), [saju]);
   const money = useMemo(() => analyzeTodayMoney(saju), [saju]);
+  const celebrityResult = useMemo(() => (saju ? matchCelebrity(saju) : null), [saju]);
+
+  const innateMbti = useMemo(() => {
+    if (!saju) return null;
+    const { mbti } = calculateSajuMbti(saju);
+    return isValidMbti(mbti) ? mbti : null;
+  }, [saju]);
+
+  const actualMbti = isValidMbti(profile?.actual_mbti) ? profile.actual_mbti : null;
+
+  const mbtiInfo = useMemo<ReelsMbtiPeek | null>(() => {
+    if (!innateMbti || !actualMbti) return null;
+    const { syncRate, energyLeakage } = calculateMbtiSync(innateMbti, actualMbti);
+    return { innate: innateMbti, actual: actualMbti, syncRate, leakage: energyLeakage };
+  }, [innateMbti, actualMbti]);
 
   const { partnerRadar, partnerPrescription } = useMemo<{
     partnerRadar: PartnerRadarResult | null;
@@ -223,7 +263,7 @@ function AppContent() {
     }
   }, [partner]);
 
-  const partnerInfo = useMemo<ReelsPartnerInfo | null>(() => {
+  const partnerInfo = useMemo<ReelsPeoplePeek | null>(() => {
     if (!partner) return null;
     return {
       label: `${partner.alias || partner.relation} · ${partner.birthDate}`,
@@ -241,7 +281,7 @@ function AppContent() {
     }
   }, [profile]);
 
-  const daeun = useMemo<ReelsDaeunInfo | null>(() => {
+  const daeun = useMemo<ReelsLifePeek | null>(() => {
     const current = lifeDaeun?.periods.find((period) => period.isCurrent);
     if (!current) return null;
     return {
@@ -252,14 +292,21 @@ function AppContent() {
     };
   }, [lifeDaeun]);
 
-  const daeunStrip = useMemo<ReelsDaeunStripItem[]>(
-    () =>
-      (lifeDaeun?.periods ?? []).slice(0, 9).map((period) => ({
-        label: `${period.startAge}세`,
-        current: period.isCurrent,
-        past: period.isPast,
-      })),
-    [lifeDaeun]
+  const reelsContext = useMemo<ReelsContext>(
+    () => ({
+      omen: reelsContent,
+      life: daeun,
+      people: partnerInfo,
+      money: money
+        ? { headline: money.headline, power: money.power, defense: money.defense, status: money.status }
+        : null,
+      batteryLevel,
+      mbti: mbtiInfo,
+      elementsRatio: saju?.elementsRatio ?? null,
+      personaLabel: `${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`,
+      soundOn,
+    }),
+    [reelsContent, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn]
   );
 
   const loadData = useCallback(async () => {
@@ -286,6 +333,7 @@ function AppContent() {
         const savedPartner = await getLatestPartnerProfile().catch(() => null);
         const savedOnboarding = await getUserOnboardingData().catch(() => null);
         const savedLog = await getDailyLog(todayKey(new Date())).catch(() => null);
+        const savedPersona = await getPersonaPreference().catch(() => null);
 
         // 이미 정보를 입력한 사용자는 안내 없이 바로 릴스로 들어간다.
         const needsOnboarding = readFlag(ONBOARDING_FLAG_KEY) !== 'done' && isSampleProfile(loaded);
@@ -296,6 +344,7 @@ function AppContent() {
           setPartner(savedPartner);
           if (savedOnboarding) setLifeOnboarding(savedOnboarding);
           setBatteryLevel(savedLog?.energy_level ?? null);
+          if (isAgentType(savedPersona)) setPersona(savedPersona);
           setOnboarding(needsOnboarding);
           setProfileVisible(needsOnboarding);
         }
@@ -308,6 +357,22 @@ function AppContent() {
       isMounted = false;
       if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
     };
+  }, []);
+
+  useEffect(() => () => stopAmbient(), []);
+
+  /** 백업 복원 직후 화면에 쓰이는 모든 저장 데이터를 다시 읽는다. */
+  const reloadAll = useCallback(async () => {
+    const [savedProfile, savedPartner, savedOnboarding, savedLog] = await Promise.all([
+      getUserProfile().catch(() => null),
+      getLatestPartnerProfile().catch(() => null),
+      getUserOnboardingData().catch(() => null),
+      getDailyLog(todayKey(new Date())).catch(() => null),
+    ]);
+    if (savedProfile) setProfile(savedProfile);
+    setPartner(savedPartner);
+    if (savedOnboarding) setLifeOnboarding(savedOnboarding);
+    setBatteryLevel(savedLog?.energy_level ?? null);
   }, []);
 
   const afterModalClose = (action: () => void) => {
@@ -352,7 +417,6 @@ function AppContent() {
 
   const handlePartnerSaved = async () => {
     setPartner(await getLatestPartnerProfile());
-    setPartnerVisible(false);
   };
 
   const handleOpenReport = () => {
@@ -402,28 +466,132 @@ function AppContent() {
     }
   };
 
+  const openFromSettings = (open: () => void) => {
+    setSettingsVisible(false);
+    afterModalClose(open);
+  };
+
+  const handleToggleSound = (next: boolean) => {
+    if (!next) {
+      stopAmbient();
+      setSoundOn(false);
+    } else if (startAmbient()) {
+      setSoundOn(true);
+    } else {
+      Alert.alert('소리를 켤 수 없어요', '이 브라우저에서는 배경 사운드를 지원하지 않아요.');
+    }
+  };
+
+  const handleSelectPersona = async (next: AgentType) => {
+    setPersona(next);
+    setPersonaVisible(false);
+    try {
+      await savePersonaPreference(next);
+    } catch (e) {
+      Alert.alert('저장 오류', `도사 말투를 저장하지 못했습니다. ${describeError(e)}`);
+    }
+  };
+
+  const handleOpenCelebrity = () => {
+    if (!celebrityResult) {
+      Alert.alert('매칭할 수 없어요', '사주 정보를 먼저 입력하면 나와 닮은 유명인을 찾아 드려요.');
+      return;
+    }
+    setCelebrityVisible(true);
+  };
+
+  const handleOpenMbti = () => {
+    if (!innateMbti) {
+      Alert.alert('선천 MBTI를 읽지 못했어요', '사주 정보를 먼저 입력해 주세요.');
+      return;
+    }
+    setMbtiVisible(true);
+  };
+
+  const handleSelectMbti = async (selected: string) => {
+    if (!innateMbti || !isValidMbti(selected)) return;
+    const { syncRate } = calculateMbtiSync(innateMbti, selected);
+    try {
+      await updateUserMbti(innateMbti, selected, syncRate);
+      setProfile(await getUserProfile());
+      setMbtiVisible(false);
+    } catch (e) {
+      Alert.alert('저장 오류', `MBTI를 저장하지 못했습니다. ${describeError(e)}`);
+    }
+  };
+
   const anyModalOpen =
-    profileVisible || timelineVisible || partnerVisible || reportVisible || dailyVisible;
+    profileVisible ||
+    timelineVisible ||
+    partnerVisible ||
+    reportVisible ||
+    dailyVisible ||
+    settingsVisible ||
+    backupVisible ||
+    personaVisible ||
+    celebrityVisible ||
+    mbtiVisible;
 
   return (
     <View style={[styles.root, WEB_VIEWPORT_STYLE]}>
-      <ReelsFortuneView
+      <ReelsContainer
         paused={anyModalOpen}
-        daeun={daeun}
-        daeunStrip={daeunStrip}
-        natal={natal}
-        partner={partnerInfo}
-        money={money}
-        luckyItem={reelsContent.luckyItem}
-        batteryLevel={batteryLevel}
+        context={reelsContext}
+        onSettingsPress={() => setSettingsVisible(true)}
+        onToggleSound={() => handleToggleSound(!soundOn)}
         onOpenTimeline={() => setTimelineVisible(true)}
-        onAddPartner={() => setPartnerVisible(true)}
+        onOpenCelebrity={handleOpenCelebrity}
+        onOpenMbti={handleOpenMbti}
+        onOpenPartner={() => setPartnerVisible(true)}
         onOpenReport={handleOpenReport}
         onOpenDailyCard={() => setDailyVisible(true)}
-        onSettingsPress={() => {
-          setOnboarding(false);
-          setProfileVisible(true);
-        }}
+        onOpenPersona={() => setPersonaVisible(true)}
+      />
+
+      <SettingsMenuModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        personaLabel={`${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`}
+        soundOn={soundOn}
+        onOpenProfile={() =>
+          openFromSettings(() => {
+            setOnboarding(false);
+            setProfileVisible(true);
+          })
+        }
+        onOpenBackup={() => openFromSettings(() => setBackupVisible(true))}
+        onOpenPersona={() => openFromSettings(() => setPersonaVisible(true))}
+        onToggleSound={handleToggleSound}
+      />
+
+      <BackupModal
+        visible={backupVisible}
+        onClose={() => setBackupVisible(false)}
+        onExport={exportBackupJson}
+        onImport={importBackupJson}
+        onRefresh={reloadAll}
+      />
+
+      <PersonaPickerModal
+        visible={personaVisible}
+        selected={persona}
+        onClose={() => setPersonaVisible(false)}
+        onSelect={handleSelectPersona}
+      />
+
+      <CelebrityShareModal
+        visible={celebrityVisible}
+        onClose={() => setCelebrityVisible(false)}
+        celebrityResult={celebrityResult}
+        userDayMaster={saju?.dayMaster ?? ''}
+      />
+
+      <MbtiPickerModal
+        visible={mbtiVisible}
+        selected={actualMbti}
+        innateMbti={innateMbti}
+        onClose={() => setMbtiVisible(false)}
+        onSelect={handleSelectMbti}
       />
 
       <ProfileSettingModal
@@ -462,11 +630,11 @@ function AppContent() {
         onRequestProfile={handleTimelineRequestProfile}
       />
 
-      <PartnerInputModal
+      <TargetSettingModal
         visible={partnerVisible}
         onClose={() => setPartnerVisible(false)}
         initialValues={partner}
-        onSaved={handlePartnerSaved}
+        onApply={handlePartnerSaved}
       />
 
       <PartnerReportModal
@@ -491,6 +659,7 @@ function AppContent() {
               </Pressable>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
+              {saju && <ElementCircuit elementsRatio={saju.elementsRatio} />}
               <DailyCardDeck onSave={handleSaveDailyCard} onEventCategorySelect={handleEventCategorySelect} />
             </ScrollView>
           </View>

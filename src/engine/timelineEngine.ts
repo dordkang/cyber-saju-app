@@ -1,4 +1,5 @@
 import { Solar, Lunar } from 'lunar-javascript';
+import { buildDaeunNarrative } from './daeunNarrative';
 import type { EarthlyBranch, HeavenlyStem } from './types';
 
 /**
@@ -52,6 +53,10 @@ export interface InteractionNote {
   /** 점수 영향의 원값 합계 (합 +, 충·형 −) */
   score: number;
   detail: string;
+  /** 작용하는 글자 쌍. 앞이 운(대운·세운), 뒤가 원국 글자이며 삼합은 세 글자 전체. */
+  pair: string;
+  /** 영향을 받는 원국 기둥 목록 (예: ['월주', '일주']) */
+  pillars: string[];
 }
 
 export interface TimelineOptions {
@@ -63,13 +68,6 @@ export interface TimelineOptions {
   lifeSyncRatio?: number;
   /** '현재' 기준 일자. 테스트와 순수성을 위해 주입할 수 있다. */
   referenceDate?: Date | string;
-}
-
-export interface DaeunStory {
-  title: string;
-  summary: string;
-  /** 사용자가 실제 경험과 대조해 싱크로율을 판단할 팩트체크 질문 */
-  checkPoints: string[];
 }
 
 export interface DaeunPeriod {
@@ -93,10 +91,17 @@ export interface DaeunPeriod {
   isPast: boolean;
   isCurrent: boolean;
   isFuture: boolean;
+  /** 십성과 형충을 꿰뚫는 1줄 은유 헤드라인 */
+  headline: string;
+  /** 카드 겉면에 노출되는 1줄 운명 서사 */
+  summary: string;
+  /** 십성·12운성·형충회합의 상호작용을 풀어낸 2~3줄 심층 풀이 (줄바꿈 구분) */
+  detail: string;
+  /** 실제 경험과 대조해 싱크로율을 가늠하는 직격 질문. 대운 시점(과거·현재·미래)에 맞춰 시제가 달라진다. */
+  factCheck: string;
+  /** 한 줄 노출용 문구(릴스 카드 등). summary와 같다. */
   theme: string;
   interactions: InteractionNote[];
-  /** 과거 대운에만 채워진다. */
-  story: DaeunStory | null;
 }
 
 export interface LifeDaeunResult {
@@ -315,80 +320,6 @@ const GOD_ADVICE: Record<TenGod, string> = {
   정관: '평판과 신용이 곧 돈이 되는 때이니 약속과 기한을 엄수하세요.',
   편인: '결정이 늦어지기 쉬우니 구상만 하지 말고 작은 실행으로 검증하세요.',
   정인: '계약서·자격·지원 제도 같은 문서 일을 처리하고 귀인의 조언을 구하세요.',
-};
-
-const DAEUN_PHRASE: Record<TenGod, string> = {
-  비견: '또래·동료와 어깨를 겨루며 자립심을 키우는 흐름',
-  겁재: '경쟁과 지출, 사람 때문에 내 몫을 지켜야 하는 흐름',
-  식신: '재능을 펼치고 먹고사는 기반을 다지는 흐름',
-  상관: '기존 틀에 반발하며 새로운 길을 모색하는 흐름',
-  편재: '큰 판과 기회, 돈의 출입이 커지는 흐름',
-  정재: '꾸준한 수입과 안정적인 터전을 쌓는 흐름',
-  편관: '압박과 책임, 시험이 몰려와 단련되는 흐름',
-  정관: '규율과 평판을 얻으며 제도권 안에서 자리 잡는 흐름',
-  편인: '남다른 공부와 생각, 방황과 탐색이 깊어지는 흐름',
-  정인: '배움과 보호, 윗사람의 도움을 받는 흐름',
-};
-
-const LIFE_STAGE_DOMAIN: Record<LifeStage, string> = {
-  초년: '학업과 가정환경',
-  청년: '진로와 인간관계, 방황과 도전',
-  중년: '사업과 재물, 책임의 무게',
-  말년: '건강과 노후, 자식 문제',
-};
-
-const GROUP_ENVIRONMENT: Record<TenGodGroup, string> = {
-  비겁: '또래와 경쟁하고 협력하는 구도',
-  식상: '재능을 펼칠 수 있는 무대',
-  재성: '돈과 현실적 책임이 따라붙는 구도',
-  관성: '규칙과 윗사람의 통제가 강한 분위기',
-  인성: '보호자와 배움이 받쳐 주는 울타리',
-};
-
-const STAGE_BRIEF: Record<TwelveStage, string> = {
-  장생: '새로운 가능성이 싹트는 기운',
-  목욕: '들뜨고 흔들리기 쉬운 불안정한 기운',
-  관대: '자신감이 붙어 앞으로 나서는 기운',
-  건록: '자기 힘으로 서는 실속 있는 기운',
-  제왕: '정점에 올라 힘이 가장 센 기운',
-  쇠: '정점을 지나 속도를 줄이는 기운',
-  병: '기력이 약해져 무리하면 탈이 나는 기운',
-  사: '멈추고 정리해야 하는 가라앉은 기운',
-  묘: '안으로 저장하고 갈무리하는 기운',
-  절: '끊어졌다가 다시 시작하는 단절의 기운',
-  태: '새 흐름이 잉태되는 준비의 기운',
-  양: '조용히 길러지는 양육의 기운',
-};
-
-const CHECKPOINTS: Record<LifeStage, Record<TenGodGroup, string>> = {
-  초년: {
-    비겁: '형제·친구 관계가 학창 시절의 중심이었거나 또래와의 경쟁·다툼이 잦았나요?',
-    식상: '공부보다 특기·취미·말솜씨로 두각을 나타냈거나 튀는 행동이 잦았나요?',
-    재성: '집안 경제 형편이 학업 선택에 영향을 주었거나 일찍 돈의 현실을 체감했나요?',
-    관성: '부모·교사의 엄격한 통제나 시험 압박이 강했나요?',
-    인성: '어른의 보살핌 속에서 공부에 몰입했거나 이사·전학 같은 환경 변화가 있었나요?',
-  },
-  청년: {
-    비겁: '친구·동료와 동업하거나 돈을 빌려주고 빌리며 갈등을 겪은 적이 있나요?',
-    식상: '진로를 자주 바꾸거나 창작·기술·표현 분야에서 길을 찾으려 방황했나요?',
-    재성: '첫 직장이나 알바로 돈벌이를 시작하며 연애·소비 문제가 커졌나요?',
-    관성: '취업·시험·조직 적응에서 큰 압박이나 중대한 선택을 겪었나요?',
-    인성: '자격증·학업·유학 등 배움에 투자했거나 귀인의 도움을 받았나요?',
-  },
-  중년: {
-    비겁: '사업·직장에서 동업자나 경쟁자와 재물 다툼, 보증·빌려준 돈 문제를 겪었나요?',
-    식상: '독립·창업이나 전문성으로 승부를 걸며 조직과 충돌한 적이 있나요?',
-    재성: '재물이 크게 늘거나 투자·사업 확장으로 큰돈이 오갔나요?',
-    관성: '승진·책임 증가, 관재·구설 같은 사회적 압박이 컸나요?',
-    인성: '이직 준비·자격·부동산 문서처럼 안정을 구하는 변화가 있었나요?',
-  },
-  말년: {
-    비겁: '형제·친구·동년배와의 교류나 재산 분배 문제가 부각되었나요?',
-    식상: '자식·제자·후배에게 베풀거나 새로운 취미·활동을 시작했나요?',
-    재성: '자산 정리·상속·노후 자금 문제가 중심이었나요?',
-    관성: '건강 관리나 사회적 역할 정리에서 압박을 느꼈나요?',
-    인성: '쉼과 돌봄, 정신적 안정과 학문·종교적 관심이 커졌나요?',
-  },
 };
 
 const INTEREST_OPPORTUNITY: Record<InterestKey, string> = {
@@ -954,6 +885,8 @@ function mergeInteractions(raw: readonly RawInteraction[]): InteractionNote[] {
       pillar: pillars.join('·'),
       tone,
       score,
+      pair: first.pair,
+      pillars,
       detail: `${pillars.join('·')}(${impacts.join(' / ')}) ${first.pair}${INTERACTION_SUFFIX[first.kind]} — ${effect}`,
     });
   }
@@ -1491,35 +1424,6 @@ function lifeStageOf(startAge: number): LifeStage {
   return '말년';
 }
 
-function buildDaeunStory(
-  ganji: Ganji,
-  startAge: number,
-  endAge: number,
-  lifeStage: LifeStage,
-  stemGod: TenGod,
-  branchGod: TenGod,
-  stage: TwelveStage,
-  interactions: readonly InteractionNote[]
-): DaeunStory {
-  const domain = LIFE_STAGE_DOMAIN[lifeStage];
-  const stemGroup = TEN_GOD_GROUP[stemGod];
-  const branchGroup = TEN_GOD_GROUP[branchGod];
-
-  const sentences = [
-    `${domain} 영역에서는 ${DAEUN_PHRASE[stemGod]}이 강했던 시기입니다.`,
-    `지지(환경)는 ${GROUP_ENVIRONMENT[branchGroup]}였습니다.`,
-    `일간의 기운은 ${stage} — ${STAGE_BRIEF[stage]}이었습니다.`,
-  ];
-  const clash = interactions.find((note) => note.kind === '충' || note.kind === '형');
-  if (clash) sentences.push(`${clash.pillar}과 부딪혀 이사·이직·관계 변화 같은 환경 변동이 있었을 가능성이 큽니다.`);
-
-  return {
-    title: `${lifeStage} ${formatAgeRangeLabel(startAge, endAge)} · ${ganji.label} 대운`,
-    summary: sentences.join(' '),
-    checkPoints: [CHECKPOINTS[lifeStage][stemGroup]],
-  };
-}
-
 export function calculateLifeDaeun(
   birthDate: string,
   birthTime: string,
@@ -1581,6 +1485,26 @@ export function calculateLifeDaeun(
       const interactions = mergeInteractions(findInteractions(ctx, luck));
       const lifeStage = lifeStageOf(startAge);
 
+      const nextPillarIndex = mod(monthIndex + (forward ? i + 1 : -(i + 1)), 60);
+      const nextGanji = makeGanji(stemAt(nextPillarIndex), branchAt(nextPillarIndex));
+      const narrative = buildDaeunNarrative({
+        dayMaster: ctx.dayMaster,
+        stem: luck.stem,
+        branch: luck.branch,
+        stemGod,
+        branchGod,
+        stage12,
+        lifeStage,
+        timing: isPast ? 'past' : isCurrent ? 'current' : 'future',
+        interactions,
+        natalBranchGod: (branch) => getBranchTenGod(ctx.dayMaster, branch),
+        yearsLeft: isCurrent ? Math.max(0, lastDayYmd.year - ref.year) : undefined,
+        next:
+          i < PERIOD_COUNT
+            ? { ganjiLabel: nextGanji.label, stemGod: getTenGod(ctx.dayMaster, nextGanji.stem) }
+            : null,
+      });
+
       periods.push({
         index: i,
         startAge,
@@ -1597,11 +1521,12 @@ export function calculateLifeDaeun(
         isPast,
         isCurrent,
         isFuture,
-        theme: `${LIFE_STAGE_DOMAIN[lifeStage]} 영역에서 ${DAEUN_PHRASE[stemGod]}${isPast ? '이 강했던' : isCurrent ? '이 한창인' : '이 이어질'} 시기`,
+        headline: narrative.headline,
+        summary: narrative.summary,
+        detail: narrative.detail,
+        factCheck: narrative.factCheck,
+        theme: narrative.summary,
         interactions,
-        story: isPast
-          ? buildDaeunStory(ganji, startAge, endAge, lifeStage, stemGod, branchGod, stage12, interactions)
-          : null,
       });
     }
 
