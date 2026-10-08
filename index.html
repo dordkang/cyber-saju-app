@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>株式会社IZZY | 九州・山口の機械・製造業向け 日韓工業部品調達パートナー</title>
+  <meta name="description" content="【図面1枚から調達コスト15〜20%削減】韓国トップクラスの製造工場ネットワーク × 福岡県久留米本社の品質・納期完全保証。大物機械加工、ファイバーレーザー切断、精密パンチング、特殊メッシュ、製缶溶接。国内円建て取引対応。">
+  <meta name="keywords" content="株式会社IZZY, izzy.best, 工業部品調達, 金属加工, 大物機械加工, レーザー切断, パンチングメタル, 製缶溶接, 福岡, 久留米, 九州, 製造業, コスト削減">
+  <meta name="author" content="株式会社IZZY">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://izzy.best/">
+  <meta property="og:title" content="株式会社IZZY | 図面1枚から調達コスト15〜20%削減">
+  <meta property="og:description" content="韓国有力製造工場直結 × 福岡・久留米本社の品質保証。中間マージンを排除した高精度・短納期の工業部品調達パートナー。">
+  <meta property="og:image" content="https://izzy.best/og-image.jpg">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#0B192C',
+              slate: '#1E3E62',
+              navy: '#0f243d',
+              accent: '#FF6500',
+              accentHover: '#e55a00',
+              accentLight: '#fff2eb',
+              light: '#F8FAFC',
+              card: '#132238',
+              cardHover: '#182b47',
+              border: '#274463',
+              borderLight: '#e2e8f0'
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', '"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          boxShadow: {
+            'glow-accent': '0 0 25px rgba(255, 101, 0, 0.35)',
+            'glow-cyan': '0 0 20px rgba(56, 189, 248, 0.2)',
+            'industrial': '0 10px 30px -5px rgba(11, 25, 44, 0.15)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Industrial Styling */
+    .blueprint-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    }
+    .blueprint-dots {
+      background-size: 24px 24px;
+      background-image: radial-gradient(rgba(30, 62, 98, 0.25) 1.5px, transparent 1.5px);
+    }
+    .industrial-corner {
+      position: relative;
+    }
+    .industrial-corner::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      width: 10px;
+      height: 10px;
+      border-top: 2px solid #FF6500;
+      border-left: 2px solid #FF6500;
+    }
+    .industrial-corner::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 10px;
+      height: 10px;
+      border-bottom: 2px solid #FF6500;
+      border-right: 2px solid #FF6500;
+    }
+    input[type="file"]::file-selector-button {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-800 font-sans antialiased selection:bg-brand-accent selection:text-white">
+
+  <!-- ================= TOP NOTIFICATION BAR ================= -->
+  <div class="bg-brand-dark text-slate-300 text-xs py-2 px-4 border-b border-brand-slate/40">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-brand-accent text-white tracking-wider">九州・山口専任</span>
+        <span class="text-slate-200">福岡・久留米本社より直接対応。急ぎの試作・特注品も即日現場ヒアリング対応可能。</span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-300 text-[11px]">
+        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>図面見積受付中 (24h以内回答)</span>
+        <span class="hidden md:inline text-slate-500">|</span>
+        <span class="hidden md:inline font-mono">JIS規格100%厳守 / 国内円建て取引</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HEADER / NAVIGATION ================= -->
+  <header class="sticky top-0 z-50 bg-[#0B192C]/95 backdrop-blur-md border-b border-brand-slate/60 text-white transition-all duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo -->
+        <a href="#" class="flex items-center gap-3.5 group">
+          <div class="w-11 h-11 rounded-lg bg-gradient-to-br from-brand-accent to-amber-600 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-accent/30 tracking-tight text-xl font-mono border border-white/20">
+            IZ
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl font-extrabold tracking-tight text-white group-hover:text-brand-accent transition-colors">株式会社IZZY</span>
+              <span class="text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded bg-brand-slate text-cyan-300 font-mono font-semibold">B2B Sourcing</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-medium tracking-wider">工業部品技術貿易 & コンソーシアム調達（福岡・久留米）</p>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation -->
+        <nav class="hidden lg:flex items-center space-x-7 text-sm font-medium">
+          <a href="#strengths" class="text-slate-300 hover:text-brand-accent transition-colors">強み・信頼</a>
+          <a href="#plants" class="text-slate-300 hover:text-brand-accent transition-colors">5大加工領域</a>
+          <a href="#process" class="text-slate-300 hover:text-brand-accent transition-colors">調達フロー</a>
+          <a href="#comparison" class="text-slate-300 hover:text-brand-accent transition-colors">調達比較</a>
+          <a href="#company" class="text-slate-300 hover:text-brand-accent transition-colors">会社概要</a>
+          <a href="#faq" class="text-slate-300 hover:text-brand-accent transition-colors">FAQ</a>
+        </nav>
+
+        <!-- Right CTA & Contacts -->
+        <div class="hidden sm:flex items-center gap-3">
+          <a href="#quote-form" class="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-brand-accent hover:bg-brand-accentHover rounded-lg transition-all shadow-lg shadow-brand-accent/30 hover:shadow-brand-accent/50 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2 focus:ring-offset-brand-dark">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            図面見積もり依頼 (24h受付)
+          </a>
+        </div>
+
+        <!-- Mobile Menu Toggle Button -->
+        <div class="flex lg:hidden">
+          <button id="mobile-menu-btn" type="button" class="p-2 text-slate-300 hover:text-white focus:outline-none" aria-label="メニューを開く">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer -->
+    <div id="mobile-menu" class="hidden lg:hidden bg-brand-dark/95 border-b border-brand-slate px-4 pt-2 pb-6 space-y-3 text-sm">
+      <a href="#strengths" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">3つの強み・信頼</a>
+      <a href="#plants" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">5大加工領域 (コンソーシアム)</a>
+      <a href="#process" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">調達フロー</a>
+      <a href="#comparison" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">調達コスト比較</a>
+      <a href="#company" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">会社概要</a>
+      <a href="#faq" class="mobile-link block py-2 text-slate-200 border-b border-brand-slate/40">よくあるご質問</a>
+      <a href="#quote-form" class="mobile-link block mt-4 py-3 text-center text-white bg-brand-accent font-bold rounded-lg shadow-md">図面見積もり依頼フォームへ</a>
+    </div>
+  </header>
+
+  <!-- ================= HERO SECTION ================= -->
+  <section class="relative bg-brand-dark text-white pt-16 pb-24 lg:pt-24 lg:pb-32 overflow-hidden blueprint-grid">
+    <!-- Ambient glowing backdrop -->
+    <div class="absolute -top-40 -right-40 w-96 h-96 bg-brand-accent/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 -left-20 w-80 h-80 bg-brand-slate/40 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Left: Catchphrase & Copy -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-slate/60 border border-brand-border text-xs font-semibold text-slate-200 tracking-wide">
+            <span class="w-2 h-2 rounded-full bg-brand-accent"></span>
+            九州・山口の機械・産業装置メーカー 調達・購買担当者様へ
+          </div>
+
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.2] text-white">
+            図面1枚から、<br class="hidden sm:inline">
+            調達コスト<span class="text-brand-accent underline decoration-brand-accent/50 underline-offset-8">15〜20%削減</span>。
+          </h1>
+
+          <p class="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl">
+            韓国トップクラスの製造工場ネットワーク × 福岡・久留米本社の品質・納期完全保証。
+            商社マージンを極限まで排除し、国内JIS基準の精密機械加工・板金溶接部品を直接お届けするB2B調達パートナーです。
+          </p>
+
+          <!-- Key Benefit Badges -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+            <div class="bg-brand-navy/80 border border-brand-border/80 rounded-lg p-3">
+              <div class="text-xs text-slate-400">調達コスト実績</div>
+              <div class="text-lg font-bold font-mono text-brand-accent">15〜20% 削減</div>
+            </div>
+            <div class="bg-brand-navy/80 border border-brand-border/80 rounded-lg p-3">
+              <div class="text-xs text-slate-400">図面見積りスピード</div>
+              <div class="text-lg font-bold font-mono text-cyan-400">原則 24h 回答</div>
+            </div>
+            <div class="bg-brand-navy/80 border border-brand-border/80 rounded-lg p-3 col-span-2 sm:col-span-1">
+              <div class="text-xs text-slate-400">取引形態</div>
+              <div class="text-lg font-bold text-white">国内 円建て決済</div>
+            </div>
+          </div>
+
+          <!-- Hero Actions -->
+          <div class="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <a href="#quote-form" class="inline-flex items-center justify-center px-7 py-4 text-base font-bold text-white bg-brand-accent hover:bg-brand-accentHover rounded-xl shadow-xl shadow-brand-accent/30 hover:shadow-brand-accent/50 transition-all hover:-translate-y-0.5">
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              今すぐ図面を送付して見積依頼
+            </a>
+            <a href="#plants" class="inline-flex items-center justify-center px-6 py-4 text-sm font-semibold text-slate-200 bg-brand-slate/50 hover:bg-brand-slate rounded-xl border border-brand-border transition-colors">
+              対応可能な5大設備を見る
+              <svg class="w-4 h-4 ml-1.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Sub guarantee notice -->
+          <div class="flex items-center gap-2 text-xs text-slate-400 pt-1">
+            <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span>秘密保持契約(NDA)の事前締結対応 / 試作1個から量産ロットまで対応 / 久留米本社が直接訪問</span>
+          </div>
+
+        </div>
+
+        <!-- Right: Fast Dropzone & Verification Card -->
+        <div class="lg:col-span-5">
+          <div class="bg-gradient-to-b from-brand-card to-brand-navy rounded-2xl border border-brand-border p-6 shadow-2xl relative">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-brand-slate/60 mb-5">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-brand-accent"></span>
+                <span class="font-bold text-sm text-white">クイック図面診断・お見積り</span>
+              </div>
+              <span class="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">PDF/CAD/DXF対応</span>
+            </div>
+
+            <div class="space-y-4">
+              <p class="text-xs text-slate-300 leading-relaxed">
+                現行の調達先よりコストを下げたい図面、短納期でお困りの図面を直接アップロードしてください。技術専任者が最短で比較見積書を作成します。
+              </p>
+
+              <!-- Interactive Dropzone teaser -->
+              <div onclick="document.getElementById('quote-form').scrollIntoView({behavior: 'smooth'})" class="cursor-pointer border-2 border-dashed border-brand-border hover:border-brand-accent rounded-xl p-6 text-center bg-brand-dark/50 hover:bg-brand-slate/20 transition-all group">
+                <div class="w-12 h-12 mx-auto rounded-full bg-brand-slate/40 flex items-center justify-center text-brand-accent group-hover:scale-110 transition-transform">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                </div>
+                <div class="mt-3 text-sm font-bold text-slate-100 group-hover:text-brand-accent transition-colors">
+                  クリックして見積りフォームへ図面を添付
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">
+                  最大50MB（DXF, DWG, STEP, IGES, PDF, ZIP対応）
+                </p>
+              </div>
+
+              <!-- Quick spec bullet points -->
+              <div class="bg-brand-dark/40 rounded-lg p-3.5 space-y-2 border border-brand-border/40 text-xs">
+                <div class="flex items-center justify-between text-slate-300">
+                  <span class="flex items-center gap-1.5"><span class="text-brand-accent">✔</span> 検査体制</span>
+                  <span class="font-mono text-slate-200">三次元測定器・ミルシート完備</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-300">
+                  <span class="flex items-center gap-1.5"><span class="text-brand-accent">✔</span> 為替リスク</span>
+                  <span class="font-mono text-emerald-400">日本円確定建て（為替変動なし）</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-300">
+                  <span class="flex items-center gap-1.5"><span class="text-brand-accent">✔</span> 納入形態</span>
+                  <span class="font-mono text-slate-200">貴社指定工場へ直送（通関手続不要）</span>
+                </div>
+              </div>
+
+              <a href="#quote-form" class="block w-full text-center py-2.5 text-xs font-bold text-slate-200 bg-brand-slate hover:bg-slate-700 rounded-lg transition-colors">
+                詳細仕様・加工要望を入力して依頼する &rarr;
+              </a>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LOGO STRIP / MANUFACTURING METRICS ================= -->
+  <section class="bg-[#0e1e33] border-y border-brand-slate/40 py-6 text-slate-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x divide-brand-slate/30">
+        <div class="px-2">
+          <div class="text-2xl sm:text-3xl font-extrabold font-mono text-white">10<span class="text-brand-accent text-base font-sans">年の実績</span></div>
+          <div class="text-xs text-slate-400 mt-0.5">重工業向け精密加工エンジニアリング</div>
+        </div>
+        <div class="px-2">
+          <div class="text-2xl sm:text-3xl font-extrabold font-mono text-white">5<span class="text-brand-accent text-base font-sans">大直結工場</span></div>
+          <div class="text-xs text-slate-400 mt-0.5">大物マシニング・レーザー・溶接構造体</div>
+        </div>
+        <div class="px-2">
+          <div class="text-2xl sm:text-3xl font-extrabold font-mono text-white">100<span class="text-brand-accent text-base font-sans">%</span></div>
+          <div class="text-xs text-slate-400 mt-0.5">JIS規格厳守・受入全数検査体制</div>
+        </div>
+        <div class="px-2">
+          <div class="text-2xl sm:text-3xl font-extrabold font-mono text-white">0<span class="text-brand-accent text-base font-sans">円</span></div>
+          <div class="text-xs text-slate-400 mt-0.5">図面査定・コスト比較見積・通関代行料</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CORE ADVANTAGE (3つの信頼) ================= -->
+  <section id="strengths" class="py-20 lg:py-28 bg-white blueprint-dots">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-brand-accent text-xs font-bold tracking-widest uppercase bg-brand-accentLight px-3 py-1 rounded-full border border-brand-accent/20">
+          WHY CHOOSE IZZY
+        </span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
+          調達担当者に選ばれる「3つの信頼」
+        </h2>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          「海外調達は品質や納期が不安」「一般的な商社は中間マージンが高すぎる」——<br class="hidden sm:inline">
+          株式会社IZZYは、その双方の課題を解決する新しい調達モデルを構築しました。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Advantage 01 -->
+        <div class="bg-[#F8FAFC] border border-slate-200 hover:border-brand-accent rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="font-mono text-4xl font-extrabold text-slate-300 group-hover:text-brand-accent transition-colors">01</span>
+              <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-brand-accent">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-accent transition-colors">
+              徹底的なコスト削減<br>
+              <span class="text-sm font-semibold text-slate-500 font-mono">（平均15〜20% Down）</span>
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+              大手商社や二次代理店を介さず、韓国トップクラスの有力OEM加工工場と直接コンソーシアム提携。中間マージンを完全排除し、日本JIS規格に準拠した高品質部品を現地直結価格で供給します。
+            </p>
+          </div>
+          <div class="pt-4 border-t border-slate-200/80 text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            材料ミルシート・検査成績表（COC）無償添付
+          </div>
+        </div>
+
+        <!-- Advantage 02 -->
+        <div class="bg-[#F8FAFC] border border-slate-200 hover:border-brand-accent rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="font-mono text-4xl font-extrabold text-slate-300 group-hover:text-brand-accent transition-colors">02</span>
+              <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-brand-slate">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-accent transition-colors">
+              久留米本社の安心保証<br>
+              <span class="text-sm font-semibold text-slate-500">（現場即日訪問サポート）</span>
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+              万が一の仕様変更や品質トラブル、納期調整もご安心ください。福岡県久留米市の株式会社IZZYが一次責任を負い、国内企業として迅速に貴社工場へ直接訪問・現地サポートを行います。
+            </p>
+          </div>
+          <div class="pt-4 border-t border-slate-200/80 text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            日本国内法適用・円建て月締め請求書払い対応
+          </div>
+        </div>
+
+        <!-- Advantage 03 -->
+        <div class="bg-[#F8FAFC] border border-slate-200 hover:border-brand-accent rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="font-mono text-4xl font-extrabold text-slate-300 group-hover:text-brand-accent transition-colors">03</span>
+              <div class="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center text-slate-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+              </div>
+            </div>
+            <h3 class="text-xl font-bold text-brand-dark mb-3 group-hover:text-brand-accent transition-colors">
+              10年の精密製造実績<br>
+              <span class="text-sm font-semibold text-slate-500">（重工・ターボチャージャー部品）</span>
+            </h3>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+              三菱重工業MET型ターボチャージャー用サイレンスフィルター等の7年直接製造実績をはじめ、過酷な公差と強度を要求される重工業部品に精通した技術者が図面を精査。加工可否やVE提案を迅速に行います。
+            </p>
+          </div>
+          <div class="pt-4 border-t border-slate-200/80 text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            図面段階でのVE・VA提案（コストダウン工法提案）
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= COMPARISON TABLE ================= -->
+  <section id="comparison" class="py-16 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center mb-12">
+        <h3 class="text-2xl sm:text-3xl font-extrabold text-brand-dark">調達チャネル比較：なぜIZZYなのか？</h3>
+        <p class="mt-2 text-sm text-slate-600">国内商社と海外直輸入の「良いとこ取り」を実現した調達フレームワーク</p>
+      </div>
+
+      <div class="overflow-x-auto bg-white rounded-xl shadow border border-slate-200">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-brand-dark text-white">
+              <th class="p-4 font-bold border-b border-brand-slate">調達・評価項目</th>
+              <th class="p-4 font-medium text-slate-300 border-b border-brand-slate">一般的な国内商社経由</th>
+              <th class="p-4 font-medium text-slate-300 border-b border-brand-slate">自社での海外直接発注</th>
+              <th class="p-4 font-bold text-brand-accent bg-[#132845] border-b border-brand-accent/40">株式会社IZZY (推奨)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 text-slate-700">
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-4 font-bold text-brand-dark">部品価格・コスト</td>
+              <td class="p-4 text-slate-500">多重マージンで割高 (基準)</td>
+              <td class="p-4 text-emerald-600 font-semibold">安価だが隠れコスト大</td>
+              <td class="p-4 font-bold text-brand-accent bg-orange-50/40">15〜20%の大幅コスト削減</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-4 font-bold text-brand-dark">品質保証・検査</td>
+              <td class="p-4">安心だが納期長期化傾向</td>
+              <td class="p-4 text-rose-500 font-semibold">自己責任（不良リスク大）</td>
+              <td class="p-4 font-bold text-brand-dark bg-orange-50/40">JIS基準・久留米本社受入全数検査</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-4 font-bold text-brand-dark">トラブル時対応</td>
+              <td class="p-4">メーカー問合せで回答遅延</td>
+              <td class="p-4 text-rose-500 font-semibold">言語・距離の壁で交渉難航</td>
+              <td class="p-4 font-bold text-brand-dark bg-orange-50/40">久留米から即日現場訪問サポート</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-4 font-bold text-brand-dark">通関・貿易・為替</td>
+              <td class="p-4">国内取引（商社が負担）</td>
+              <td class="p-4 text-rose-500 font-semibold">通関手続き・為替変動リスク大</td>
+              <td class="p-4 font-bold text-brand-dark bg-orange-50/40">完全国内円建て取引（手続きゼロ）</td>
+            </tr>
+            <tr class="hover:bg-slate-50/80">
+              <td class="p-4 font-bold text-brand-dark">見積り回答スピード</td>
+              <td class="p-4 text-slate-500">3〜7営業日</td>
+              <td class="p-4 text-slate-500">言語壁で連絡停滞</td>
+              <td class="p-4 font-bold text-emerald-600 bg-orange-50/40">原則24時間以内にスピード提出</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= 5 PLANTS CAPABILITIES ================= -->
+  <section id="plants" class="py-20 lg:py-28 bg-brand-dark text-white blueprint-grid">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-slate border border-brand-border text-xs font-semibold text-cyan-300 font-mono">
+          MANUFACTURING CONSORTIUM
+        </div>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          5大製造コンソーシアム 加工対応領域
+        </h2>
+        <p class="mt-4 text-base text-slate-300 leading-relaxed">
+          韓国の産業重鎮地域（釜山・蔚山・昌原・京畿）に立地する有力設備群をダイレクトに稼働。<br class="hidden sm:inline">
+          小型精密パーツから超大型構造物まで、図面1枚で最適ラインをアサインします。
+        </p>
+      </div>
+
+      <!-- 5 Plants Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Plant 01: 大物・高精度機械加工 (Feature Card 7 Cols) -->
+        <div class="lg:col-span-7 bg-brand-card border border-brand-border hover:border-brand-accent/80 rounded-2xl p-7 lg:p-8 transition-all hover:shadow-glow-accent group relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-brand-slate/80 text-[11px] font-mono font-bold px-3 py-1 rounded-bl-lg text-cyan-300 border-l border-b border-brand-border">
+            PLANT 01 / HEAVY MACHINING
+          </div>
+          
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-lg bg-orange-500/20 text-brand-accent flex items-center justify-center font-mono font-bold text-lg border border-brand-accent/30">01</span>
+            <h3 class="text-xl sm:text-2xl font-bold text-white group-hover:text-brand-accent transition-colors">大物・高精度機械加工</h3>
+          </div>
+
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            大型五面加工機および超大型プラノミラーを完備。産業機械のメインベースフレーム、プレス機械ベッド、船舶用大型ブロックなど、国内では納期が逼迫しやすい大物ワークを短納期で高精度切削します。
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-brand-dark/60 rounded-xl p-4 border border-brand-border/60 text-xs">
+            <div>
+              <div class="text-slate-400 font-medium">主要保有設備</div>
+              <div class="font-mono text-slate-100 mt-1 font-semibold">プラノミラー (3,000 × 5,200mm)<br>大型門型五面加工機 (マシニング)</div>
+            </div>
+            <div>
+              <div class="text-slate-400 font-medium">加工対応材質・実績</div>
+              <div class="text-slate-100 mt-1 font-semibold">SS400, S45C, SCM, 鍛造鋼, 鋳物(FC/FCD)<br>産業機械ベッド・大型ギヤボックス</div>
+            </div>
+          </div>
+
+          <div class="mt-5 flex flex-wrap gap-2 text-[11px]">
+            <span class="px-2.5 py-1 rounded bg-brand-slate text-slate-200">最大積載30トン</span>
+            <span class="px-2.5 py-1 rounded bg-brand-slate text-slate-200">幾何公差精密管理</span>
+            <span class="px-2.5 py-1 rounded bg-brand-slate text-slate-200">熱処理(焼鈍・焼入れ)一貫対応</span>
+          </div>
+        </div>
+
+        <!-- Plant 02: 高出力ファイバーレーザー切断 (5 Cols) -->
+        <div class="lg:col-span-5 bg-brand-card border border-brand-border hover:border-brand-accent/80 rounded-2xl p-7 lg:p-8 transition-all hover:shadow-glow-accent group relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-brand-slate/80 text-[11px] font-mono font-bold px-3 py-1 rounded-bl-lg text-cyan-300 border-l border-b border-brand-border">
+            PLANT 02 / FIBER LASER
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-lg bg-orange-500/20 text-brand-accent flex items-center justify-center font-mono font-bold text-lg border border-brand-accent/30">02</span>
+            <h3 class="text-xl font-bold text-white group-hover:text-brand-accent transition-colors">高出力ファイバーレーザー切断</h3>
+          </div>
+
+          <p class="text-slate-300 text-sm leading-relaxed mb-6">
+            スイス Bystronic社製 10kW / 15kW超高出力ファイバーレーザー機を配備。厚板でもドロスフリーの極限精度切断と窒素切断による無酸化切断面を実現。
+          </p>
+
+          <div class="bg-brand-dark/60 rounded-xl p-4 border border-brand-border/60 text-xs space-y-2">
+            <div class="flex justify-between">
+              <span class="text-slate-400">厚板 SS400:</span>
+              <span class="font-mono font-semibold text-slate-100">最大 25T (クリーンカット)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">ステンレス (SUS304/316):</span>
+              <span class="font-mono font-semibold text-slate-100">最大 25T</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">アルミニウム合金:</span>
+              <span class="font-mono font-semibold text-slate-100">最大 15T</span>
+            </div>
+          </div>
+
+          <div class="mt-5 flex flex-wrap gap-2 text-[11px]">
+            <span class="px-2.5 py-1 rounded bg-brand-slate text-slate-200">大型テーブル 2.5m × 6m</span>
+            <span class="px-2.5 py-1 rounded bg-brand-slate text-slate-200">短納期ネスティング</span>
+          </div>
+        </div>
+
+        <!-- Plant 03: 精密パンチング・多孔メタル (4 Cols) -->
+        <div class="lg:col-span-4 bg-brand-card border border-brand-border hover:border-brand-accent/80 rounded-2xl p-7 transition-all hover:shadow-glow-accent group relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-brand-slate/80 text-[11px] font-mono font-bold px-3 py-1 rounded-bl-lg text-cyan-300 border-l border-b border-brand-border">
+            PLANT 03 / PERFORATION
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-lg bg-orange-500/20 text-brand-accent flex items-center justify-center font-mono font-bold text-lg border border-brand-accent/30">03</span>
+            <h3 class="text-lg font-bold text-white group-hover:text-brand-accent transition-colors">精密パンチング・多孔板</h3>
+          </div>
+
+          <p class="text-slate-300 text-xs leading-relaxed mb-4">
+            0.5Tの極薄箔から16Tの極厚板までカバーする超高圧パンチングプレス群。各種選別スクリーン、遠心分離機用多孔板、産業用防音ルーバーを特注製作。
+          </p>
+
+          <div class="bg-brand-dark/60 rounded-xl p-3 border border-brand-border/60 text-xs space-y-1.5">
+            <div class="text-slate-400">加工範囲: <span class="text-slate-100 font-mono font-semibold">0.5T 〜 16T</span></div>
+            <div class="text-slate-400">金型: <span class="text-slate-100">丸孔、角孔、長孔、千鳥配列等</span></div>
+            <div class="text-slate-400">後工程: <span class="text-slate-100">レベラー矯正・ロール曲げ</span></div>
+          </div>
+        </div>
+
+        <!-- Plant 04: 特殊合金メッシュ・デミスター (4 Cols) -->
+        <div class="lg:col-span-4 bg-brand-card border border-brand-border hover:border-brand-accent/80 rounded-2xl p-7 transition-all hover:shadow-glow-accent group relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-brand-slate/80 text-[11px] font-mono font-bold px-3 py-1 rounded-bl-lg text-cyan-300 border-l border-b border-brand-border">
+            PLANT 04 / WIRE MESH
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-lg bg-orange-500/20 text-brand-accent flex items-center justify-center font-mono font-bold text-lg border border-brand-accent/30">04</span>
+            <h3 class="text-lg font-bold text-white group-hover:text-brand-accent transition-colors">特殊合金メッシュ・デミスター</h3>
+          </div>
+
+          <p class="text-slate-300 text-xs leading-relaxed mb-4">
+            耐食・耐熱要求の高い化学プラント・発電設備向け金網および気液分離デミスター。チタン、インコネル、ハステロイ、SUS316Lの特殊織金網と編組に対応。
+          </p>
+
+          <div class="bg-brand-dark/60 rounded-xl p-3 border border-brand-border/60 text-xs space-y-1.5">
+            <div class="text-slate-400">対応材質: <span class="text-cyan-300 font-mono">Titanium, Inconel, Hastelloy</span></div>
+            <div class="text-slate-400">主要製品: <span class="text-slate-100">ミストセパレータ、ワイヤーコンベア</span></div>
+            <div class="text-slate-400">実績: <span class="text-slate-100">プラント・排脱設備向け多数納入</span></div>
+          </div>
+        </div>
+
+        <!-- Plant 05: 製缶・特殊溶接構造物 (4 Cols) -->
+        <div class="lg:col-span-4 bg-brand-card border border-brand-border hover:border-brand-accent/80 rounded-2xl p-7 transition-all hover:shadow-glow-accent group relative overflow-hidden">
+          <div class="absolute top-0 right-0 bg-brand-slate/80 text-[11px] font-mono font-bold px-3 py-1 rounded-bl-lg text-cyan-300 border-l border-b border-brand-border">
+            PLANT 05 / WELDING
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="w-10 h-10 rounded-lg bg-orange-500/20 text-brand-accent flex items-center justify-center font-mono font-bold text-lg border border-brand-accent/30">05</span>
+            <h3 class="text-lg font-bold text-white group-hover:text-brand-accent transition-colors">製缶・特殊溶接構造物</h3>
+          </div>
+
+          <p class="text-slate-300 text-xs leading-relaxed mb-4">
+            有資格溶接士（JIS/AWS/ASME）によるTIG/MIG/CO2高度溶接。配管プレハブスプール、各種高圧タンク、耐腐食ダクト構造体を完全非破壊検査（RT/UT/PT）体制で製造。
+          </p>
+
+          <div class="bg-brand-dark/60 rounded-xl p-3 border border-brand-border/60 text-xs space-y-1.5">
+            <div class="text-slate-400">溶接工法: <span class="text-slate-100">TIG / MIG / 自動サブマージ</span></div>
+            <div class="text-slate-400">非破壊検査: <span class="text-slate-100">PT, MT, UT, RT検査対応</span></div>
+            <div class="text-slate-400">表面処理: <span class="text-slate-100">酸洗不動態化・溶融亜鉛鍍金</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Capability CTA banner -->
+      <div class="mt-12 bg-gradient-to-r from-brand-slate to-brand-navy rounded-xl p-6 border border-brand-border flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h4 class="text-lg font-bold text-white">「上記に該当するか分からない特殊品」もご相談ください</h4>
+          <p class="text-xs text-slate-300 mt-1">図面・仕様メモ・CADデータがあれば、技術エンジニアが最適工法を即座に選定して回答します。</p>
+        </div>
+        <a href="#quote-form" class="flex-shrink-0 px-6 py-3 bg-brand-accent hover:bg-brand-accentHover text-white text-xs font-bold rounded-lg transition-all shadow-md">
+          図面を送って加工可否を確認する &rarr;
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= PROCESS FLOW ================= -->
+  <section id="process" class="py-20 lg:py-28 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-brand-accent text-xs font-bold tracking-widest uppercase bg-brand-accentLight px-3 py-1 rounded-full border border-brand-accent/20">
+          ORDER PROCESS
+        </span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
+          シンプルで安心な「調達・取引フロー」
+        </h2>
+        <p class="mt-4 text-base text-slate-600 leading-relaxed">
+          面倒な海外貿易実務や為替リスクは一切不要。国内メーカー様は、通常の国内発注と全く同じ感覚でご利用いただけます。
+        </p>
+      </div>
+
+      <!-- 4-Step Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+        
+        <!-- Step 1 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-mono text-xs font-extrabold bg-brand-dark text-white px-2.5 py-1 rounded">STEP 01</span>
+              <span class="text-xs text-brand-accent font-semibold">WEB / メール</span>
+            </div>
+            <h3 class="text-lg font-bold text-brand-dark mb-2">図面データの送付</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              PDF、DXF、3D CAD (STEP) 等の図面とお求めのロット数・希望納期をお送りください。手書きポンチ絵や現物サンプルからのリバースエンジニアリングも可能です。
+            </p>
+          </div>
+          <div class="mt-6 pt-3 border-t border-slate-200 text-[11px] text-slate-500 font-mono">
+            所要時間: 1分で完了
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-mono text-xs font-extrabold bg-brand-dark text-white px-2.5 py-1 rounded">STEP 02</span>
+              <span class="text-xs text-emerald-600 font-semibold font-mono">24h 以内</span>
+            </div>
+            <h3 class="text-lg font-bold text-brand-dark mb-2">コスト比較見積の提出</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              JIS規格に準拠した原材料費・加工費・運賃を精査。現行調達価格との削減幅がひと目でわかる「国内円建て確定見積書」を最短即日〜24時間以内にご提示します。
+            </p>
+          </div>
+          <div class="mt-6 pt-3 border-t border-slate-200 text-[11px] text-slate-500 font-mono">
+            VE提案・工法相談無料
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-mono text-xs font-extrabold bg-brand-dark text-white px-2.5 py-1 rounded">STEP 03</span>
+              <span class="text-xs text-blue-600 font-semibold">久留米品質検査</span>
+            </div>
+            <h3 class="text-lg font-bold text-brand-dark mb-2">試作・受入全数検査</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              初回サンプルまたは量産先行品を製作。現地工場での検査に加え、福岡県久留米市にて受入寸法測定・ミルシート確認を実施し、合格品のみを貴社へお届けします。
+            </p>
+          </div>
+          <div class="mt-6 pt-3 border-t border-slate-200 text-[11px] text-slate-500 font-mono">
+            検査成績書(COC)同梱
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 relative flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-mono text-xs font-extrabold bg-brand-accent text-white px-2.5 py-1 rounded">STEP 04</span>
+              <span class="text-xs text-brand-slate font-semibold">国内納品</span>
+            </div>
+            <h3 class="text-lg font-bold text-brand-dark mb-2">量産納品・円建て決済</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              貴社工場・指定倉庫へ定期便納入。取引は全て「株式会社IZZY」との日本国内取引となり、通常通りの円建て月締め請求書（インボイス制度対応）にてお支払いいただけます。
+            </p>
+          </div>
+          <div class="mt-6 pt-3 border-t border-slate-200 text-[11px] text-slate-500 font-mono">
+            適格請求書発行事業者対応
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Trust note below steps -->
+      <div class="mt-10 p-4 bg-orange-50 border border-orange-200 rounded-xl text-center text-xs text-orange-950 font-medium">
+        💡 九州各県（福岡・佐賀・長崎・熊本・大分・宮崎・鹿児島）および山口県内へは、必要に応じて担当技術者が直接納品立会いや打合せに伺います。
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= RFQ FORM SECTION ================= -->
+  <section id="quote-form" class="py-20 lg:py-28 bg-brand-dark text-white blueprint-grid relative">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      
+      <div class="text-center mb-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-slate/60 border border-brand-border text-xs font-semibold text-brand-accent">
+          24時間受付 / 相談・見積無料
+        </div>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          図面・お見積り依頼フォーム
+        </h2>
+        <p class="mt-3 text-sm text-slate-300">
+          試作1個から量産案件まで、お気軽にご送付ください。原則24時間以内に担当技術者より概算回答いたします。
+        </p>
+      </div>
+
+      <div class="bg-brand-card/90 border border-brand-border rounded-2xl p-6 sm:p-10 shadow-2xl backdrop-blur-sm">
+        
+        <form id="rfqForm" onsubmit="handleFormSubmit(event)" class="space-y-6">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            
+            <!-- Company Name -->
+            <div>
+              <label for="companyName" class="block text-xs font-bold text-slate-200 mb-1.5">
+                貴社名 <span class="text-brand-accent">*</span>
+              </label>
+              <input type="text" id="companyName" required placeholder="例）〇〇機械工業株式会社" 
+                class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+            </div>
+
+            <!-- Department / Title -->
+            <div>
+              <label for="department" class="block text-xs font-bold text-slate-200 mb-1.5">
+                部署名・お役職
+              </label>
+              <input type="text" id="department" placeholder="例）調達購買部 部長 / 設計技術課" 
+                class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+            </div>
+
+            <!-- Person Name -->
+            <div>
+              <label for="contactName" class="block text-xs font-bold text-slate-200 mb-1.5">
+                ご担当者様名 <span class="text-brand-accent">*</span>
+              </label>
+              <input type="text" id="contactName" required placeholder="例）山田 太郎" 
+                class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+            </div>
+
+            <!-- Phone -->
+            <div>
+              <label for="phoneNumber" class="block text-xs font-bold text-slate-200 mb-1.5">
+                お電話番号 <span class="text-brand-accent">*</span>
+              </label>
+              <input type="tel" id="phoneNumber" required placeholder="例）092-000-0000" 
+                class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+            </div>
+
+          </div>
+
+          <!-- Email -->
+          <div>
+            <label for="emailAddress" class="block text-xs font-bold text-slate-200 mb-1.5">
+              メールアドレス <span class="text-brand-accent">*</span>
+            </label>
+            <input type="email" id="emailAddress" required placeholder="例）procurement@example.co.jp" 
+              class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+          </div>
+
+          <!-- Processing Category & Quantity -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            
+            <div>
+              <label for="category" class="block text-xs font-bold text-slate-200 mb-1.5">
+                加工・製作種別 <span class="text-brand-accent">*</span>
+              </label>
+              <select id="category" required class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+                <option value="">加工種別を選択してください</option>
+                <option value="machining">Plant 01: 大物・高精度機械加工 (マシニング/五面)</option>
+                <option value="laser">Plant 02: ファイバーレーザー切断 (厚板・精密)</option>
+                <option value="perforation">Plant 03: 精密パンチング・多孔メタル板</option>
+                <option value="mesh">Plant 04: 特殊合金メッシュ・デミスター</option>
+                <option value="welding">Plant 05: 製缶・特殊溶接構造物・配管</option>
+                <option value="other">複数加工の一貫製作・その他特殊部品</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="lotSize" class="block text-xs font-bold text-slate-200 mb-1.5">
+                希望製作ロット / 時期
+              </label>
+              <input type="text" id="lotSize" placeholder="例）試作2個、または月産50個定期便 / 翌月末納入希望" 
+                class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors">
+            </div>
+
+          </div>
+
+          <!-- File Upload Dropzone (Interactive Drag & Drop) -->
+          <div>
+            <label class="block text-xs font-bold text-slate-200 mb-1.5">
+              図面・仕様書添付 (ドラッグ＆ドロップ対応)
+            </label>
+            <div id="dropZone" 
+                 ondragover="handleDragOver(event)" 
+                 ondragleave="handleDragLeave(event)" 
+                 ondrop="handleFileDrop(event)"
+                 class="border-2 border-dashed border-brand-border hover:border-brand-accent rounded-xl p-6 text-center bg-brand-dark/60 transition-all cursor-pointer">
+              
+              <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)" class="hidden" accept=".pdf,.dxf,.dwg,.step,.stp,.iges,.igs,.zip,.rar,.png,.jpg,.jpeg">
+              
+              <div onclick="document.getElementById('fileInput').click()" class="space-y-2">
+                <div class="w-12 h-12 mx-auto rounded-full bg-brand-slate/50 flex items-center justify-center text-brand-accent">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                </div>
+                <div class="text-sm font-semibold text-slate-200">
+                  <span class="text-brand-accent underline underline-offset-2">ファイルを選択</span> または ここにドラッグ＆ドロップ
+                </div>
+                <p class="text-[11px] text-slate-400">
+                  対応形式: PDF, DXF, DWG, STEP, IGES, ZIP, 画像等（複数ファイル可・合計100MBまで）
+                </p>
+              </div>
+
+              <!-- Selected Files Container -->
+              <div id="fileList" class="mt-4 space-y-2 text-left hidden"></div>
+
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">※容量が大きい場合や秘密保持締結後の受領をご希望の場合は、備考欄にその旨をご記入ください。</p>
+          </div>
+
+          <!-- Notes / Message -->
+          <div>
+            <label for="inquiryDetails" class="block text-xs font-bold text-slate-200 mb-1.5">
+              ご要望・特記事項（材質、熱処理、表面処理、ターゲット単価など）
+            </label>
+            <textarea id="inquiryDetails" rows="4" placeholder="例）材質はSUS304指定。現行国内で1個あたり35,000円で購入しているため、2割削減を目標に検討したい。来週中に概算価格を知りたい。"
+              class="w-full bg-brand-dark border border-brand-border rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-accent focus:ring-1 focus:ring-brand-accent transition-colors"></textarea>
+          </div>
+
+          <!-- Privacy & NDA Agreement Checkbox -->
+          <div class="flex items-start gap-2 pt-2">
+            <input type="checkbox" id="ndaAgreement" required class="mt-1 w-4 h-4 rounded text-brand-accent bg-brand-dark border-brand-border focus:ring-brand-accent">
+            <label for="ndaAgreement" class="text-xs text-slate-300 leading-relaxed cursor-pointer">
+              弊社の秘密保持方針および<a href="#compliance" class="text-brand-accent hover:underline">個人情報保護方針</a>に同意します。ご送付いただいた図面および機密情報は、技術査定およびお見積り目的以外には一切使用いたしません。
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-4">
+            <button type="submit" id="submitBtn" class="w-full py-4 px-6 text-base font-bold text-white bg-brand-accent hover:bg-brand-accentHover rounded-xl shadow-xl shadow-brand-accent/30 hover:shadow-brand-accent/50 transition-all flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+              <span>上記の内容で図面見積もりを送信する (無料)</span>
+            </button>
+            <p class="text-center text-[11px] text-slate-400 mt-3">
+              送信後、担当技術者より確認メールとお電話またはメールにてご連絡を差し上げます。
+            </p>
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= FAQ SECTION ================= -->
+  <section id="faq" class="py-20 lg:py-28 bg-slate-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center mb-16">
+        <span class="text-brand-accent text-xs font-bold tracking-widest uppercase bg-brand-accentLight px-3 py-1 rounded-full border border-brand-accent/20">
+          FAQ
+        </span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
+          よくあるご質問（購買・調達担当者様向け）
+        </h2>
+        <p class="mt-4 text-sm text-slate-600">
+          初めての海外直結調達で懸念される事項をまとめました。
+        </p>
+      </div>
+
+      <div class="space-y-4">
+        
+        <!-- Q1 -->
+        <details class="bg-white border border-slate-200 rounded-xl p-5 group open:border-brand-slate transition-all">
+          <summary class="font-bold text-brand-dark text-base flex justify-between items-center cursor-pointer list-none">
+            <span class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded bg-brand-dark text-white text-xs flex items-center justify-center font-mono">Q1</span>
+              為替変動や輸入通関の手続きは社内で発生しますか？
+            </span>
+            <span class="text-slate-400 group-open:rotate-180 transition-transform text-sm">&#9660;</span>
+          </summary>
+          <div class="mt-3 pl-8 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+            <strong>一切発生いたしません。</strong> 株式会社IZZYが全ての輸入・通関・物流手続きを行い、貴社指定倉庫または工場へ直接お届けします。お見積書およびご請求書もすべて日本円（国内取引）での発行となり、為替リスクも弊社が担保いたします。
+          </div>
+        </details>
+
+        <!-- Q2 -->
+        <details class="bg-white border border-slate-200 rounded-xl p-5 group open:border-brand-slate transition-all">
+          <summary class="font-bold text-brand-dark text-base flex justify-between items-center cursor-pointer list-none">
+            <span class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded bg-brand-dark text-white text-xs flex items-center justify-center font-mono">Q2</span>
+              万が一、寸法公差外れや不具合があった場合の補償体制は？
+            </span>
+            <span class="text-slate-400 group-open:rotate-180 transition-transform text-sm">&#9660;</span>
+          </summary>
+          <div class="mt-3 pl-8 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+            <strong>久留米本社の株式会社IZZYが責任を持って現地対応いたします。</strong> 九州・山口エリアであれば担当技術者が即座にお客様の工場へ駆けつけ、現品確認を実施。必要に応じて再加工・航空便による緊急代替品手配、または国内修正加工を即時手配いたします。
+          </div>
+        </details>
+
+        <!-- Q3 -->
+        <details class="bg-white border border-slate-200 rounded-xl p-5 group open:border-brand-slate transition-all">
+          <summary class="font-bold text-brand-dark text-base flex justify-between items-center cursor-pointer list-none">
+            <span class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded bg-brand-dark text-white text-xs flex items-center justify-center font-mono">Q3</span>
+              図面の秘密保持契約（NDA）の事前締結は可能ですか？
+            </span>
+            <span class="text-slate-400 group-open:rotate-180 transition-transform text-sm">&#9660;</span>
+          </summary>
+          <div class="mt-3 pl-8 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+            <strong>もちろん可能です。</strong> 貴社フォーマット、または弊社の標準NDAドラフトにて即日電子締結（クラウドサイン等）または書面締結に対応しております。ご遠慮なくお申し付けください。
+          </div>
+        </details>
+
+        <!-- Q4 -->
+        <details class="bg-white border border-slate-200 rounded-xl p-5 group open:border-brand-slate transition-all">
+          <summary class="font-bold text-brand-dark text-base flex justify-between items-center cursor-pointer list-none">
+            <span class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded bg-brand-dark text-white text-xs flex items-center justify-center font-mono">Q4</span>
+              試作1個からでも発注できますか？
+            </span>
+            <span class="text-slate-400 group-open:rotate-180 transition-transform text-sm">&#9660;</span>
+          </summary>
+          <div class="mt-3 pl-8 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
+            <strong>試作1点から喜んで承ります。</strong> 大物機械加工の単体テストピースから、レーザー切断・パンチングメタルのサンプル製作まで柔軟に対応します。量産移行前の品質・精度の事前見極めとしても是非ご活用ください。
+          </div>
+        </details>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= COMPANY OVERVIEW ================= -->
+  <section id="company" class="py-20 lg:py-28 bg-white border-t border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-brand-accent text-xs font-bold tracking-widest uppercase bg-brand-accentLight px-3 py-1 rounded-full border border-brand-accent/20">
+          CORPORATE PROFILE
+        </span>
+        <h2 class="mt-3 text-3xl sm:text-4xl font-extrabold text-brand-dark tracking-tight">
+          会社概要・コンプライアンス
+        </h2>
+        <p class="mt-3 text-sm text-slate-600">
+          福岡県久留米市を拠点に、日本のものづくり現場と最先端加工ネットワークを結びます。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Table Specs -->
+        <div class="lg:col-span-7 bg-slate-50 rounded-2xl border border-slate-200 p-6 sm:p-8">
+          <h3 class="text-lg font-bold text-brand-dark pb-4 border-b border-slate-200 mb-6 flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-brand-slate"></span>
+            会社基本情報
+          </h3>
+
+          <dl class="divide-y divide-slate-200 text-sm">
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">会社名</dt>
+              <dd class="col-span-2 text-slate-900 font-semibold">株式会社IZZY（英文表記：IZZY Co., Ltd.）</dd>
+            </div>
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">所在地</dt>
+              <dd class="col-span-2 text-slate-900">
+                〒830-0031 福岡県久留米市六ツ門町1-1<br>
+                <span class="text-xs text-slate-500">※西鉄久留米駅より徒歩圏内・九州自動車道 久留米IC至近</span>
+              </dd>
+            </div>
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">代表者</dt>
+              <dd class="col-span-2 text-slate-900">代表取締役 姜 辰勲（カン ジンフン）</dd>
+            </div>
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">事業内容</dt>
+              <dd class="col-span-2 text-slate-900 space-y-1">
+                <p>1. 日韓B2B工業部品・機械部品の調達代行および受託製造</p>
+                <p>2. 精密機械加工・レーザー切断・製缶溶接品の輸出入貿易</p>
+                <p>3. 製造業向け技術コンサルティングおよび品質管理代行</p>
+              </dd>
+            </div>
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">主要対応エリア</dt>
+              <dd class="col-span-2 text-slate-900">
+                福岡県、佐賀県、長崎県、熊本県、大分県、宮崎県、鹿児島県、山口県、広島県をはじめ全国対応
+              </dd>
+            </div>
+            <div class="py-3.5 grid grid-cols-3">
+              <dt class="font-bold text-slate-600">適格事業者番号</dt>
+              <dd class="col-span-2 font-mono text-slate-800">インボイス制度登録済（円建て正規請求書発行）</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Compliance & Location Card -->
+        <div id="compliance" class="lg:col-span-5 space-y-6">
+          
+          <div class="bg-brand-dark text-white rounded-2xl p-6 sm:p-7 border border-brand-border">
+            <h4 class="text-base font-bold text-white mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+              セキュリティ & 機密保持体制
+            </h4>
+            <p class="text-xs text-slate-300 leading-relaxed mb-4">
+              お客様からお預かりする製品図面および技術仕様は、厳格な暗号化セキュリティ環境下で管理されます。パートナー工場とも個別機密保持契約を締結し、不正流出や競合への情報漏洩を徹底防止しています。
+            </p>
+            <div class="space-y-2 text-xs text-slate-300">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>図面データのSSL/TLS暗号化転送</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>案件完了後のデータ完全消去要求に対応</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400">✓</span>
+                <span>不正競争防止法に準拠した厳格なアクセス制御</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Visit Contact -->
+          <div class="bg-orange-50 border border-orange-200 rounded-2xl p-6">
+            <h4 class="text-sm font-bold text-brand-dark mb-1">九州・山口の工場へ直接お伺いします</h4>
+            <p class="text-xs text-slate-600 leading-relaxed mb-4">
+              「図面を見ながら直接打ち合わせたい」「現行ラインのコスト削減を診断してほしい」など、お気軽にお声がけください。久留米本社より直接訪問いたします。
+            </p>
+            <a href="#quote-form" class="inline-block text-xs font-bold text-brand-accent hover:underline">
+              訪問相談・図面ヒアリングをリクエスト &rarr;
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-[#07111f] text-slate-400 text-xs border-t border-brand-slate/40 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-brand-slate/30">
+        
+        <!-- Col 1: Brand Info -->
+        <div class="md:col-span-2 space-y-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded bg-brand-accent flex items-center justify-center font-bold text-white text-sm font-mono">
+              IZ
+            </div>
+            <span class="text-base font-extrabold text-white tracking-tight">株式会社IZZY</span>
+          </div>
+          <p class="text-slate-400 text-xs leading-relaxed max-w-sm">
+            福岡・久留米本社。韓国有力製造工場コンソーシアム直結による高品質・低コストな工業部品調達ソリューション。
+          </p>
+          <div class="text-[11px] text-slate-500">
+            〒830-0031 福岡県久留米市六ツ門町1-1 / Domain: izzy.best
+          </div>
+        </div>
+
+        <!-- Col 2: Navigation Links -->
+        <div>
+          <h5 class="text-slate-200 font-bold mb-3">サービス・設備</h5>
+          <ul class="space-y-2">
+            <li><a href="#plants" class="hover:text-white transition-colors">Plant 01: 大物・五面機械加工</a></li>
+            <li><a href="#plants" class="hover:text-white transition-colors">Plant 02: ファイバーレーザー切断</a></li>
+            <li><a href="#plants" class="hover:text-white transition-colors">Plant 03: 精密パンチングメタル</a></li>
+            <li><a href="#plants" class="hover:text-white transition-colors">Plant 04: 特殊合金メッシュ・デミスター</a></li>
+            <li><a href="#plants" class="hover:text-white transition-colors">Plant 05: 製缶・特殊溶接構造体</a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Legal & Quick Access -->
+        <div>
+          <h5 class="text-slate-200 font-bold mb-3">インフォメーション</h5>
+          <ul class="space-y-2">
+            <li><a href="#strengths" class="hover:text-white transition-colors">IZZYが選ばれる3つの強み</a></li>
+            <li><a href="#process" class="hover:text-white transition-colors">発注から納品までの流れ</a></li>
+            <li><a href="#company" class="hover:text-white transition-colors">会社概要・コンプライアンス</a></li>
+            <li><a href="#faq" class="hover:text-white transition-colors">よくあるご質問 (FAQ)</a></li>
+            <li><a href="#quote-form" class="text-brand-accent hover:underline font-bold">無料図面見積もり受付</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+        <div>
+          &copy; 2026 IZZY Co., Ltd. All Rights Reserved.
+        </div>
+        <div class="flex items-center gap-4">
+          <span>プライバシーポリシー</span>
+          <span>特定商取引法に基づく表記</span>
+          <span>セキュリティ基本方針</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- ================= SUBMIT SUCCESS MODAL ================= -->
+  <div id="successModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 text-center shadow-2xl transform transition-all">
+      <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h3 class="text-xl font-bold text-brand-dark mb-2">図面・お見積り依頼を受け付けました</h3>
+      <p class="text-xs text-slate-600 leading-relaxed mb-6">
+        この度はお問い合わせいただき誠にありがとうございます。<br>
+        ご入力いただいた内容および図面データを基に、担当技術者が24時間以内に概算回答およびご連絡を差し上げます。
+      </p>
+      <button onclick="closeSuccessModal()" class="w-full py-3 px-4 bg-brand-dark hover:bg-brand-slate text-white text-sm font-bold rounded-lg transition-colors">
+        閉じる
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= LIGHTWEIGHT VANILLA JS ================= -->
+  <script>
+    // Mobile Drawer Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    document.querySelectorAll('.mobile-link').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.add('hidden');
+      });
+    });
+
+    // File Dropzone Handling
+    let attachedFiles = [];
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const fileList = document.getElementById('fileList');
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('border-brand-accent', 'bg-brand-slate/40');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('border-brand-accent', 'bg-brand-slate/40');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('border-brand-accent', 'bg-brand-slate/40');
+      
+      if (e.dataTransfer && e.dataTransfer.files) {
+        addFiles(e.dataTransfer.files);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files) {
+        addFiles(e.target.files);
+      }
+    }
+
+    function addFiles(files) {
+      for (let i = 0; i < files.length; i++) {
+        attachedFiles.push(files[i]);
+      }
+      renderFileList();
+    }
+
+    function removeFile(index, e) {
+      e.stopPropagation();
+      attachedFiles.splice(index, 1);
+      renderFileList();
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function renderFileList() {
+      if (attachedFiles.length === 0) {
+        fileList.innerHTML = '';
+        fileList.classList.add('hidden');
+        return;
+      }
+
+      fileList.classList.remove('hidden');
+      fileList.innerHTML = '';
+
+      attachedFiles.forEach((file, index) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2.5 bg-brand-dark/90 rounded border border-brand-border text-xs';
+        item.innerHTML = `
+          <div class="flex items-center gap-2 overflow-hidden pr-2">
+            <svg class="w-4 h-4 text-brand-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <span class="truncate font-mono text-slate-200">${escapeHtml(file.name)}</span>
+            <span class="text-[10px] text-slate-400 flex-shrink-0">(${formatFileSize(file.size)})</span>
+          </div>
+          <button type="button" onclick="removeFile(${index}, event)" class="text-rose-400 hover:text-rose-300 font-bold px-2 py-0.5 rounded text-xs transition-colors flex-shrink-0">
+            削除
+          </button>
+        `;
+        fileList.appendChild(item);
+      });
+    }
+
+    function escapeHtml(string) {
+      return String(string).replace(/[&<>"']/g, function (s) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[s];
+      });
+    }
+
+    // Form submission handler
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const originalText = submitBtn.innerHTML;
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        送信処理中...
+      `;
+
+      // Simulate instantaneous asynchronous dispatch / ready for Netlify Forms or Cloudflare Pages
+      setTimeout(() => {
+        document.getElementById('rfqForm').reset();
+        attachedFiles = [];
+        renderFileList();
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        
+        const modal = document.getElementById('successModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }, 700);
+    }
+
+    function closeSuccessModal() {
+      const modal = document.getElementById('successModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  </script>
+</body>
+</html>
