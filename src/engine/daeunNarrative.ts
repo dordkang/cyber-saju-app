@@ -626,8 +626,8 @@ function buildDetail(input: DaeunNarrativeInput, ranked: readonly InteractionNot
   const { stemGod, branchGod, stem, branch, dayMaster, stage12 } = input;
 
   const line1 =
-    `하늘의 ${josa(`${stemGod}(${stem})`, '은', '는')} ${STEM_PSYCHE[stemGod]}, ` +
-    `땅의 ${josa(`${branchGod}(${branch})`, '은', '는')} ${BRANCH_ENV[branchGod]}.`;
+    `(신령한 눈빛으로 네 손등을 거칠게 부여잡으며) "똑똑히 봐라! 하늘의 ${josa(`${stemGod}(${stem})`, '은', '는')} ${STEM_PSYCHE[stemGod]}, ` +
+    `땅의 ${josa(`${branchGod}(${branch})`, '은', '는')} ${BRANCH_ENV[branchGod]}."`;
 
   const line2 = `일간 ${dayMaster}에게 이 땅(${branch})은 12운성 ${stage12}의 자리로, ${STAGE_DRAMA[stage12]}.`;
 
@@ -646,7 +646,9 @@ function buildDetail(input: DaeunNarrativeInput, ranked: readonly InteractionNot
   }
 
   if (isTurningPoint(input) && input.next) {
-    line3 += ` 대운의 끝자락이라 곧 ${input.next.ganjiLabel}(${input.next.stemGod}) 대운이 문을 두드리는 교운기 — 삶의 껍데기를 깨고 새 판을 짜는 분기점이다.`;
+    line3 += ` (부채로 등을 팍 치며) "피눈물 흘리며 버텨온 세월은 헛된 것이 아니다! 곧 ${input.next.ganjiLabel}(${input.next.stemGod}) 대운이 문을 박차고 들어오는 교운기니, 네 칼날은 완성되었으니 나가서 세상을 베어라!"`;
+  } else {
+    line3 += ` (탁자를 탕 내리치며) "하늘이 너를 거저 고생시킨 줄 아느냐? 천하를 쥐어주려고 황금 갑옷을 담금질하는 법이다!"`;
   }
 
   return [line1, line2, line3].join('\n');
