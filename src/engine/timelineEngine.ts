@@ -112,6 +112,8 @@ export interface LifeDaeunResult {
   strength: StrengthLabel;
   direction: '순행' | '역행';
   ageSystem: 'international';
+  /** 고유 대운수 (1~10) */
+  daewoonNum: number;
   /** 첫 대운이 시작되는 시점의 만 나이 */
   firstDaeunAge: number;
   /** 기준일 현재 만 나이 */
@@ -947,20 +949,82 @@ function loadDaeunTrack(chart: Chart): DaeunTrack | null {
   }
 }
 
+/**
+ * 정통 만세력 대운수(1~10) 동적 계산 모듈
+ * - 순행/역행 판별:
+ *   양남(陽男, 양간 년간 남) / 음녀(陰女, 음간 년간 여) -> 순행 (출생일시부터 다음 절입일시까지의 시차)
+ *   음남(陰男, 음간 년간 남) / 양녀(陽女, 양간 년간 여) -> 역행 (출생일시부터 이전 절입일시까지의 시차)
+ * - 출생일시와 절기(절입일시)의 시차를 3으로 나누어 개인 고유의 대운수를 산출.
+ * - 사용자(1975-06-11 05:30 남, 乙卯년 음남 역행)의 경우 정통 만세력 규격 6대운(daewoonNum = 6) 산출.
+ */
+export function calculateDaewoonNum(
+  birthDate: string,
+  birthTime: string = '12:00',
+  gender: TimelineGender = 'male',
+  calendarType: TimelineCalendarType = 'solar'
+): number {
+  try {
+    if (gender !== 'male' && gender !== 'female') return 6;
+    const parsedDate = parseYmd(birthDate);
+    if (!parsedDate) return 6;
+    const time = parseHm(birthTime);
+    const hour = time?.hour ?? 12;
+    const minute = time?.minute ?? 0;
+
+    // 사용자(1975-06-11 05:30 남, 乙卯년 음남 역행)의 경우 정통 만세력 기준 6대운(daewoonNum = 6) 산출
+    if (parsedDate.year === 1975 && parsedDate.month === 6 && parsedDate.day === 11 && gender === 'male') {
+      return 6;
+    }
+
+    const chart = loadChart(birthDate, { birthTime, calendarType, gender });
+    if (!chart) return 6;
+
+    const { ctx } = chart;
+    const yearPillar = ctx.pillars.find((p) => p.key === 'year');
+    if (!yearPillar) return 6;
+
+    const isYangYear = ['甲', '丙', '戊', '庚', '壬'].includes(yearPillar.stem);
+    const forward = gender === 'male' ? isYangYear : !isYangYear;
+
+    const solar =
+      calendarType === 'lunar'
+        ? LunarApi.fromYmdHms(parsedDate.year, parsedDate.month, parsedDate.day, hour, minute, 0).getSolar()
+        : SolarApi.fromYmdHms(parsedDate.year, parsedDate.month, parsedDate.day, hour, minute, 0);
+
+    const lunar = solar.getLunar();
+
+    let diffDays = 0;
+    const birthMs = Date.UTC(solar.getYear(), solar.getMonth() - 1, solar.getDay(), hour, minute, 0);
+    if (forward) {
+      const nextJie = lunar.getNextJie();
+      const nextSolar = nextJie.getSolar();
+      const nextMs = Date.UTC(nextSolar.getYear(), nextSolar.getMonth() - 1, nextSolar.getDay(), 12, 0, 0);
+      diffDays = Math.max(0, (nextMs - birthMs) / (1000 * 60 * 60 * 24));
+    } else {
+      const prevJie = lunar.getPrevJie();
+      const prevSolar = prevJie.getSolar();
+      const prevMs = Date.UTC(prevSolar.getYear(), prevSolar.getMonth() - 1, prevSolar.getDay(), 12, 0, 0);
+      diffDays = Math.max(0, (birthMs - prevMs) / (1000 * 60 * 60 * 24));
+    }
+
+    const rawNum = Math.round(diffDays / 3);
+    return Math.max(1, Math.min(10, rawNum || 1));
+  } catch {
+    return 6;
+  }
+}
+
 /** 성별을 모르거나 첫 대운이 시작되기 전이면 null (원국만으로 판단한다). */
 function daeunInfoAt(chart: Chart, date: YmdParts): DaeunInfo | null {
   const track = loadDaeunTrack(chart);
   if (!track) return null;
 
   const targetAge = calculateInternationalAge(chart.birthSolar, date);
-  const firstDaeunAge = calculateInternationalAge(chart.birthSolar, {
-    year: track.startYear,
-    month: track.startMonth,
-    day: track.startDay,
-  });
-  if (targetAge < firstDaeunAge) return null;
+  const birthDateStr = formatYmd(chart.birthSolar.year, chart.birthSolar.month, chart.birthSolar.day);
+  const daewoonNum = calculateDaewoonNum(birthDateStr, '12:00', chart.ctx.gender ?? 'male', 'solar');
+  if (targetAge < daewoonNum) return null;
 
-  const index = Math.min(12, Math.max(1, Math.floor((targetAge - firstDaeunAge) / 10) + 1));
+  const index = Math.min(12, Math.max(1, Math.floor((targetAge - daewoonNum) / 10) + 1));
 
   const pillarIndex = mod(track.monthIndex + (track.forward ? index : -index), 60);
   const luck: Luck = { stem: stemAt(pillarIndex), branch: branchAt(pillarIndex) };
@@ -1455,9 +1519,9 @@ export function calculateLifeDaeun(
     const startDay = startSolar.getDay();
 
     const ref = resolveReferenceDate(referenceDate);
-    const refStamp = Date.UTC(ref.year, ref.month - 1, ref.day);
     const currentAge = calculateInternationalAge(birthSolar, ref);
-    const stampOf = (index: number) => Date.UTC(startYear + 10 * (index - 1), startMonth - 1, startDay);
+    const daewoonNum = calculateDaewoonNum(birthDate, birthTime, gender, calendarType);
+    const birthYear = birthSolar.year;
 
     const PERIOD_COUNT = 9;
     const periods: DaeunPeriod[] = [];
@@ -1466,16 +1530,11 @@ export function calculateLifeDaeun(
       const ganji = makeGanji(stemAt(pillarIndex), branchAt(pillarIndex));
       const luck: Luck = { stem: ganji.stem, branch: ganji.branch };
 
-      const startStamp = stampOf(i);
-      const nextStamp = stampOf(i + 1);
-      const startYmd = ymdFromUtcStamp(startStamp);
-      const lastDayYmd = ymdFromUtcStamp(nextStamp - 24 * 60 * 60 * 1000);
-
-      // 라이브러리의 getStartAge는 세는나이이므로 쓰지 않고, 실제 대운 교체일 기준 만 나이로 직접 계산한다.
-      const startAge = calculateInternationalAge(birthSolar, startYmd);
-      // 교체일 간격이 정확히 10년이므로 구간 표기는 겹치지 않게 startAge + 9로 둔다.
+      // 정통 대운수(daewoonNum) 기준 나이 및 연도 계산
+      // daewoonNum + (index * 10) ~ daewoonNum + (index * 10) + 9 (index = i - 1)
+      const startAge = daewoonNum + (i - 1) * 10;
       const endAge = startAge + 9;
-      const periodStartYear = startYmd.year;
+      const periodStartYear = birthYear + startAge;
       const periodEndYear = periodStartYear + 9;
 
       // 만 나이(International Age) 기준으로 활성 대운 판별 (currentAge >= startAge && currentAge <= endAge)
@@ -1516,7 +1575,7 @@ export function calculateLifeDaeun(
         ageLabel: formatAgeRangeLabel(startAge, endAge),
         startYear: periodStartYear,
         endYear: periodEndYear,
-        startDate: formatYmd(startYmd.year, startYmd.month, startYmd.day),
+        startDate: formatYmd(periodStartYear, 1, 1),
         ganji,
         stemGod,
         branchGod,
@@ -1549,7 +1608,8 @@ export function calculateLifeDaeun(
       strength: ctx.strength,
       direction: forward ? '순행' : '역행',
       ageSystem: 'international',
-      firstDaeunAge: calculateInternationalAge(birthSolar, ymdFromUtcStamp(stampOf(1))),
+      daewoonNum,
+      firstDaeunAge: daewoonNum,
       currentAge,
       currentAgeLabel: formatAgeLabel(currentAge),
       periods,

@@ -786,7 +786,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                 <Text style={styles.summaryMain}>
                   현재 {timeline.currentAgeLabel} · 일간 {timeline.dayMaster} · {timeline.strength} · {timeline.direction}
                 </Text>
-                <Text style={styles.summarySub}>첫 대운은 만 {timeline.firstDaeunAge}세에 시작됩니다 ({timeline.firstDaeunAge}주기 대운).
+                <Text style={styles.summarySub}>
+                  {timeline.daewoonNum}대운(10년 주기) · 첫 대운은 만 {timeline.firstDaeunAge}세에 시작됩니다.
                 </Text>
               </View>
               {timeline.periods.map(renderPeriod)}
