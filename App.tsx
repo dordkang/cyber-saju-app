@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { calculateSaju } from './src/engine/calculator';
@@ -101,18 +111,37 @@ function installWebAlert(): void {
 
 installWebAlert();
 
-/** 한글 단어 중간에서 줄이 끊기지 않도록 웹 전체에 keep-all을 적용한다. */
-function installWebTextStyles(): void {
+/** 웹 환경 최적화: keep-all, 모던 다크 배경, 데스크톱 모달 정렬 */
+function installWebStyles(): void {
   if (!IS_WEB || typeof document === 'undefined') return;
-  const STYLE_ID = 'cyber-saju-keep-all';
+  const STYLE_ID = 'cyber-saju-web-layout';
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
-  style.textContent = '#root, #root * { word-break: keep-all; overflow-wrap: break-word; }';
+  style.textContent = `
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b0f17;
+      height: 100%;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    #root, #root * {
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+    @media (min-width: 501px) {
+      body {
+        background: radial-gradient(circle at 50% 50%, #131b2e 0%, #0b0f17 65%, #05070c 100%);
+      }
+    }
+  `;
   document.head.appendChild(style);
 }
 
-installWebTextStyles();
+installWebStyles();
 
 const memoryFlags = new Map<string, string>();
 
@@ -520,6 +549,9 @@ function AppContent() {
     }
   };
 
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktopWeb = IS_WEB && windowWidth > 500;
+
   const anyModalOpen =
     profileVisible ||
     timelineVisible ||
@@ -533,21 +565,59 @@ function AppContent() {
     mbtiVisible;
 
   return (
-    <View style={[styles.root, WEB_VIEWPORT_STYLE]}>
-      <ReelsContainer
-        paused={anyModalOpen}
-        context={reelsContext}
-        onSettingsPress={() => setSettingsVisible(true)}
-        onToggleSound={() => handleToggleSound(!soundOn)}
-        onOpenTimeline={() => setTimelineVisible(true)}
-        onOpenCelebrity={handleOpenCelebrity}
-        onOpenMbti={handleOpenMbti}
-        onOpenPartner={() => setPartnerVisible(true)}
-        onOpenReport={handleOpenReport}
-        onOpenDailyCard={() => setDailyVisible(true)}
-        onOpenPersona={() => setPersonaVisible(true)}
-      />
+    <View style={[isDesktopWeb ? styles.desktopWrapper : styles.mobileWrapper, WEB_VIEWPORT_STYLE]}>
+      {/* PC 전용 앰비언트 백그라운드 & 장식 요소 */}
+      {isDesktopWeb && (
+        <View pointerEvents="none" style={styles.desktopAmbient}>
+          <View style={styles.desktopGlowEffect} />
+          <View style={styles.desktopBadge}>
+            <Text style={styles.desktopBadgeText}>CYBER SAJU OS</Text>
+            <Text style={styles.desktopBadgeSub}>MOBILE VIEWPORT</Text>
+          </View>
+        </View>
+      )}
 
+      {/* 스마트폰 (아이폰) 프레임 컨테이너 */}
+      <View style={isDesktopWeb ? styles.phoneFrame : styles.phoneFrameMobile}>
+        {/* 상단 스피커 & 다이내믹 아일랜드 장식 (PC 웹 전용) */}
+        {isDesktopWeb && (
+          <View pointerEvents="none" style={styles.islandWrapper}>
+            <View style={styles.speakerSlit} />
+            <View style={styles.dynamicIsland}>
+              <View style={styles.islandCamera}>
+                <View style={styles.islandLensReflection} />
+              </View>
+              <View style={styles.islandSensor} />
+            </View>
+          </View>
+        )}
+
+        {/* 메인 앱 콘텐츠 뷰 */}
+        <View style={styles.appContainer}>
+          <ReelsContainer
+            paused={anyModalOpen}
+            context={reelsContext}
+            onSettingsPress={() => setSettingsVisible(true)}
+            onToggleSound={() => handleToggleSound(!soundOn)}
+            onOpenTimeline={() => setTimelineVisible(true)}
+            onOpenCelebrity={handleOpenCelebrity}
+            onOpenMbti={handleOpenMbti}
+            onOpenPartner={() => setPartnerVisible(true)}
+            onOpenReport={handleOpenReport}
+            onOpenDailyCard={() => setDailyVisible(true)}
+            onOpenPersona={() => setPersonaVisible(true)}
+          />
+        </View>
+
+        {/* 하단 홈 인디케이터 바 (PC 웹 전용) */}
+        {isDesktopWeb && (
+          <View pointerEvents="none" style={styles.homeIndicatorWrapper}>
+            <View style={styles.homeIndicator} />
+          </View>
+        )}
+      </View>
+
+      {/* 모달 컴포넌트 목록 */}
       <SettingsMenuModal
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
@@ -670,13 +740,167 @@ function AppContent() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#05070D' },
+  desktopWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0b0f17',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mobileWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#05070D',
+  },
+  desktopAmbient: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  desktopGlowEffect: {
+    position: 'absolute',
+    width: 600,
+    height: 600,
+    borderRadius: 300,
+    backgroundColor: 'rgba(0, 240, 255, 0.035)',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -300 }, { translateY: -300 }],
+  },
+  desktopBadge: {
+    position: 'absolute',
+    top: 20,
+    left: 28,
+    opacity: 0.35,
+  },
+  desktopBadgeText: {
+    color: '#00F0FF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  desktopBadgeSub: {
+    color: '#8A99AD',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  phoneFrame: {
+    width: 402,
+    maxWidth: '92%',
+    height: '92%',
+    maxHeight: 880,
+    minHeight: 620,
+    backgroundColor: '#05070D',
+    borderRadius: 44,
+    borderWidth: 8,
+    borderColor: '#222222',
+    borderStyle: 'solid',
+    overflow: 'hidden',
+    position: 'relative',
+    zIndex: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.7,
+    shadowRadius: 35,
+    elevation: 24,
+    ...(IS_WEB
+      ? ({
+          boxShadow:
+            '0 25px 65px -15px rgba(0, 0, 0, 0.85), 0 0 45px rgba(0, 240, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.12)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  phoneFrameMobile: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#05070D',
+    borderRadius: 0,
+    borderWidth: 0,
+  },
+  appContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#05070D',
+  },
+  islandWrapper: {
+    position: 'absolute',
+    top: 5,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  speakerSlit: {
+    width: 50,
+    height: 3.5,
+    borderRadius: 2,
+    backgroundColor: '#181818',
+    marginBottom: 4,
+  },
+  dynamicIsland: {
+    width: 112,
+    height: 28,
+    borderRadius: 16,
+    backgroundColor: '#000000',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    borderWidth: 0.5,
+    borderColor: '#1f242d',
+  },
+  islandCamera: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#0b111e',
+    borderWidth: 1,
+    borderColor: '#1a2538',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  islandLensReflection: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#00F0FF',
+    opacity: 0.45,
+  },
+  islandSensor: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#08080a',
+  },
+  homeIndicatorWrapper: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  homeIndicator: {
+    width: 134,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
   sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.6)' },
   sheetDismiss: { flex: 1 },
   sheet: {
-    width: '100%',
-    maxWidth: 520,
+    width: '90%',
+    maxWidth: 420,
     alignSelf: 'center',
+    marginHorizontal: 'auto',
     maxHeight: '90%',
     backgroundColor: '#090D16',
     borderTopLeftRadius: 24,

@@ -967,7 +967,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLOR.bg },
+  screen: { flex: 1, width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: COLOR.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

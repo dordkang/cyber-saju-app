@@ -61,7 +61,7 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
   }
 
   const maxHeight = Math.max(320, height - BUTTON_AREA_HEIGHT);
-  const maxWidth = Math.max(180, width - SCREEN_PADDING * 2);
+  const maxWidth = Math.min(420, Math.max(180, width - SCREEN_PADDING * 2));
   const cardWidth = Math.min(maxWidth, maxHeight * CARD_RATIO);
   const cardHeight = cardWidth / CARD_RATIO;
   const scale = Math.min(1, cardWidth / 320);

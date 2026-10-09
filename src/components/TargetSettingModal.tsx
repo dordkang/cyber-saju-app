@@ -247,9 +247,10 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.55)' },
   dismiss: { flex: 1 },
   sheet: {
-    width: '100%',
-    maxWidth: 520,
+    width: '90%',
+    maxWidth: 420,
     alignSelf: 'center',
+    marginHorizontal: 'auto',
     maxHeight: '88%',
     backgroundColor: OBSIDIAN,
     borderTopLeftRadius: 24,

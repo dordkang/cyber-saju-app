@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   StyleSheet,
@@ -106,12 +106,20 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalBox: {
-    width: '100%',
+    width: '90%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
     backgroundColor: '#131B2E',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1.5,
     borderColor: '#00F0FF',
+    shadowColor: '#00F0FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
   },
   title: {
     color: '#00F0FF',

@@ -19,7 +19,7 @@ export type ReelAccent = 'cyan' | 'crimson' | 'amber';
 export const REEL_PALETTE = {
   obsidian: '#0B0E14',
   cyan: '#00F5D4',
-  crimson: '#FF3366',
+  crimson: '#FF2A4B',
   amber: '#FFB703',
   text: '#F4F7FB',
   muted: '#8B97A8',
@@ -35,7 +35,7 @@ export const REEL_ACCENT_HEX: Record<ReelAccent, string> = {
 /** 오행 네온 아우라. 그라디언트와 시그넷 색에 쓴다. */
 export const ELEMENT_AURA: Record<FiveElement, { core: string; mist: string; hanja: string }> = {
   Wood: { core: '#00F5D4', mist: 'rgba(0, 245, 212, 0.28)', hanja: '木' },
-  Fire: { core: '#FF3366', mist: 'rgba(255, 51, 102, 0.30)', hanja: '火' },
+  Fire: { core: '#FF2A4B', mist: 'rgba(255, 42, 75, 0.30)', hanja: '火' },
   Earth: { core: '#FFB703', mist: 'rgba(255, 183, 3, 0.28)', hanja: '土' },
   Metal: { core: '#D9E4F2', mist: 'rgba(217, 228, 242, 0.22)', hanja: '金' },
   Water: { core: '#4DA3FF', mist: 'rgba(77, 163, 255, 0.30)', hanja: '水' },
@@ -61,7 +61,7 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     kicker: '오늘의 징조',
     title: '하늘이 오늘\n보내는 신호',
     subtitle: '일진과 본원이 부딪히는 지점을 한 장으로 읽어요.',
-    accent: 'cyan',
+    accent: 'crimson',
   },
   {
     id: 'life',

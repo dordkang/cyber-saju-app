@@ -77,7 +77,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalBox: {
-    width: '100%',
+    width: '90%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
     maxHeight: '88%',
     backgroundColor: '#0B1220',
     borderRadius: 20,

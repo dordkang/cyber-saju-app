@@ -98,9 +98,10 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
   dismiss: { flex: 1 },
   sheet: {
-    width: '100%',
-    maxWidth: 520,
+    width: '90%',
+    maxWidth: 420,
     alignSelf: 'center',
+    marginHorizontal: 'auto',
     backgroundColor: 'rgba(9, 13, 22, 0.88)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

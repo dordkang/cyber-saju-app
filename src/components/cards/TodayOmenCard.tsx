@@ -9,8 +9,23 @@ import { playHaptic } from '../reels/haptics';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
-const GLASS = (
-  IS_WEB ? { backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)' } : null
+const WINE_GLASS = (
+  IS_WEB
+    ? {
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        boxShadow: '0 0 20px rgba(180, 20, 40, 0.15)',
+      }
+    : null
+) as unknown as ViewStyle | null;
+
+const WEB_CTA_SHADOW = (
+  IS_WEB
+    ? {
+        boxShadow: '0 0 30px rgba(255, 30, 60, 0.6)',
+        transition: 'all 0.3s ease',
+      }
+    : null
 ) as unknown as ViewStyle | null;
 
 const META = REEL_SECTIONS[0];
@@ -31,28 +46,28 @@ function formatTodayLabel(now: Date): string {
 }
 
 function splitGanji(raw: string): { hanja: string; reading: string } {
-  const match = raw.match(/^(.+?)\((.+)\)$/);
+  const match = raw?.match(/^(.+?)\((.+)\)$/);
   if (match?.[1] && match[2]) return { hanja: match[1], reading: match[2] };
-  return { hanja: raw || '—', reading: '일진 계산 중' };
+  return { hanja: raw || '丙辰', reading: raw ? '일진 계산 중' : '병진' };
 }
 
 export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height, onOpenDaily }: TodayOmenCardProps) {
   const insets = useSafeAreaInsets();
-  const pulse = useRef(new Animated.Value(0.35)).current;
-  const aura = ELEMENT_AURA[data.element];
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  const aura = ELEMENT_AURA[data.element] ?? ELEMENT_AURA.Fire;
   const ganji = splitGanji(data.dayPillarText);
   const compact = height < 700;
 
   useEffect(() => {
     if (!active) {
       pulse.stopAnimation();
-      pulse.setValue(0.35);
+      pulse.setValue(0.4);
       return undefined;
     }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: !IS_WEB }),
-        Animated.timing(pulse, { toValue: 0.35, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: !IS_WEB }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 1600, easing: Easing.inOut(Easing.sin), useNativeDriver: !IS_WEB }),
       ])
     );
     loop.start();
@@ -67,15 +82,12 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
 
   return (
     <View style={[styles.page, { height }]} pointerEvents={active ? 'auto' : 'none'}>
+      {/* 1. 배경: 딥 블랙 & 다크 버건디/와인 그라데이션 */}
       <LinearGradient
-        colors={[REEL_PALETTE.obsidian, aura.mist, REEL_PALETTE.obsidian]}
-        locations={[0, 0.46, 1]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={['rgba(11,14,20,0.15)', 'rgba(11,14,20,0.82)']}
+        colors={['#1c0408', '#0f0204', '#050102']}
+        locations={[0, 0.48, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
@@ -84,13 +96,14 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
           styles.body,
           {
             paddingTop: insets.top + 14,
-            paddingBottom: Math.max(insets.bottom, 12) + 62,
+            paddingBottom: Math.max(insets.bottom, 12) + 68,
           },
         ]}
       >
+        {/* 상단 헤더 및 카테고리 칩 */}
         <View>
-          <View style={[styles.chip, { borderColor: aura.core }]}>
-            <Text style={[styles.chipText, { color: aura.core }]}>
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>
               {META?.no} · {META?.kicker}
             </Text>
           </View>
@@ -99,28 +112,50 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
           {!!data.profileLabel && !compact && <Text style={styles.profile}>{data.profileLabel}</Text>}
         </View>
 
+        {/* 2. 중앙 일주/오행 링 (Fire Ring) & 붉은빛 글로우 방사 효과 */}
         <View style={[styles.sigilWrap, compact && styles.sigilWrapCompact]}>
+          {/* 중앙 원형 뒤쪽 붉은빛 글로우 방사 효과 */}
+          <View
+            pointerEvents="none"
+            style={[
+              styles.radialBackglow,
+              compact && styles.radialBackglowCompact,
+              IS_WEB && ({
+                background: 'radial-gradient(circle, rgba(255, 20, 50, 0.32) 0%, rgba(255, 20, 50, 0.12) 42%, transparent 72%)',
+                boxShadow: '0 0 80px rgba(255, 20, 50, 0.25)',
+              } as unknown as ViewStyle),
+            ]}
+          />
+
+          {/* 외곽 펄스 네온 레이어 */}
           <Animated.View
             pointerEvents="none"
             style={[
               styles.sigilGlow,
               compact && styles.sigilGlowCompact,
               {
-                borderColor: aura.core,
                 opacity: pulse,
-                shadowColor: aura.core,
               },
             ]}
           />
-          <View style={[styles.sigil, compact && styles.sigilCompact, { borderColor: aura.core }]}>
-            <Text style={[styles.hanjaMark, { color: aura.core }]}>{aura.hanja}</Text>
+
+          {/* 중간 보조 네온 레이어 */}
+          <View
+            pointerEvents="none"
+            style={[styles.sigilMidRing, compact && styles.sigilMidRingCompact]}
+          />
+
+          {/* 타오르는 화(火)의 붉은 네온 글로우 테두리 (border-2 border-red-500 shadow-[0_0_35px_#ff1e38]) */}
+          <View style={[styles.sigil, compact && styles.sigilCompact]}>
+            <Text style={styles.hanjaMark}>{aura.hanja || '火'}</Text>
             <Text style={[styles.ganji, compact && styles.ganjiCompact]}>{ganji.hanja}</Text>
             <Text style={styles.reading}>{ganji.reading}</Text>
-            <Text style={[styles.elementName, { color: aura.core }]}>{data.elementName}</Text>
+            <Text style={styles.elementName}>{data.elementName || '적화(赤火)의 기운'}</Text>
           </View>
         </View>
 
-        <View style={[styles.glass, GLASS]}>
+        {/* 3. 하단 "오늘의 열쇠" 카드 (딥 와인 글래스모피즘, 은은한 크림슨 테두리) */}
+        <View style={[styles.glass, WINE_GLASS]}>
           <Text style={styles.keywordLabel}>오늘의 열쇠</Text>
           <Text style={styles.keyword}>{data.keyword}</Text>
           <Text style={styles.fortune} numberOfLines={compact ? 2 : 4}>
@@ -137,17 +172,26 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
           )}
         </View>
 
+        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기" 강렬한 레드 그라데이션 및 네온 입체 버튼) */}
         <Pressable
           onPress={handleDaily}
           accessibilityRole="button"
           accessibilityLabel="오늘 기운 새기기"
           style={({ pressed }) => [
-            styles.cta,
+            styles.ctaWrapper,
+            WEB_CTA_SHADOW,
             { bottom: Math.max(insets.bottom, 10) + 6 },
             pressed && styles.pressed,
           ]}
         >
-          <Text style={styles.ctaText}>오늘 기운 새기기</Text>
+          <LinearGradient
+            colors={['#ff1f3d', '#e50914', '#b3001b']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.ctaGradient}
+          >
+            <Text style={styles.ctaText}>오늘 기운 새기기</Text>
+          </LinearGradient>
         </Pressable>
       </View>
     </View>
@@ -157,7 +201,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
 const styles = StyleSheet.create({
   page: {
     width: '100%',
-    backgroundColor: REEL_PALETTE.obsidian,
+    backgroundColor: '#050102',
     overflow: 'hidden',
   },
   body: {
@@ -175,73 +219,264 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: 1,
-    backgroundColor: 'rgba(11, 14, 20, 0.55)',
+    borderColor: '#ff2a4b',
+    backgroundColor: 'rgba(28, 4, 8, 0.75)',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 12px rgba(255, 42, 75, 0.25)',
+        } as unknown as ViewStyle)
+      : null),
   },
-  chipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, ...KEEP_ALL },
-  date: { marginTop: 12, color: REEL_PALETTE.muted, fontSize: 12, fontWeight: '700', ...KEEP_ALL },
+  chipText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#ff2a4b',
+    ...KEEP_ALL,
+  },
+  date: {
+    marginTop: 12,
+    color: '#a8868e',
+    fontSize: 12,
+    fontWeight: '700',
+    ...KEEP_ALL,
+  },
   title: {
     marginTop: 8,
-    color: REEL_PALETTE.text,
+    color: '#F4F7FB',
     fontSize: 30,
     lineHeight: 38,
     fontWeight: '900',
     ...KEEP_ALL,
   },
   titleCompact: { fontSize: 24, lineHeight: 30 },
-  profile: { marginTop: 8, color: REEL_PALETTE.muted, fontSize: 13, fontWeight: '700', ...KEEP_ALL },
-  sigilWrapCompact: { minHeight: 150 },
-  sigilGlowCompact: { width: 168, height: 168, borderRadius: 84 },
-  sigilCompact: { width: 148, height: 148, borderRadius: 74 },
-  ganjiCompact: { fontSize: 32, lineHeight: 38 },
-  sigilWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 210 },
+  profile: {
+    marginTop: 8,
+    color: '#a8868e',
+    fontSize: 13,
+    fontWeight: '700',
+    ...KEEP_ALL,
+  },
+  sigilWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 220,
+    position: 'relative',
+  },
+  sigilWrapCompact: { minHeight: 160 },
+  radialBackglow: {
+    position: 'absolute',
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: 'rgba(255, 20, 50, 0.12)',
+    shadowColor: '#ff1432',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.75,
+    shadowRadius: 40,
+  },
+  radialBackglowCompact: {
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+  },
   sigilGlow: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderWidth: 1,
+    width: 224,
+    height: 224,
+    borderRadius: 112,
+    borderWidth: 1.5,
+    borderColor: '#ff1e38',
+    shadowColor: '#ff1e38',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 24,
+    shadowOpacity: 1,
+    shadowRadius: 35,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 35px #ff1e38, 0 0 15px rgba(255, 30, 56, 0.6)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  sigilGlowCompact: {
+    width: 172,
+    height: 172,
+    borderRadius: 86,
+  },
+  sigilMidRing: {
+    position: 'absolute',
+    width: 202,
+    height: 202,
+    borderRadius: 101,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 50, 75, 0.45)',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 18px rgba(255, 30, 56, 0.45)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  sigilMidRingCompact: {
+    width: 156,
+    height: 156,
+    borderRadius: 78,
   },
   sigil: {
     width: 188,
     height: 188,
     borderRadius: 94,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderColor: '#ef4444', // border-red-500
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(11, 14, 20, 0.72)',
+    backgroundColor: 'rgba(15, 2, 4, 0.85)',
+    shadowColor: '#ff1e38',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.95,
+    shadowRadius: 35,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 35px #ff1e38, inset 0 0 20px rgba(255, 30, 56, 0.25)',
+        } as unknown as ViewStyle)
+      : null),
   },
-  hanjaMark: { fontSize: 13, fontWeight: '900', letterSpacing: 4, marginBottom: 2 },
-  ganji: { color: REEL_PALETTE.text, fontSize: 42, fontWeight: '900', letterSpacing: 2, lineHeight: 50 },
-  reading: { color: REEL_PALETTE.muted, fontSize: 13, fontWeight: '700', marginTop: 2 },
-  elementName: { marginTop: 8, fontSize: 12, fontWeight: '800', ...KEEP_ALL },
+  sigilCompact: {
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+  },
+  hanjaMark: {
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 4,
+    marginBottom: 2,
+    color: '#ff2a4b',
+    ...(IS_WEB
+      ? ({
+          textShadow: '0 0 10px rgba(255, 42, 75, 0.7)',
+        } as unknown as TextStyle)
+      : null),
+  },
+  ganji: {
+    color: '#FFFFFF',
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: 2,
+    lineHeight: 50,
+    ...(IS_WEB
+      ? ({
+          textShadow: '0 0 16px rgba(255, 255, 255, 0.25)',
+        } as unknown as TextStyle)
+      : null),
+  },
+  ganjiCompact: { fontSize: 32, lineHeight: 38 },
+  reading: {
+    color: '#c9a4aa',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  elementName: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#ff2a4b',
+    ...KEEP_ALL,
+    ...(IS_WEB
+      ? ({
+          textShadow: '0 0 8px rgba(255, 42, 75, 0.6)',
+        } as unknown as TextStyle)
+      : null),
+  },
   glass: {
     padding: 16,
     borderRadius: 18,
-    backgroundColor: 'rgba(11, 14, 20, 0.62)',
+    backgroundColor: 'rgba(28, 8, 14, 0.8)', // bg-[#1c080e]/80
     borderWidth: 1,
-    borderColor: 'rgba(0, 245, 212, 0.28)',
+    borderColor: 'rgba(127, 29, 29, 0.6)', // border border-red-900/60
+    shadowColor: 'rgba(180, 20, 40, 0.35)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
     gap: 4,
   },
-  keywordLabel: { color: REEL_PALETTE.cyan, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
-  keyword: { color: REEL_PALETTE.text, fontSize: 20, fontWeight: '900', ...KEEP_ALL },
-  fortune: { marginTop: 6, color: '#D5DEEA', fontSize: 14, lineHeight: 22, ...KEEP_ALL },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 12, gap: 8 },
-  itemLabel: { color: REEL_PALETTE.muted, fontSize: 11, fontWeight: '800' },
-  itemValue: { color: REEL_PALETTE.amber, fontSize: 14, fontWeight: '900', flex: 1, textAlign: 'right', ...KEEP_ALL },
-  itemReason: { color: REEL_PALETTE.muted, fontSize: 12, lineHeight: 18, ...KEEP_ALL },
-  cta: {
+  keywordLabel: {
+    color: '#ff4b60',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  keyword: {
+    color: '#F4F7FB',
+    fontSize: 20,
+    fontWeight: '900',
+    ...KEEP_ALL,
+  },
+  fortune: {
+    marginTop: 6,
+    color: '#E0CDD1',
+    fontSize: 14,
+    lineHeight: 22,
+    ...KEEP_ALL,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: 12,
+    gap: 8,
+  },
+  itemLabel: {
+    color: '#a8868e',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  itemValue: {
+    color: '#ff758f',
+    fontSize: 14,
+    fontWeight: '900',
+    flex: 1,
+    textAlign: 'right',
+    ...KEEP_ALL,
+  },
+  itemReason: {
+    color: '#a8868e',
+    fontSize: 12,
+    lineHeight: 18,
+    ...KEEP_ALL,
+  },
+  ctaWrapper: {
     position: 'absolute',
     left: 22,
     right: 86,
-    minHeight: 48,
     borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#ff1f3d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 25,
+  },
+  ctaGradient: {
+    width: '100%',
+    paddingVertical: 14,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: REEL_PALETTE.cyan,
+    borderRadius: 16,
   },
-  ctaText: { color: REEL_PALETTE.ink, fontSize: 15, fontWeight: '900', ...KEEP_ALL },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  ctaText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    ...KEEP_ALL,
+    ...(IS_WEB
+      ? ({
+          textShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
+        } as unknown as TextStyle)
+      : null),
+  },
+  pressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.98 }],
+  },
 });

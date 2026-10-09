@@ -184,9 +184,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 24,
-    width: '100%',
-    maxWidth: 520,
+    width: '90%',
+    maxWidth: 420,
     alignSelf: 'center',
+    marginHorizontal: 'auto',
   },
   handle: {
     alignSelf: 'center',
