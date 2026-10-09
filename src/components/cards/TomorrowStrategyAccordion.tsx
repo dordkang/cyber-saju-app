@@ -248,7 +248,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           >
             <Text style={styles.calcActionBtnText}>
               {isLoading
-                ? '신명의 천기를 맞물리는 중...'
+                ? '🔮 옥동자가 신명을 부르는 중...'
                 : hasCalculated
                 ? '↺ 다른 고민으로 다시 점지받기'
                 : '⚡ 옥동자 맞춤 작전 해단받기 ↗'}
@@ -261,8 +261,8 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
               <ActivityIndicator size="small" color="#ff2a4b" />
               <Text style={styles.loadingPulseText}>
                 {loadingPhase === 0
-                  ? `🔮 옥동자가 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신 기운을 계산하는 중...`
-                  : '⚡ 신명의 천기를 맞물리는 중... 양인살과 오행 조화 분석 완료'}
+                  ? '🔮 옥동자가 방울을 흔들며 신명을 부르는 중...'
+                  : `⚡ 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신·신살 기운을 맞물리는 중...`}
               </Text>
             </View>
           )}

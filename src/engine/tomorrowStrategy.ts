@@ -196,7 +196,51 @@ export interface StrategyResult {
   needsPartnerNotice?: boolean;
 }
 
-/** 5대 본질 코어 카테고리 기반 사주 명리학 맞춤 작전 생성 */
+export type ShamanGestureType = 'grief' | 'fury' | 'insight' | 'triumph' | 'warning' | 'affection';
+
+const SHAMAN_GESTURES: Record<ShamanGestureType, string[]> = {
+  grief: [
+    '(쯧쯧 혀를 차며 안쓰러운 듯 거친 손으로 네 손등을 감싸 쥐고)',
+    '(땅이 꺼져라 깊은 한숨을 내쉬며 손을 가만히 어루만진다)',
+    '(깊은 한숨을 푹 내쉬며 손등을 어루만진다)',
+    '(안타까운 눈빛으로 네 굳은 어깨를 가만히 토닥이며)',
+  ],
+  fury: [
+    '(서슬 퍼런 눈으로 허공을 노려보며 이를 악물고)',
+    '(탁자를 묵직하게 짚으며 목소리를 깔고 서늘하게)',
+    '(눈을 번뜩이며 서늘한 목소리로 직격하듯)',
+    '(칼을 쥐어주듯 네 어깨를 묵직하게 움켜쥐며)',
+  ],
+  insight: [
+    '(부채를 촥 펴서 얼굴을 가렸다가 번뜩이는 눈빛을 쏘며)',
+    '(귀에 대고 낮게 속삭이듯)',
+    '(호롱불을 흔들며 귓가에 서늘한 혜안을 찔러 넣듯)',
+    '(지그시 눈을 감고 손가락으로 주역 괘를 튕기며)',
+  ],
+  triumph: [
+    '(방울을 짤랑 흔들며 껄껄 웃음을 터뜨린다)',
+    '(네 등을 팍 내리치며 기운을 불어넣듯)',
+    '(부채로 무릎을 탁 치며 호탕하게 웃어젖힌다)',
+    '(양팔을 벌려 천기의 기운을 한껏 모아 네 정수리에 불어넣듯)',
+  ],
+  warning: [
+    '(서슬 퍼런 눈으로 정면을 응시하며 엄하게 타이르듯)',
+    '(부채를 접어 가슴팍을 툭 치며 경고하듯)',
+    '(향을 피워 올리며 서늘하게 천기를 읽어내리듯)',
+  ],
+  affection: [
+    '(상대의 차가운 손을 덥석 쥐며 가만히 떨리는 숨을 들이쉬고)',
+    '(안쓰러운 눈으로 네 핏기 없는 얼굴을 찬찬히 뜯어보며)',
+    '(거친 손으로 등을 묵직하게 쓸어내리며)',
+  ],
+};
+
+export function pickGesture(type: ShamanGestureType, seed = 0): string {
+  const list = SHAMAN_GESTURES[type] || SHAMAN_GESTURES.insight;
+  return list[Math.abs(seed) % list.length];
+}
+
+/** 5대 본질 코어 카테고리 기반 사주 명리학 맞춤 작전 생성 (따옴표 인용 폐기, 자연스러운 체화 구어체) */
 export function generateCoreStrategy(
   category: CoreCategory,
   planText: string,
@@ -206,7 +250,6 @@ export function generateCoreStrategy(
   partnerAlias?: string | null
 ): StrategyResult {
   const p = planText.trim();
-  const inputSnippet = p ? `'${p}'` : '';
   const myDay = mySaju?.dayMaster ?? '戊';
   const ganjiText = omen.ganji;
   const shinsalMain = omen.shinsal.primary;
@@ -214,22 +257,34 @@ export function generateCoreStrategy(
   // 1. 💰 [재물 (Wealth)]: 양인살의 겁재/손재수 경계, 충동지출 차단 및 현금 회수 전략
   if (category === 'wealth') {
     const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
-    let specificTactic = '충동적인 지출이나 애매한 호의는 단칼에 잘라내라! 들어올 돈은 날짜를 못박아 독촉하고, 단가 협상에서는 네 이익을 1원도 깎아주지 마라.';
+    let gesture = pickGesture('fury', 0);
+    let situationLead = '내일 돈이 오가는 길목에서 주판알을 튕기며 밤잠을 설치고 있겠지.';
+    let actionTactic = '충동적인 지출이나 애매한 호의는 단칼에 잘라내라! 들어올 돈은 날짜를 못박아 독촉하고, 단가 협상에서는 네 이익을 1원도 깎아주지 마라.';
+
     if (/투자|코인|주식|펀드|부동산|청약/.test(p)) {
-      specificTactic = `네가 고심하는 '${p}' 투자 판은 내일 양인(羊刃)의 조급한 탐욕이 도사리고 있다! 원금을 꽁꽁 묶어두고 신규 진입이나 추격 매수는 절대 금물이다.`;
-    } else if (/회수|빌려|외상|미수|받을|정산|입금/.test(p)) {
-      specificTactic = `내일은 못 받은 돈을 회수하기에 양인의 서슬 퍼런 기세가 제격이다. 미적거리지 말고 내일까지 입금하라고 칼같이 기한을 못박아라!`;
-    } else if (/협상|단가|계약|비용|가격|인상|인하/.test(p)) {
-      specificTactic = `단가 협상 자리에서 1원이라도 먼저 깎아주면 기선제압당한다. 내일은 네 마진을 단두대처럼 지키는 놈이 판돈을 쓸어 담는다!`;
-    } else if (/지출|쇼핑|결제|충동|사고|구매/.test(p)) {
-      specificTactic = `지갑을 여는 순간 손재수가 덮친다. 눈에 밟히는 것이 있어도 결제창을 닫고 하룻밤 재워라!`;
+      gesture = pickGesture('insight', 0);
+      situationLead = '피 같은 종잣돈을 굴려보겠다고 차트와 시세판을 노려보며 가슴 졸이고 있구나. 네 안에서 대박을 노리는 탐욕과 불안이 뒤엉켜 요동치는 게 다 보인다!';
+      actionTactic = '내일 戊午 날은 네 일간 戊土에게 비견과 칼날 같은 양인살(羊刃)이 번뜩이는 날이다! 양인은 순식간에 곳간을 털어가는 손재수의 칼잡이야. 신규 매수나 추격 매수는 단칼에 잘라내고 원금을 금고에 꽁꽁 묶어둬라!';
+    } else if (/회수|빌려|외상|미수|받을|정산|입금|빌려준/.test(p)) {
+      gesture = pickGesture('fury', 1);
+      situationLead = '못 받은 돈, 빌려준 돈을 돌려받으려고 이를 악물고 기회를 엿보고 있겠지.';
+      actionTactic = '내일은 양인의 서슬 퍼런 칼날이 제격이다! 상대 눈치 보며 우물쭈물하지 말고 내일까지 입금하라고 칼같이 기한을 못박아라. 내일은 독하게 굴어야 네 돈이 돌아온다!';
+    } else if (/협상|단가|계약|비용|가격|인상|인하|마진/.test(p)) {
+      gesture = pickGesture('insight', 1);
+      situationLead = '거래처와 마주 앉아 단가 하나, 마진 한 푼을 두고 피 말리는 신경전을 치러야 하니 심장이 바짝 졸아들 테지.';
+      actionTactic = '단가 협상 자리에서 1원이라도 먼저 깎아주면 기선제압당한다. 내일은 네 마진을 단두대처럼 지키는 놈이 판돈을 쓸어 담는다!';
+    } else if (/지출|쇼핑|결제|충동|사고|구매|사야/.test(p)) {
+      gesture = pickGesture('warning', 0);
+      situationLead = '지갑이 들썩거리고 결제창 앞에서 서성거리며 마음이 흔들리고 있구나.';
+      actionTactic = '지갑을 여는 순간 손재수의 덫에 걸린다. 눈에 밟히는 것이 있어도 당장 결제창을 닫고 하룻밤 재워라!';
     }
 
     return {
       headline: `💰 ${omen.stemGod}·${isYangin ? '양인(羊刃) 손재수 차단' : '금맥 개방'} · 단가 협상과 현금 회수`,
       strategyText:
-        `(탁자를 탕 내리치며 서슬 퍼런 눈으로) "똑똑히 봐라! 내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 ${isYangin ? '칼날 같은 양인살(羊刃)이 번뜩이는' : `${omen.stemGod}의`} 날이다! ` +
-        `지갑이 헐거워지면 눈 깜짝할 새에 돈이 털린다. ${inputSnippet ? `네가 생각하는 ${inputSnippet} 일에서도 ` : ''}${specificTactic} ` +
+        `${gesture} "똑똑히 봐라! ${situationLead} ` +
+        `내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 ${isYangin ? '칼날 같은 양인살(羊刃)이 번뜩이는' : `${omen.stemGod}의`} 날이다. ` +
+        `지갑이 헐거워지면 눈 깜짝할 새에 돈이 털린다. ${actionTactic} ` +
         `내일은 지키고 긁어모으는 놈이 마지막에 웃는다!"`,
     };
   }
@@ -237,21 +292,30 @@ export function generateCoreStrategy(
   // 2. 🏢 [비즈니스 (Business)]: 비견·양인의 독선 경계, 판세 장악 및 계약서 검토
   if (category === 'business') {
     const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
-    let businessTactic = '겉으로는 온화하게 상대의 말을 끝까지 들어주되, 손끝으로는 계약서 조항의 숨은 덫을 현미경으로 파헤쳐라.';
+    let gesture = pickGesture('insight', 0);
+    let situationLead = '판세를 설계하고 사람들과 마주 앉아 결단을 내려야 하니 머릿속이 복잡하겠지.';
+    let actionTactic = '겉으로는 온화하게 상대의 말을 끝까지 들어주되, 손끝으로는 계약서 조항의 숨은 덫을 현미경으로 파헤쳐라.';
+
     if (/계약|도장|서명|조항|특약|싸인/.test(p)) {
-      businessTactic = `계약서에 도장을 찍기 전, 숨겨진 불리한 특약이나 위약금 조항을 세 번 정독해라. 서두르는 쪽이 반드시 코를 꿰인다.`;
+      gesture = pickGesture('warning', 1);
+      situationLead = '중대한 문서에 도장을 찍어야 하는 기로에서 숨은 덫이 있을까 봐 촉을 곤두세우고 있구나.';
+      actionTactic = '계약서에 도장을 찍기 전, 숨겨진 불리한 특약이나 위약금 조항을 세 번 정독해라. 서두르는 쪽이 반드시 코를 꿰인다.';
     } else if (/미팅|협상|담판|대표|파트너|동업/.test(p)) {
-      businessTactic = `상대방의 달콤한 제안 뒤에 숨은 계산속을 꿰뚫어 봐라. 네 패를 먼저 까지 말고 상대가 안달 나서 조건을 올릴 때까지 침묵해라.`;
+      gesture = pickGesture('insight', 1);
+      situationLead = '상대방과 마주 앉아 담판을 짓고 새 판을 짜야 하니 온갖 계산이 머릿속을 스치겠지.';
+      actionTactic = '상대방의 달콤한 제안 뒤에 숨은 꿍꿍이를 꿰뚫어 봐라. 네 패를 먼저 까주지 말고 침묵으로 상대를 안달 나게 해라!';
     } else if (/분쟁|소송|싸움|갈등|경쟁/.test(p)) {
-      businessTactic = `감정적으로 맞서지 말고 명문화된 증거와 기록으로 상대를 포위해라. 양인의 칼은 법도와 명분을 쥘 때 백전백승이다!`;
+      gesture = pickGesture('fury', 0);
+      situationLead = '상대와 얽힌 갈등과 싸움 속에서 칼을 빼들고 싶은 심정일 테지.';
+      actionTactic = '감정적으로 맞서지 말고 명문화된 증거와 기록으로 상대를 포위해라. 양인의 칼은 법도와 명분을 쥘 때 백전백승이다!';
     }
 
     return {
       headline: `🏢 ${omen.stemGod}·${isYangin ? '양인(羊刃) 판세 장악' : '신용 확보'} · 독선 경계와 계약서 검토`,
       strategyText:
-        `(부채로 등을 팍 치며 호탕하게) "내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
-        `${inputSnippet ? `${inputSnippet} 자리에서 ` : ''}네 고집만 부리다간 거래처와 파열음이 난다. ` +
-        `${businessTactic} 판을 설계한 뒤 도장을 찍으면 천하의 터전이 네 손안에 들어온다!"`,
+        `${gesture} "내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
+        `${situationLead} 네 고집만 부리다간 거래처와 파열음이 난다. ` +
+        `${actionTactic} 판을 장악한 뒤 도장을 찍으면 천하의 터전이 네 손안에 들어온다!"`,
     };
   }
 
@@ -261,7 +325,7 @@ export function generateCoreStrategy(
       return {
         headline: `❤️ 상대 명식 미등록 · 단독 도화 분석 및 상대 등록 권고`,
         strategyText:
-          `(상대의 손을 덥석 쥐며 안타까운 듯) "네 가슴에 연정의 불길이 일렁이나, 아직 상대방의 사주 명식이 내 손에 들어오지 않았다! ` +
+          `${pickGesture('affection', 0)} "네 가슴에 연정의 불길이 일렁이나, 아직 상대방의 사주 명식이 내 손에 들어오지 않았다! ` +
           `내일 ${ganjiText} 날은 ${shinsalMain}의 기운이 맴도니 분위기는 타오르겠으나, 상대의 속마음과 두 사람의 합충을 보지 못하면 헛발질하기 십상이다. ` +
           `아래 등록창에서 상대방의 생년월일을 먼저 새겨라. 그래야 내일 밤 손을 덥석 잡을지, 한 발 물러설지 천기를 찔러준다!"`,
         needsPartnerNotice: true,
@@ -288,25 +352,32 @@ export function generateCoreStrategy(
       chemistryNote = `${alias}의 일간 ${partnerDay}와 네 일간 ${myDay} 사이에 미묘한 긴장과 끌림이 교차하는 날이다.`;
     }
 
-    let loveTactic = isBranchClashed
+    let gesture = pickGesture('insight', 1);
+    let situationLead = '마음에 품은 사람과의 관계에서 갈피를 잡지 못하고 가슴이 쿵쾅거리고 있구나.';
+    let actionTactic = isBranchClashed
       ? '절대 고집부리지 말고 상대의 투정을 한 박자 받아줘라.'
       : '분위기가 무르익었을 때 뜸 들이지 말고 먼저 손을 쥐어라.';
 
     if (/싸움|다툼|서운|화해|갈등/.test(p)) {
-      loveTactic = `내일은 자존심 세우는 쪽이 패자다. 상대의 서운함을 먼저 보듬어주고 한 발 양보해야 뒤틀린 실타래가 풀린다.`;
+      gesture = pickGesture('grief', 1);
+      situationLead = '서운한 말 한마디에 자존심이 상해 뒤틀린 마음을 어쩌지 못하고 끙끙 앓고 있겠지.';
+      actionTactic = '내일은 자존심 세우는 쪽이 패자다. 상대의 서운함을 먼저 보듬어주고 한 발 양보해야 뒤틀린 실타래가 풀린다.';
     } else if (/고백|소개팅|데이트|첫만남/.test(p)) {
-      loveTactic = `시선을 피하지 말고 3초 이상 지그시 응시해라. 네 눈빛에 깃든 도화의 빛이 상대의 심장을 먼저 두드릴 것이다.`;
+      gesture = pickGesture('triumph', 0);
+      situationLead = '마음에 품은 사람을 마주할 생각에 설렘과 두려움으로 가슴이 방망이질 치고 있구나.';
+      actionTactic = '시선을 피하지 말고 3초 이상 지그시 응시해라. 네 눈빛에 깃든 도화의 빛이 상대의 심장을 먼저 두드릴 것이다.';
     } else if (/연락|카톡|문자|전화/.test(p)) {
-      loveTactic = `답장을 너무 재지 마라. 진솔하고 담백한 한마디가 백 마디 밀당보다 상대의 마음을 녹인다.`;
+      gesture = pickGesture('insight', 0);
+      situationLead = '휴대폰만 들여다보며 연락 한 줄에 마음이 롤러코스터를 타고 있구나.';
+      actionTactic = '답장을 너무 재지 마라. 진솔하고 담백한 한마디가 백 마디 밀당보다 상대의 마음을 녹인다.';
     }
 
     return {
       headline: `💘 ${alias}과의 천기 인연 대조 · ${shinsalMain} 맞춤 공략`,
       strategyText:
-        `(눈을 번뜩이며 귓가에 낮게 속삭이듯) "똑똑히 들어라! ${chemistryNote} ` +
-        `내일 ${ganjiText} 날은 도화와 홍염의 붉은 불길이 요동친다. ` +
-        `${inputSnippet ? `${inputSnippet}에서 ` : ''}어설프게 잰체하지 말고 시선을 깊게 맞춰라. ` +
-        `${loveTactic} 감정을 섬세하게 조율하며 주도권을 쥐는 쪽이 상대의 심장을 통째로 사로잡는다!"`,
+        `${gesture} "똑똑히 들어라! ${chemistryNote} ${situationLead} ` +
+        `내일 ${ganjiText} 날은 도화와 홍염의 붉은 불길이 요동친다. 어설프게 잰체하지 말고 시선을 깊게 맞춰라. ` +
+        `${actionTactic} 감정을 섬세하게 조율하며 주도권을 쥐는 쪽이 상대의 심장을 통째로 사로잡는다!"`,
       needsPartnerNotice: false,
     };
   }
@@ -314,42 +385,59 @@ export function generateCoreStrategy(
   // 4. 💼 [직업 (Career)]: 비견·양인의 독선 경계, 조직 내 입지와 평판 극대화
   if (category === 'career') {
     const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
-    let careerTactic = '윗사람이나 동료들의 불필요한 참견에 발끈하지 마라. 독선은 경계하되 네 전문성만큼은 양보 없이 밀어붙여라.';
+    let gesture = pickGesture('triumph', 1);
+    let situationLead = '일터에서 네 자리를 지키고 성과를 증명해야 하니 어깨가 천 근 만 근 무겁겠지.';
+    let actionTactic = '윗사람이나 동료들의 불필요한 참견에 발끈하지 마라. 독선은 경계하되 네 전문성만큼은 양보 없이 밀어붙여라.';
+
     if (/이직|퇴사|면접|스카우트/.test(p)) {
-      careerTactic = `성급하게 칼을 뽑지 말고 조건을 냉정하게 따져라. 면접 자리에서는 양인의 당당함으로 판을 장악하되 오만함은 감춰라.`;
+      gesture = pickGesture('fury', 0);
+      situationLead = '새로운 터전으로 칼을 갈아 면접관들 앞에 서야 하니 심장이 쿵쾅거리고 피가 마를 게다.';
+      actionTactic = '성급하게 칼을 뽑지 말고 조건을 냉정하게 따져라. 면접 자리에서는 양인의 당당함으로 판을 장악하되 오만함은 감춰라.';
     } else if (/보고|발표|프레젠테이션|pt/.test(p)) {
-      careerTactic = `수식어는 다 쳐내고 숫자가 담긴 핵심 결론부터 던져라. 논리가 서슬 퍼럴 때 청중의 기립박수가 터진다.`;
+      gesture = pickGesture('insight', 0);
+      situationLead = '사람들 앞에 서서 네 실력을 만천하에 드러내야 하니 긴장될 테지.';
+      actionTactic = '수식어는 다 쳐내고 숫자가 담긴 핵심 결론부터 던져라. 논리가 서슬 퍼럴 때 청중의 기립박수가 터진다.';
     } else if (/상사|팀장|동료|부하|정치/.test(p)) {
-      careerTactic = `사내 정치의 구설수에 휘말리지 마라. 오직 문서와 결과물로만 발언하고 묵묵히 네 진지를 지켜라.`;
+      gesture = pickGesture('warning', 1);
+      situationLead = '사내 인간관계와 윗사람 눈치에 속이 터져 한판 엎어버리고 싶은 충동이 일었겠어.';
+      actionTactic = '사내 정치의 구설수에 휘말리지 마라. 오직 문서와 결과물로만 발언하고 묵묵히 네 진지를 지켜라.';
     }
 
     return {
       headline: `💼 ${omen.stemGod}·${isYangin ? '양인(羊刃) 직무 결전' : '신용 증명'} · 업무 집중과 평판 극대화`,
       strategyText:
-        `(칼을 쥐어주듯 노려보며) "내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
-        `${inputSnippet ? `${inputSnippet} 업무에서 ` : ''}잡생각을 버리고 오직 압도적인 결과물로만 증명해라. ` +
-        `${careerTactic} 내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!"`,
+        `${gesture} "내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
+        `${situationLead} 잡생각을 버리고 오직 압도적인 결과물로만 증명해라. ` +
+        `${actionTactic} 내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!"`,
     };
   }
 
   // 5. 🌿 [건강 (Health)]: 화(火) 과다에 따른 심혈관/두통 주의 및 금(金) 보충법
   if (category === 'health') {
-    let healthTactic = '매운 음식과 카페인을 멀리하고, 찬물과 은빛 쇠(金) 기운을 가까이해라.';
+    let gesture = pickGesture('grief', 1);
+    let situationLead = '갈아 넣은 육신이 비명을 지르는데도 쉴 틈 없이 하루를 버텨내느라 벼랑 끝에 서 있구나.';
+    let actionTactic = '매운 음식과 카페인을 멀리하고, 찬물과 은빛 쇠(金) 기운을 가까이해라.';
+
     if (/두통|편두통|혈압|어지럼/.test(p)) {
-      healthTactic = `치솟는 열기로 머리 쪽에 화(火)가 고였으니 관자놀이를 찬물로 식히고 카페인을 단칼에 끊어라.`;
+      gesture = pickGesture('warning', 0);
+      situationLead = '머리가 깨질 듯 지끈거리고 가슴이 답답해 숨을 헐떡였겠구나.';
+      actionTactic = '치솟는 열기로 머리 쪽에 화(火)가 고였으니 관자놀이를 찬물로 식히고 카페인을 단칼에 끊어라.';
     } else if (/잠|불면|수면|피로|야근/.test(p)) {
-      healthTactic = `자기 전 스마트폰 화면을 끄고 미지근한 물에 발을 담가라. 뇌의 불길을 식혀야 깊은 잠이 든다.`;
+      gesture = pickGesture('grief', 0);
+      situationLead = '밤새 뒤척이며 잠 못 이루고 갈아 넣은 육신이 비명을 지르는데도 악으로 버티고 있구나.';
+      actionTactic = '자기 전 스마트폰 화면을 끄고 미지근한 물에 발을 담가라. 뇌의 불길을 식혀야 깊은 잠이 든다.';
     } else if (/위장|소화|속쓰림|식사/.test(p)) {
-      healthTactic = `자극적인 음식을 금하고 담백한 밥과 따뜻한 보리차로 위장의 열독을 가라앉혀라.`;
+      gesture = pickGesture('affection', 1);
+      situationLead = '속이 쓰리고 위장이 뒤틀려 밥 한술 제대로 넘기지 못할 정도로 기운이 메말랐어.';
+      actionTactic = '자극적인 음식을 금하고 담백한 밥과 따뜻한 보리차로 위장의 열독을 가라앉혀라.';
     }
 
     return {
       headline: `🌿 적화(赤火) 과다 경고 · 심혈관·두통 주의 및 금(金) 기운 보충`,
       strategyText:
-        `(어깨를 묵직하게 다독이며 엄하게 타이르듯) "몸이 무너지면 천하의 명예와 황금도 물거품이다! ` +
+        `${gesture} "몸이 무너지면 천하의 명예와 황금도 물거품이다! ${situationLead} ` +
         `내일 ${ganjiText} 날은 한낮의 맹렬한 불(火) 기운이 솟구쳐 심혈관, 혈압, 편두통과 가슴 답답증이 도지기 쉽다. ` +
-        `${inputSnippet ? `${inputSnippet} 소화하더라도 ` : ''}${healthTactic} ` +
-        `내일 밤은 온탕에 몸을 담그고 일찍 불을 꺼라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!"`,
+        `${actionTactic} 내일 밤은 온탕에 몸을 담그고 일찍 불을 꺼라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!"`,
     };
   }
 
@@ -357,21 +445,62 @@ export function generateCoreStrategy(
   return {
     headline: `⚡ ${ganjiText} 날의 천기 직설`,
     strategyText:
-      `(탁자를 탕 내리치며) "내일은 ${ganjiText} 날, ${omen.stemGod}과 ${shinsalMain}의 기운이 요동친다! 네 심지 하나 믿고 거침없이 세상을 베어라!"`,
+      `${pickGesture('triumph', 0)} "내일은 ${ganjiText} 날, ${omen.stemGod}과 ${shinsalMain}의 기운이 요동친다! 네 심지 하나 믿고 거침없이 세상을 베어라!"`,
   };
 }
 
-/** 3초 오행 정산 후 메인 카드 [오늘의 열쇠]에 반영될 맞춤 해단 */
+/** 3초 오행 정산 후 메인 카드 [오늘의 열쇠]에 반영될 동적 구어체 신점 해단 (따옴표 인용 폐기) */
 export function generateTodayCustomAdvice(
   emotion: string,
   event: string,
   memo?: string
 ): { keyword: string; fortuneText: string } {
-  const m = memo?.trim();
-  const memoSnippet = m ? `'${m}'` : `'${event}'`;
-
+  const m = memo?.trim() ?? '';
   const keyword = `${emotion}화(化)의 정산`;
-  const fortuneText = `(탁자를 탕 내리치며 서슬 퍼런 눈으로) "네가 오늘 ${memoSnippet} 일로 가슴에 ${emotion}의 불길이 일렁였구나! 억울함과 고단함을 삼키며 여기까지 버틴 네 독기를 내가 안다. 오늘 배터리를 100% 채웠으니 지난 액운은 다 불태워졌다. 빗장을 걸어 잠그고 내일의 칼날을 갈아라!"`;
+
+  // 사용자 입력 텍스트 감정과 뉘앙스 정밀 흡수 (Paraphrasing)
+  let gesture = pickGesture('grief', 0);
+  let lead = '';
+
+  if (/어려|힘들|지치|피곤|외롭|눈물|슬프|버티|포기|서럽|아프|무겁|한숨|우울|벅차|고단/.test(m)) {
+    gesture = pickGesture('grief', 2);
+    lead = '오늘 하루가 참으로 고단하고 숨이 턱 끝까지 찼구나... 어디 하나 기댈 곳 없어 그 무거운 짐을 혼자 짊어지고 버티느라 가슴이 새카맣게 타들어갔어. 그래도 용케 주저앉지 않고 여기까지 버텨내어 내 앞에 앉았다.';
+  } else if (/화|짜증|열받|분노|억울|배신|싸움|다툼|상사|팀장|거래처|사기|답답|욕|들이받/.test(m)) {
+    gesture = pickGesture('fury', 0);
+    lead = '치밀어 오르는 분통과 억울함을 꾹꾹 눌러 삼키느라 가슴팍에 시커먼 피멍이 들었구나! 네 죄도 아닌데 독박을 쓰고 그 분을 참아내느라 얼마나 속이 뒤집어졌겠느냐. 남의 죗값을 왜 네가 앓고 있느냐.';
+  } else if (/담판|계약|협상|끝냈|성공|해냈|달렸|결판|승부|싸인|도장/.test(m)) {
+    gesture = pickGesture('triumph', 0);
+    lead = '살얼음판 같은 자리에서 한 치도 물러서지 않고 서슬 퍼런 기싸움을 치르고 왔구나! 네 몫을 지켜내느라 온 신경을 곤두세웠을 네 결기와 담력이 내 눈에는 훤히 보인다.';
+  } else if (/돈|지출|빚|월급|통장|계좌|단가|비용|정산|손해|투자|주식|코인/.test(m)) {
+    gesture = pickGesture('insight', 1);
+    lead = '피 같은 돈 때문에 머리털이 쭈뼛 서고 계산기 두드리느라 속이 바짝 타들어갔구나... 한 푼이라도 지키려고 눈을 부릅뜬 네 고단함과 치열함이 가슴을 친다.';
+  } else if (/몸|아프|병원|두통|허리|쓰러|감기|수술|탈진/.test(m)) {
+    gesture = pickGesture('grief', 0);
+    lead = '갈아 넣은 육신이 비명을 지르고 온몸의 뼈마디가 쑤시는데도 쉴 틈 없이 스스로를 혹사시켰구나... 네 몸뚱이가 네 천하인데 스스로를 너무 모질게 몰아세웠어.';
+  } else if (/고민|선택|갈등|결정|어쩌|막막|불안|앞날|혼란|진로/.test(m)) {
+    gesture = pickGesture('insight', 0);
+    lead = '갈림길에 서서 안개 속을 헤매느라 머리가 터질 듯 복잡했겠구나. 이쪽으로 가자니 벼랑이고 저쪽으로 가자니 가시밭길 같아 가슴을 졸이며 주판알을 튕기던 그 막막함이 훤하다.';
+  } else {
+    // 메모가 없거나 일반 텍스트인 경우: 선택한 사건/감정 기반으로 자연스러운 체화
+    if (/직장|생존|work/.test(event)) {
+      gesture = pickGesture('fury', 1);
+      lead = '오늘 일터에서 윗사람 눈치 보랴 쏟아지는 업무 쳐내랴 숨 쉴 틈도 없이 시달렸구나... 속에서 천불이 나도 겉으로는 입술을 깨물며 버텼을 게다.';
+    } else if (/돈|지출|money/.test(event)) {
+      gesture = pickGesture('insight', 0);
+      lead = '오늘 돈 나갈 곳만 보이고 곳간을 지키느라 속이 까맣게 탔겠어... 옹졸해서가 아니라 피땀 흘려 번 결실이기에 한 푼도 허투루 샐까 봐 신경이 곤두섰지.';
+    } else if (/치정|바람|관계|relation/.test(event)) {
+      gesture = pickGesture('affection', 0);
+      lead = '오늘 사람 속에서 치이고 부대끼며 겉웃음 짓느라 속은 진물이 흐르도록 곪았을 게다... 믿었던 마음에 상처를 입고도 내색 못 한 네 슬픔을 내가 안다.';
+    } else if (/건강|액땜|health/.test(event)) {
+      gesture = pickGesture('grief', 1);
+      lead = '오늘 온몸의 기운이 방전되어 한 걸음 떼기도 버거웠을 텐데, 주저앉지 않고 악으로 하루를 버텨냈구나... 몸이 무너지면 천하도 물거품이다.';
+    } else {
+      gesture = pickGesture('insight', 2);
+      lead = '오늘 이러지도 저러지도 못하는 마음의 파도에 휩쓸려 갈피를 잡지 못하고 기운을 소진했구나... 어디로 튈지 모르는 세상에서 네 중심을 잡느라 애썼다.';
+    }
+  }
+
+  const fortuneText = `${gesture} "${lead} 오늘 배터리를 100% 채워 묵은 기운을 다 씻어냈으니 지난 액운은 불길 속에 다 태워졌다. 이제 문에 빗장을 걸어 잠그고 깊은 잠을 청해라. 내일은 하늘이 네 편이다!"`;
 
   return {
     keyword,

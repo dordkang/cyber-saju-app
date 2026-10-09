@@ -87,7 +87,7 @@ const GOD_KEYWORD: Record<TenGod, string> = {
 };
 
 const GOD_LINE: Record<TenGod, string> = {
-  비견: '(탁자를 탕 내리치며) 딴 놈들 눈치 보지 마라! 오직 네 심지 하나 믿고 버티면 천하가 네 편이다.',
+  비견: '(방울을 짤랑 흔들며 껄껄 웃음을 터뜨린다) 딴 놈들 눈치 보지 마라! 오직 네 심지 하나 믿고 버티면 천하가 네 편이다.',
   겁재: '(서슬 퍼런 눈으로 쏘아보며) 도둑놈들이 네 밥그릇을 노린다! 한 치도 뺏기지 말고 악착같이 움켜쥐어라.',
   식신: '(부채를 쫙 펼치며 호탕하게) 가슴에 맺힌 걸 다 쏟아내라! 네 입과 손끝에서 막힌 금고 문이 열린다.',
   상관: '(호롱불을 흔들며) 낡은 틀에 네 목을 매지 마라! 판을 뒤엎어야 네 세상이 오는 법이다.',
@@ -100,7 +100,7 @@ const GOD_LINE: Record<TenGod, string> = {
 };
 
 const FALLBACK_KEYWORD = '천기(天氣) 신명';
-const FALLBACK_LINE = '(탁자를 탕 내리치며) 웅크린 자여, 네 안의 불길을 의심치 마라! 오늘 하늘이 네 칼날을 벼리고 있다.';
+const FALLBACK_LINE = '(부채를 촥 펴서 번뜩이는 눈빛을 쏘며) 웅크린 자여, 네 안의 불길을 의심치 마라! 오늘 하늘이 네 칼날을 벼리고 있다.';
 const MAX_FORTUNE_CHARS = 120;
 
 export interface ReelsContent {
