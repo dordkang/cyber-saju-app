@@ -277,22 +277,26 @@ function AppContent() {
     return { innate: innateMbti, actual: actualMbti, syncRate, leakage: energyLeakage };
   }, [innateMbti, actualMbti]);
 
+  const partnerSaju = useMemo<SajuResult | null>(() => {
+    if (!partner) return null;
+    try {
+      return computeSajuFromProfile(partner.birthDate, partner.birthTime, partner.calendarType);
+    } catch {
+      return null;
+    }
+  }, [partner]);
+
   const { partnerRadar, partnerPrescription } = useMemo<{
     partnerRadar: PartnerRadarResult | null;
     partnerPrescription: PartnerPrescription | null;
   }>(() => {
-    if (!partner) return { partnerRadar: null, partnerPrescription: null };
-    try {
-      const partnerSaju = computeSajuFromProfile(partner.birthDate, partner.birthTime, partner.calendarType);
-      const radar = analyzePartnerRadar(partnerSaju);
-      return {
-        partnerRadar: radar,
-        partnerPrescription: buildPartnerPrescription(partnerSaju, radar, partner.alias || partner.relation),
-      };
-    } catch {
-      return { partnerRadar: null, partnerPrescription: null };
-    }
-  }, [partner]);
+    if (!partnerSaju) return { partnerRadar: null, partnerPrescription: null };
+    const radar = analyzePartnerRadar(partnerSaju);
+    return {
+      partnerRadar: radar,
+      partnerPrescription: buildPartnerPrescription(partnerSaju, radar, partner?.alias || partner?.relation || '상대'),
+    };
+  }, [partnerSaju, partner]);
 
   const partnerInfo = useMemo<ReelsPeoplePeek | null>(() => {
     if (!partner) return null;
@@ -343,8 +347,10 @@ function AppContent() {
       personaLabel: `${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`,
       soundOn,
       saju,
+      partnerProfile: partner,
+      partnerSaju,
     }),
-    [reelsContent, customFortune, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn]
+    [reelsContent, customFortune, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn, partner, partnerSaju]
   );
 
   const loadData = useCallback(async () => {

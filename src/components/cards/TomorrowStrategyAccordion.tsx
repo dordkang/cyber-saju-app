@@ -8,8 +8,13 @@ import {
   View,
 } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import { generateTomorrowStrategy, getTomorrowOmen } from '../../engine/tomorrowStrategy';
+import {
+  CoreCategory,
+  generateCoreStrategy,
+  getTomorrowOmen,
+} from '../../engine/tomorrowStrategy';
 import type { SajuResult } from '../../engine/types';
+import type { PartnerProfile } from '../../database/db';
 import { playHaptic } from '../reels/haptics';
 
 const IS_WEB = Platform.OS === 'web';
@@ -18,29 +23,52 @@ const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
 interface TomorrowStrategyAccordionProps {
   unlocked: boolean;
   saju: SajuResult | null;
+  partner?: PartnerProfile | null;
+  partnerSaju?: SajuResult | null;
+  baseDate?: Date;
   onOpenDaily?: () => void;
+  onOpenPartner?: () => void;
 }
 
-const QUICK_PLANS = [
-  { label: '🎬 영화 데이트', text: '여친과 영화 데이트' },
-  { label: '💼 투자 미팅', text: '투자 미팅 및 사업 협상' },
-  { label: '✈️ 이동/출장', text: '지방 출장 및 외근' },
-  { label: '📝 계약/담판', text: '거래처와 계약 담판' },
-  { label: '🛌 휴식/힐링', text: '집에서 휴식 및 충전' },
+const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; icon: string }> = [
+  { key: 'wealth', label: '재물', icon: '💰' },
+  { key: 'love', label: '사랑', icon: '❤️' },
+  { key: 'career', label: '직업', icon: '💼' },
+  { key: 'health', label: '건강', icon: '🌿' },
+  { key: 'business', label: '비즈니스', icon: '🏢' },
 ];
 
 export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion({
   unlocked,
   saju,
+  partner,
+  partnerSaju,
+  baseDate = new Date(),
   onOpenDaily,
+  onOpenPartner,
 }: TomorrowStrategyAccordionProps) {
   const [expanded, setExpanded] = useState(false);
-  const [planText, setPlanText] = useState('여친과 영화 데이트');
+  const [category, setCategory] = useState<CoreCategory>('wealth');
+  const [planText, setPlanText] = useState('');
 
-  const omen = useMemo(() => getTomorrowOmen(saju), [saju]);
-  const strategyText = useMemo(
-    () => generateTomorrowStrategy(planText, omen),
-    [planText, omen]
+  // 기준일의 익일(내일) 오행 및 신살
+  const tomorrowDate = useMemo(() => {
+    return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 1, 12, 0);
+  }, [baseDate]);
+
+  const omen = useMemo(() => getTomorrowOmen(saju, tomorrowDate), [saju, tomorrowDate]);
+
+  const strategy = useMemo(
+    () =>
+      generateCoreStrategy(
+        category,
+        planText,
+        omen,
+        saju,
+        partnerSaju ?? null,
+        partner?.alias || partner?.relation
+      ),
+    [category, planText, omen, saju, partnerSaju, partner]
   );
 
   const toggleExpand = () => {
@@ -52,9 +80,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     setExpanded((prev) => !prev);
   };
 
-  const handleQuickSelect = (text: string) => {
+  const handleSelectCategory = (cat: CoreCategory) => {
     void playHaptic('tap');
-    setPlanText(text);
+    setCategory(cat);
   };
 
   if (!unlocked) {
@@ -96,7 +124,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           </View>
           <Text style={styles.cardTitle}>내일의 천기 & 작전 설계</Text>
           <Text style={styles.cardSub}>
-            내일 {omen.ganji} · {omen.shinsal.name} ({omen.elementTitle})
+            내일 {omen.ganji} ({omen.stemGod}·{omen.branchGod}) · {omen.shinsal.primary}
           </Text>
         </View>
         <View style={styles.toggleBtn}>
@@ -111,56 +139,86 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           <View style={styles.omenBadgeRow}>
             <View style={styles.omenBadge}>
               <Text style={styles.omenBadgeLabel}>내일 일진</Text>
-              <Text style={styles.omenBadgeValue}>{omen.ganji} ({omen.godName})</Text>
+              <Text style={styles.omenBadgeValue}>{omen.ganji} ({omen.stemGod})</Text>
             </View>
             <View style={styles.omenBadge}>
-              <Text style={styles.omenBadgeLabel}>핵심 신살</Text>
-              <Text style={styles.omenBadgeValueHighlight}>{omen.shinsal.name}</Text>
+              <Text style={styles.omenBadgeLabel}>핵심 기운·신살</Text>
+              <Text style={styles.omenBadgeValueHighlight}>{omen.shinsal.primary}</Text>
             </View>
           </View>
           <Text style={styles.shinsalDesc}>{omen.shinsal.description}</Text>
 
-          {/* 일정 질문 및 입력창 */}
-          <Text style={styles.inputLabel}>내일 중요한 일정이나 계획이 있나요?</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={planText}
-              onChangeText={setPlanText}
-              placeholder="예: 여친과 영화 데이트, 투자 미팅"
-              placeholderTextColor="#8a6d75"
-              style={styles.textInput}
-              maxLength={60}
-            />
-          </View>
-
-          {/* 퀵 플랜 태그들 */}
-          <View style={styles.quickChipsRow}>
-            {QUICK_PLANS.map((q) => {
-              const selected = planText === q.text;
+          {/* 5대 본질 코어 카테고리 선택 칩 */}
+          <Text style={styles.inputLabel}>5대 코어 작전 분야를 선택하세요</Text>
+          <View style={styles.coreChipsRow}>
+            {CORE_CATEGORIES.map((c) => {
+              const selected = category === c.key;
               return (
                 <Pressable
-                  key={q.label}
-                  onPress={() => handleQuickSelect(q.text)}
+                  key={c.key}
+                  onPress={() => handleSelectCategory(c.key)}
+                  accessibilityRole="button"
                   style={({ pressed }) => [
-                    styles.quickChip,
-                    selected && styles.quickChipSelected,
+                    styles.coreChip,
+                    selected && styles.coreChipSelected,
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={[styles.quickChipText, selected && styles.quickChipTextSelected]}>
-                    {q.label}
+                  <Text style={[styles.coreChipText, selected && styles.coreChipTextSelected]}>
+                    {c.icon} {c.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
 
+          {/* 사랑 카테고리인데 상대방 사주가 등록되어 있지 않은 경우 안내 배너 */}
+          {category === 'love' && !partnerSaju && (
+            <View style={styles.partnerNoticeBox}>
+              <Text style={styles.partnerNoticeText}>
+                ⚠️ 상대방 사주 명식이 아직 없습니다. 두 사람의 합(合)·충(沖)과 도화를 정밀하게 보려면 상대방 명식을 등록하세요.
+              </Text>
+              <Pressable
+                onPress={() => {
+                  void playHaptic('tap');
+                  onOpenPartner?.();
+                }}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.partnerNoticeBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.partnerNoticeBtnText}>+ 상대방 사주 등록하기 ✏️</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* 상대방 사주가 이미 등록되어 있을 때 연동 안내 칩 */}
+          {category === 'love' && Boolean(partnerSaju) && (
+            <View style={styles.partnerLinkedBox}>
+              <Text style={styles.partnerLinkedText}>
+                🔗 {partner?.alias || partner?.relation || '상대방'}({partnerSaju?.dayMaster} 일간)과의 합충 정밀 대조 중
+              </Text>
+            </View>
+          )}
+
+          {/* 구체적 계획 및 고민 입력창 */}
+          <Text style={styles.inputLabel}>구체적인 계획이나 고민 (선택)</Text>
+          <View style={styles.inputWrap}>
+            <TextInput
+              value={planText}
+              onChangeText={setPlanText}
+              placeholder="내일 계획 중인 구체적인 일이나 고민을 자유롭게 적어주세요 (예: 단가 협상, 소개팅, 계약 체결)"
+              placeholderTextColor="#8a6d75"
+              style={styles.textInput}
+              maxLength={80}
+            />
+          </View>
+
           {/* 무당 지문 톤 맞춤 작전 해단 카드 */}
           <View style={styles.strategyBox}>
             <View style={styles.strategyHeader}>
-              <Text style={styles.strategyKicker}>⚡ 무당 신명의 맞춤 작전</Text>
+              <Text style={styles.strategyKicker}>{strategy.headline}</Text>
             </View>
-            <Text style={styles.strategyBody}>{strategyText}</Text>
+            <Text style={styles.strategyBody}>{strategy.strategyText}</Text>
           </View>
         </View>
       )}
@@ -328,7 +386,7 @@ const styles = StyleSheet.create({
     color: '#c9a4aa',
     fontSize: 11,
     marginTop: 6,
-    marginBottom: 12,
+    marginBottom: 14,
     textAlign: 'center',
     ...KEEP_ALL,
   },
@@ -337,9 +395,88 @@ const styles = StyleSheet.create({
     color: '#F4F7FB',
     fontSize: 13,
     fontWeight: '800',
-    marginBottom: 6,
+    marginBottom: 8,
     ...KEEP_ALL,
   },
+
+  coreChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 12,
+  },
+  coreChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(40, 10, 18, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(127, 29, 29, 0.6)',
+  },
+  coreChipSelected: {
+    backgroundColor: 'rgba(255, 30, 56, 0.28)',
+    borderColor: '#ff2a4b',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 10px rgba(255, 42, 75, 0.4)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  coreChipText: {
+    color: '#c9a4aa',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  coreChipTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+
+  partnerNoticeBox: {
+    borderRadius: 10,
+    backgroundColor: 'rgba(80, 20, 28, 0.65)',
+    borderWidth: 1,
+    borderColor: '#ff4b60',
+    padding: 10,
+    marginBottom: 12,
+  },
+  partnerNoticeText: {
+    color: '#ffccd5',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+    ...KEEP_ALL,
+  },
+  partnerNoticeBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#ff1f3d',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  partnerNoticeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  partnerLinkedBox: {
+    borderRadius: 8,
+    backgroundColor: 'rgba(20, 80, 60, 0.4)',
+    borderWidth: 1,
+    borderColor: '#00F5D4',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  partnerLinkedText: {
+    color: '#00F5D4',
+    fontSize: 11,
+    fontWeight: '800',
+    ...KEEP_ALL,
+  },
+
   inputWrap: {
     borderRadius: 10,
     backgroundColor: 'rgba(15, 2, 4, 0.85)',
@@ -347,7 +484,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 42, 75, 0.45)',
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === 'ios' ? 8 : 4,
-    marginBottom: 8,
+    marginBottom: 14,
   },
   textInput: {
     color: '#FFFFFF',
@@ -355,61 +492,32 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  quickChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 14,
-  },
-  quickChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: 'rgba(40, 10, 18, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(127, 29, 29, 0.6)',
-  },
-  quickChipSelected: {
-    backgroundColor: 'rgba(255, 30, 56, 0.25)',
-    borderColor: '#ff2a4b',
-  },
-  quickChipText: {
-    color: '#c9a4aa',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  quickChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
   strategyBox: {
     borderRadius: 12,
-    backgroundColor: 'rgba(15, 2, 4, 0.85)',
+    backgroundColor: 'rgba(15, 2, 4, 0.9)',
     borderWidth: 1,
     borderColor: '#ff2a4b',
-    padding: 12,
+    padding: 14,
     ...(IS_WEB
       ? ({
-          boxShadow: '0 0 14px rgba(255, 42, 75, 0.2)',
+          boxShadow: '0 0 16px rgba(255, 42, 75, 0.25)',
         } as unknown as ViewStyle)
       : null),
   },
   strategyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   strategyKicker: {
     color: '#ff4b60',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.5,
+    ...KEEP_ALL,
   },
   strategyBody: {
     color: '#F4F7FB',
     fontSize: 13,
-    lineHeight: 21,
+    lineHeight: 22,
     fontWeight: '700',
     ...KEEP_ALL,
   },

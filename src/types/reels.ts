@@ -1,4 +1,5 @@
 import type { FiveElement, SajuResult } from '../engine/types';
+import type { PartnerProfile } from '../database/db';
 
 /** 세로 스냅 릴스가 고정으로 다루는 카드 수 */
 export const REEL_SECTION_COUNT = 9;
@@ -190,6 +191,8 @@ export interface ReelsContext {
   personaLabel?: string;
   soundOn?: boolean;
   saju?: SajuResult | null;
+  partnerProfile?: PartnerProfile | null;
+  partnerSaju?: SajuResult | null;
 }
 
 export interface ReelsActionHandlers {

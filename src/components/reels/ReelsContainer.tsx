@@ -308,6 +308,9 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             onOpenDaily={actions.onOpenDailyCard}
             isBatteryFull={context.batteryLevel === 100}
             saju={context.saju}
+            partner={context.partnerProfile}
+            partnerSaju={context.partnerSaju}
+            onOpenPartner={actions.onOpenPartner}
           />
         </View>
       );

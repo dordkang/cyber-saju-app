@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useRef } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,6 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ELEMENT_AURA, REEL_PALETTE, REEL_SECTIONS } from '../../types/reels';
 import type { TodayOmenData } from '../../types/reels';
 import type { SajuResult } from '../../engine/types';
+import type { PartnerProfile } from '../../database/db';
+import { calculateSaju } from '../../engine/calculator';
+import { formatGanji, ELEMENT_TITLE_KR } from '../../engine/reelsContent';
+import { getTenGod } from '../../engine/timelineEngine';
 import { playHaptic } from '../reels/haptics';
 import { TomorrowStrategyAccordion } from './TomorrowStrategyAccordion';
 
@@ -40,13 +44,16 @@ export interface TodayOmenCardProps {
   onOpenDaily?: () => void;
   isBatteryFull?: boolean;
   saju?: SajuResult | null;
+  partner?: PartnerProfile | null;
+  partnerSaju?: SajuResult | null;
+  onOpenPartner?: () => void;
 }
 
 function formatTodayLabel(now: Date): string {
   const week = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()] ?? '';
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}.${mm}.${dd} · ${week}요일`;
+  return `${now.getFullYear()}.${mm}.${dd} (${week})`;
 }
 
 function splitGanji(raw: string): { hanja: string; reading: string } {
@@ -62,12 +69,79 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   onOpenDaily,
   isBatteryFull,
   saju,
+  partner,
+  partnerSaju,
+  onOpenPartner,
 }: TodayOmenCardProps) {
   const insets = useSafeAreaInsets();
   const pulse = useRef(new Animated.Value(0.4)).current;
-  const aura = ELEMENT_AURA[data.element] ?? ELEMENT_AURA.Fire;
-  const ganji = splitGanji(data.dayPillarText);
   const compact = height < 700;
+
+  // 기준 일자 선택 상태
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const dateInputRef = useRef<any>(null);
+
+  // 날짜 변경에 따른 실시간 일진/오행/십신 재계산
+  const dynamicOmen = useMemo(() => {
+    try {
+      const calculated = calculateSaju(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth() + 1,
+        selectedDate.getDate(),
+        12,
+        0,
+        true
+      );
+      const dayPillar = calculated.pillars.day;
+      const element = dayPillar.elements[0];
+      const ganjiText = formatGanji(dayPillar.stem, dayPillar.branch);
+      const myDay = saju?.dayMaster ?? '戊';
+      const god = getTenGod(myDay, dayPillar.stem);
+      return {
+        element,
+        elementName: ELEMENT_TITLE_KR[element] ?? '적화(赤火)의 기운',
+        dayPillarText: ganjiText,
+        god,
+        ganji: splitGanji(ganjiText),
+      };
+    } catch {
+      return {
+        element: data.element,
+        elementName: data.elementName,
+        dayPillarText: data.dayPillarText,
+        god: null,
+        ganji: splitGanji(data.dayPillarText),
+      };
+    }
+  }, [selectedDate, saju, data]);
+
+  const aura = ELEMENT_AURA[dynamicOmen.element] ?? ELEMENT_AURA.Fire;
+  const ganji = dynamicOmen.ganji;
+
+  const handlePrevDay = () => {
+    void playHaptic('tap');
+    setSelectedDate((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 1));
+  };
+
+  const handleNextDay = () => {
+    void playHaptic('tap');
+    setSelectedDate((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1));
+  };
+
+  const handleToday = () => {
+    void playHaptic('tap');
+    setSelectedDate(new Date());
+  };
+
+  const handleDateChange = (e: any) => {
+    const val = e?.target?.value;
+    if (val) {
+      const [y, m, d] = val.split('-').map(Number);
+      if (y && m && d) {
+        setSelectedDate(new Date(y, m - 1, d, 12, 0));
+      }
+    }
+  };
 
   useEffect(() => {
     if (!active) {
@@ -112,14 +186,63 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           },
         ]}
       >
-        {/* 상단 헤더 및 카테고리 칩 */}
+        {/* 상단 헤더 및 기준 일자 선택기 (Date Selector) 복원 */}
         <View>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>
-              {META?.no} · {META?.kicker}
-            </Text>
+          <View style={styles.chipRow}>
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>
+                {META?.no} · {META?.kicker}
+              </Text>
+            </View>
+
+            {/* 날짜 선택 컨트롤 바 */}
+            <View style={styles.dateControlBar}>
+              <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel="이전 날">
+                <Text style={styles.dateNavText}>◀</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  void playHaptic('tap');
+                  if (IS_WEB && dateInputRef.current) {
+                    try {
+                      dateInputRef.current.showPicker?.() || dateInputRef.current.click?.();
+                    } catch {
+                      dateInputRef.current.click?.();
+                    }
+                  }
+                }}
+                style={styles.dateCenterBtn}
+                accessibilityLabel="날짜 변경"
+              >
+                <Text style={styles.dateCenterText}>📅 {formatTodayLabel(selectedDate)}</Text>
+                {IS_WEB && (
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
+                    onChange={handleDateChange}
+                    style={{
+                      position: 'absolute',
+                      opacity: 0,
+                      width: 1,
+                      height: 1,
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+              </Pressable>
+
+              <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel="오늘로 복귀">
+                <Text style={styles.dateTodayText}>오늘</Text>
+              </Pressable>
+
+              <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel="다음 날">
+                <Text style={styles.dateNavText}>▶</Text>
+              </Pressable>
+            </View>
           </View>
-          <Text style={styles.date}>{formatTodayLabel(new Date())}</Text>
+
           <Text style={[styles.title, compact && styles.titleCompact]}>{META?.title}</Text>
           {!!data.profileLabel && !compact && <Text style={styles.profile}>{data.profileLabel}</Text>}
         </View>
@@ -158,14 +281,18 @@ export const TodayOmenCard = memo(function TodayOmenCard({
             <Text style={styles.hanjaMark}>{aura.hanja || '火'}</Text>
             <Text style={[styles.ganji, compact && styles.ganjiCompact]}>{ganji.hanja}</Text>
             <Text style={styles.reading}>{ganji.reading}</Text>
-            <Text style={styles.elementName}>{data.elementName || '적화(赤火)의 기운'}</Text>
+            <Text style={styles.elementName}>{dynamicOmen.elementName}</Text>
           </View>
         </View>
 
         {/* 3. 하단 "오늘의 열쇠" 카드 (딥 와인 글래스모피즘, 은은한 크림슨 테두리) */}
         <View style={[styles.glass, WINE_GLASS]}>
-          <Text style={styles.keywordLabel}>오늘의 열쇠</Text>
-          <Text style={styles.keyword}>{data.keyword}</Text>
+          <Text style={styles.keywordLabel}>
+            {dynamicOmen.god ? `${dynamicOmen.god}의 열쇠` : '오늘의 열쇠'}
+          </Text>
+          <Text style={styles.keyword}>
+            {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
+          </Text>
           <Text style={styles.fortune} numberOfLines={compact ? 2 : 4}>
             {data.fortuneText}
           </Text>
@@ -205,7 +332,11 @@ export const TodayOmenCard = memo(function TodayOmenCard({
         <TomorrowStrategyAccordion
           unlocked={Boolean(isBatteryFull)}
           saju={saju ?? null}
+          partner={partner}
+          partnerSaju={partnerSaju}
+          baseDate={selectedDate}
           onOpenDaily={onOpenDaily}
+          onOpenPartner={onOpenPartner}
         />
       </ScrollView>
     </View>
@@ -244,10 +375,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.85,
     shadowRadius: 25,
   },
+  chipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 6,
+  },
   chip: {
     alignSelf: 'flex-start',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: '#ff2a4b',
@@ -259,11 +398,56 @@ const styles = StyleSheet.create({
       : null),
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
     color: '#ff2a4b',
     ...KEEP_ALL,
+  },
+  dateControlBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(28, 8, 14, 0.85)',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.35)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    gap: 4,
+  },
+  dateNavBtn: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  dateNavText: {
+    color: '#ff4b60',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  dateCenterBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    position: 'relative',
+  },
+  dateCenterText: {
+    color: '#F4F7FB',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  dateTodayBtn: {
+    backgroundColor: 'rgba(255, 30, 56, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.4)',
+  },
+  dateTodayText: {
+    color: '#ff758f',
+    fontSize: 10,
+    fontWeight: '800',
   },
   date: {
     marginTop: 12,
