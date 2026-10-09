@@ -1,4 +1,4 @@
-import type { FiveElement } from '../engine/types';
+import type { FiveElement, SajuResult } from '../engine/types';
 
 /** 세로 스냅 릴스가 고정으로 다루는 카드 수 */
 export const REEL_SECTION_COUNT = 9;
@@ -189,6 +189,7 @@ export interface ReelsContext {
   elementsRatio?: Record<FiveElement, number> | null;
   personaLabel?: string;
   soundOn?: boolean;
+  saju?: SajuResult | null;
 }
 
 export interface ReelsActionHandlers {

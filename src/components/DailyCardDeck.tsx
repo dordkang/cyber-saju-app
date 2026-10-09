@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { EmotionElement, EnergyLevel, EventCategory } from '../database/db';
 
 export interface DailyCardData {
@@ -273,6 +273,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCat
   const [emotion, setEmotion] = useState<EmotionElement | null>(null);
   const [eventId, setEventId] = useState<EventId | null>(null);
   const [energy, setEnergy] = useState<EnergyLevel | null>(null);
+  const [shortMemo, setShortMemo] = useState('');
   const [percent, setPercent] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -347,6 +348,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCat
     setEmotion(null);
     setEventId(null);
     setEnergy(null);
+    setShortMemo('');
   }, [fill]);
 
   const handleRestart = useCallback(() => {
@@ -361,14 +363,19 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCat
     playTick();
     setSaving(true);
     try {
-      await onSave({ emotionElement: emotion, eventCategory: card.category, energyLevel: energy });
+      await onSave({
+        emotionElement: emotion,
+        eventCategory: card.category,
+        energyLevel: energy,
+        shortMemo: shortMemo.trim() || undefined,
+      });
       resetAll();
     } catch {
       // 저장 실패는 상위에서 안내한다. 처방 화면을 유지해 다시 시도할 수 있게 둔다.
     } finally {
       setSaving(false);
     }
-  }, [saving, emotion, eventId, energy, onSave, resetAll]);
+  }, [saving, emotion, eventId, energy, shortMemo, onSave, resetAll]);
 
   const prescription = charged && emotion !== null && eventId !== null ? getOfflinePrescription(emotion, eventId) : null;
 
@@ -486,6 +493,18 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCat
       <Text style={styles.batteryCaption}>
         {charged ? `잔량 ${energy}% → 100% 충전 완료` : '잔량을 탭하면 배터리가 차오릅니다'}
       </Text>
+
+      <Text style={styles.stepTitle}>오늘 하루 한 줄 기록 (선택)</Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          value={shortMemo}
+          onChangeText={setShortMemo}
+          placeholder="오늘 어떤 일이 있었나요? (예: 오랜 거래처와 담판을 지었다)"
+          placeholderTextColor="#8a6d75"
+          style={styles.memoInput}
+          maxLength={100}
+        />
+      </View>
 
       {prescription && (
         <View style={styles.prescription}>
@@ -685,6 +704,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
     marginBottom: 6,
+  },
+  inputContainer: {
+    marginTop: 4,
+    marginBottom: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(15, 2, 4, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.35)',
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+  },
+  memoInput: {
+    color: '#F4F7FB',
+    fontSize: 13,
+    paddingVertical: 4,
+    minHeight: 34,
   },
 
   prescription: {

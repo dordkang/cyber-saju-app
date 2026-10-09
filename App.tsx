@@ -19,6 +19,7 @@ import { buildPartnerPrescription } from './src/engine/partnerPrescription';
 import type { PartnerPrescription } from './src/engine/partnerPrescription';
 import { analyzeTodayMoney } from './src/engine/moneyEngine';
 import { buildReelsContent } from './src/engine/reelsContent';
+import { generateTodayCustomAdvice } from './src/engine/tomorrowStrategy';
 import { matchCelebrity } from './src/engine/celebrityEngine';
 import { calculateMbtiSync, calculateSajuMbti, isValidMbti } from './src/engine/mbtiEngine';
 import { calculateLifeDaeun } from './src/engine/timelineEngine';
@@ -227,6 +228,7 @@ function AppContent() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+  const [customFortune, setCustomFortune] = useState<{ keyword: string; fortuneText: string } | null>(null);
   const [lifeOnboarding, setLifeOnboarding] = useState<UserOnboardingData>({
     syncRatio: DEFAULT_LIFE_SYNC_RATIO,
     interests: [...DEFAULT_FOCUS_INTERESTS],
@@ -323,7 +325,13 @@ function AppContent() {
 
   const reelsContext = useMemo<ReelsContext>(
     () => ({
-      omen: reelsContent,
+      omen: customFortune
+        ? {
+            ...reelsContent,
+            keyword: customFortune.keyword,
+            fortuneText: customFortune.fortuneText,
+          }
+        : reelsContent,
       life: daeun,
       people: partnerInfo,
       money: money
@@ -334,8 +342,9 @@ function AppContent() {
       elementsRatio: saju?.elementsRatio ?? null,
       personaLabel: `${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`,
       soundOn,
+      saju,
     }),
-    [reelsContent, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn]
+    [reelsContent, customFortune, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn]
   );
 
   const loadData = useCallback(async () => {
@@ -359,10 +368,28 @@ function AppContent() {
         }
         if (!loaded) throw new Error('프로필을 불러오지 못했습니다.');
 
+        const todayStr = todayKey(new Date());
         const savedPartner = await getLatestPartnerProfile().catch(() => null);
         const savedOnboarding = await getUserOnboardingData().catch(() => null);
-        const savedLog = await getDailyLog(todayKey(new Date())).catch(() => null);
+        const savedLog = await getDailyLog(todayStr).catch(() => null);
         const savedPersona = await getPersonaPreference().catch(() => null);
+
+        const storedBattery100 = readFlag(`cybersaju.battery100.${todayStr}`) === 'true';
+        const storedCustomFortune = readFlag(`cybersaju.customFortune.${todayStr}`);
+        let initialCustom: { keyword: string; fortuneText: string } | null = null;
+        if (storedCustomFortune) {
+          try {
+            initialCustom = JSON.parse(storedCustomFortune);
+          } catch {
+            // ignore
+          }
+        } else if (savedLog?.emotion_element && savedLog?.event_category) {
+          initialCustom = generateTodayCustomAdvice(
+            savedLog.emotion_element,
+            savedLog.event_category,
+            savedLog.short_memo ?? undefined
+          );
+        }
 
         // 이미 정보를 입력한 사용자는 안내 없이 바로 릴스로 들어간다.
         const needsOnboarding = readFlag(ONBOARDING_FLAG_KEY) !== 'done' && isSampleProfile(loaded);
@@ -372,7 +399,8 @@ function AppContent() {
           setProfile(loaded);
           setPartner(savedPartner);
           if (savedOnboarding) setLifeOnboarding(savedOnboarding);
-          setBatteryLevel(savedLog?.energy_level ?? null);
+          setBatteryLevel(storedBattery100 || savedLog?.energy_level === 100 ? 100 : (savedLog?.energy_level ?? null));
+          if (initialCustom) setCustomFortune(initialCustom);
           if (isAgentType(savedPersona)) setPersona(savedPersona);
           setOnboarding(needsOnboarding);
           setProfileVisible(needsOnboarding);
@@ -392,16 +420,34 @@ function AppContent() {
 
   /** 백업 복원 직후 화면에 쓰이는 모든 저장 데이터를 다시 읽는다. */
   const reloadAll = useCallback(async () => {
+    const todayStr = todayKey(new Date());
     const [savedProfile, savedPartner, savedOnboarding, savedLog] = await Promise.all([
       getUserProfile().catch(() => null),
       getLatestPartnerProfile().catch(() => null),
       getUserOnboardingData().catch(() => null),
-      getDailyLog(todayKey(new Date())).catch(() => null),
+      getDailyLog(todayStr).catch(() => null),
     ]);
+    const storedBattery100 = readFlag(`cybersaju.battery100.${todayStr}`) === 'true';
+    const storedCustomFortune = readFlag(`cybersaju.customFortune.${todayStr}`);
     if (savedProfile) setProfile(savedProfile);
     setPartner(savedPartner);
     if (savedOnboarding) setLifeOnboarding(savedOnboarding);
-    setBatteryLevel(savedLog?.energy_level ?? null);
+    setBatteryLevel(storedBattery100 || savedLog?.energy_level === 100 ? 100 : (savedLog?.energy_level ?? null));
+    if (storedCustomFortune) {
+      try {
+        setCustomFortune(JSON.parse(storedCustomFortune));
+      } catch {
+        // ignore
+      }
+    } else if (savedLog?.emotion_element && savedLog?.event_category) {
+      setCustomFortune(
+        generateTodayCustomAdvice(
+          savedLog.emotion_element,
+          savedLog.event_category,
+          savedLog.short_memo ?? undefined
+        )
+      );
+    }
   }, []);
 
   const afterModalClose = (action: () => void) => {
@@ -468,10 +514,11 @@ function AppContent() {
   const handleSaveDailyCard = async (data: DailyCardData) => {
     try {
       const now = new Date();
+      const todayStr = todayKey(now);
       // 정오 기준으로 계산해 자시(23시~) 일진 경계 이슈를 피한다.
       const dayPillar = calculateSaju(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12, 0, true).pillars.day;
       await saveDailyLog(
-        todayKey(now),
+        todayStr,
         data.emotionElement,
         data.eventCategory,
         data.energyLevel,
@@ -480,7 +527,16 @@ function AppContent() {
         undefined,
         data.tarotCard
       );
-      setBatteryLevel(data.energyLevel);
+
+      // 사용자 감정/사건/한줄기록 맞춤 해단 생성 및 즉시 반영
+      const custom = generateTodayCustomAdvice(data.emotionElement, data.eventCategory, data.shortMemo);
+      setCustomFortune(custom);
+      writeFlag(`cybersaju.customFortune.${todayStr}`, JSON.stringify(custom));
+
+      // 3단계 배터리 100% 완충 상태 저장 및 내일의 천기 아코디언 해금
+      setBatteryLevel(100);
+      writeFlag(`cybersaju.battery100.${todayStr}`, 'true');
+
       setDailyVisible(false);
     } catch (e) {
       Alert.alert('저장 오류', `카드 기록을 저장하지 못했습니다. ${describeError(e)}`);

@@ -1,11 +1,13 @@
 import React, { memo, useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ELEMENT_AURA, REEL_PALETTE, REEL_SECTIONS } from '../../types/reels';
 import type { TodayOmenData } from '../../types/reels';
+import type { SajuResult } from '../../engine/types';
 import { playHaptic } from '../reels/haptics';
+import { TomorrowStrategyAccordion } from './TomorrowStrategyAccordion';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -36,6 +38,8 @@ export interface TodayOmenCardProps {
   active: boolean;
   height: number;
   onOpenDaily?: () => void;
+  isBatteryFull?: boolean;
+  saju?: SajuResult | null;
 }
 
 function formatTodayLabel(now: Date): string {
@@ -51,7 +55,14 @@ function splitGanji(raw: string): { hanja: string; reading: string } {
   return { hanja: raw || '丙辰', reading: raw ? '일진 계산 중' : '병진' };
 }
 
-export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height, onOpenDaily }: TodayOmenCardProps) {
+export const TodayOmenCard = memo(function TodayOmenCard({
+  data,
+  active,
+  height,
+  onOpenDaily,
+  isBatteryFull,
+  saju,
+}: TodayOmenCardProps) {
   const insets = useSafeAreaInsets();
   const pulse = useRef(new Animated.Value(0.4)).current;
   const aura = ELEMENT_AURA[data.element] ?? ELEMENT_AURA.Fire;
@@ -91,12 +102,13 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
         style={StyleSheet.absoluteFill}
       />
 
-      <View
-        style={[
-          styles.body,
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollBody,
           {
             paddingTop: insets.top + 14,
-            paddingBottom: Math.max(insets.bottom, 12) + 68,
+            paddingBottom: Math.max(insets.bottom, 16) + 72,
           },
         ]}
       >
@@ -114,7 +126,6 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
 
         {/* 2. 중앙 일주/오행 링 (Fire Ring) & 붉은빛 글로우 방사 효과 */}
         <View style={[styles.sigilWrap, compact && styles.sigilWrapCompact]}>
-          {/* 중앙 원형 뒤쪽 붉은빛 글로우 방사 효과 */}
           <View
             pointerEvents="none"
             style={[
@@ -127,7 +138,6 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
             ]}
           />
 
-          {/* 외곽 펄스 네온 레이어 */}
           <Animated.View
             pointerEvents="none"
             style={[
@@ -139,13 +149,11 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
             ]}
           />
 
-          {/* 중간 보조 네온 레이어 */}
           <View
             pointerEvents="none"
             style={[styles.sigilMidRing, compact && styles.sigilMidRingCompact]}
           />
 
-          {/* 타오르는 화(火)의 붉은 네온 글로우 테두리 (border-2 border-red-500 shadow-[0_0_35px_#ff1e38]) */}
           <View style={[styles.sigil, compact && styles.sigilCompact]}>
             <Text style={styles.hanjaMark}>{aura.hanja || '火'}</Text>
             <Text style={[styles.ganji, compact && styles.ganjiCompact]}>{ganji.hanja}</Text>
@@ -172,15 +180,14 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
           )}
         </View>
 
-        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기" 강렬한 레드 그라데이션 및 네온 입체 버튼) */}
+        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기") */}
         <Pressable
           onPress={handleDaily}
           accessibilityRole="button"
           accessibilityLabel="오늘 기운 새기기"
           style={({ pressed }) => [
-            styles.ctaWrapper,
+            styles.ctaWrapperInline,
             WEB_CTA_SHADOW,
-            { bottom: Math.max(insets.bottom, 10) + 6 },
             pressed && styles.pressed,
           ]}
         >
@@ -193,7 +200,14 @@ export const TodayOmenCard = memo(function TodayOmenCard({ data, active, height,
             <Text style={styles.ctaText}>오늘 기운 새기기</Text>
           </LinearGradient>
         </Pressable>
-      </View>
+
+        {/* 5. 배터리 100% 완충 시 해금되는 [내일의 천기 & 작전 설계] 아코디언 카드 */}
+        <TomorrowStrategyAccordion
+          unlocked={Boolean(isBatteryFull)}
+          saju={saju ?? null}
+          onOpenDaily={onOpenDaily}
+        />
+      </ScrollView>
     </View>
   );
 });
@@ -212,6 +226,23 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
     width: '100%',
+  },
+  scrollBody: {
+    paddingHorizontal: 22,
+    paddingRight: 86,
+    maxWidth: 520,
+    alignSelf: 'center',
+    width: '100%',
+    gap: 12,
+  },
+  ctaWrapperInline: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#ff1f3d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 25,
   },
   chip: {
     alignSelf: 'flex-start',

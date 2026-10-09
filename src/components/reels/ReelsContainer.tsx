@@ -301,7 +301,14 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
     if (item.id === 'omen') {
       return (
         <View style={WEB_SNAP_ITEM}>
-          <TodayOmenCard data={context.omen} active={active} height={pageHeight} onOpenDaily={actions.onOpenDailyCard} />
+          <TodayOmenCard
+            data={context.omen}
+            active={active}
+            height={pageHeight}
+            onOpenDaily={actions.onOpenDailyCard}
+            isBatteryFull={context.batteryLevel === 100}
+            saju={context.saju}
+          />
         </View>
       );
     }
