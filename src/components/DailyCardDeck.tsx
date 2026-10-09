@@ -15,6 +15,8 @@ interface DailyCardDeckProps {
   onSave: (data: DailyCardData) => void | Promise<void>;
   /** 사건 카드를 누를 때마다 호출된다 (이미 선택된 카드를 다시 눌러도 호출). */
   onEventCategorySelect?: (category: EventCategory) => void;
+  /** 사용자 원국의 결핍 오행 (예: Metal / 金) */
+  lackingElement?: string | null;
 }
 
 // ───────────────────────── Web Audio 신디사이저 (외부 음원 파일 0개) ─────────────────────────
@@ -239,14 +241,114 @@ const EMOTION_ACTION: Record<EmotionElement, Record<EventId, string>> = {
   },
 };
 
+const DYNAMIC_DIAGNOSIS: Record<EmotionElement, Record<EventId, string>> = {
+  금: {
+    health: '오늘 몸을 갈아 넣느라 쇠(金) 기운의 칼날로 기운을 너무 베었습니다.',
+    money: '오늘 돈 계산과 손익을 따지느라 날카로운 쇠(金) 기운으로 속을 너무 깎아 먹었습니다.',
+    work: '오늘 일터에서 윗사람과 부딪치며 서슬 퍼런 쇠(金) 기운의 칼날을 너무 세웠습니다.',
+    relation: '오늘 사람 사이에서 날 선 한마디와 마찰(金)로 태산의 기운에 생채기가 났습니다.',
+    choice: '오늘 이것저것 칼같이 베어내느라 쇠(金) 기운으로 머리가 지칠 정도로 날을 세웠습니다.',
+  },
+  목: {
+    health: '오늘 무리하게 몰아치느라 조급한 목(木) 기운으로 온몸의 신경이 곤두섰습니다.',
+    money: '오늘 조급한 목(木) 기운으로 재물에 혼란이 일었습니다.',
+    work: '오늘 일터에서 치밀어 오르는 목(木) 기운의 분노를 삼키느라 가슴이 답답했습니다.',
+    relation: '오늘 관계에서 조급하게 앞서나가는 목(木) 기운 탓에 감정의 골이 깊어졌습니다.',
+    choice: '오늘 섣부른 결정을 내리려 조급한 목(木) 기운으로 마음이 요동쳤습니다.',
+  },
+  화: {
+    health: '오늘 쉼 없이 달리느라 치솟는 화(火) 기운의 열기에 심혈관과 머리가 바짝 달아올랐습니다.',
+    money: '오늘 욱하는 충동과 화(火) 기운의 열기로 지갑에 붉은불이 켜졌습니다.',
+    work: '오늘 업무 속도전에 치여 치솟는 화(火) 기운으로 머리에 과부하가 걸렸습니다.',
+    relation: '오늘 감정의 온도가 끓어넘쳐 화(火) 기운으로 관계에 파열음이 일었습니다.',
+    choice: '오늘 흥분한 상태에서 결정을 내리려 화(火) 기운의 불꽃이 이성을 가렸습니다.',
+  },
+  토: {
+    health: '오늘 움직이지 못하고 버티느라 굳어버린 흙(土) 기운으로 온몸이 뻐근하게 굳었습니다.',
+    money: '오늘 꽉 막힌 돈줄과 지출 정체로 흙(土) 기운의 무게에 짓눌렸습니다.',
+    work: '오늘 답답한 업무 진척과 고구마 같은 상황에 흙(土) 기운으로 속이 콱 막혔습니다.',
+    relation: '오늘 말도 못 꺼내고 혼자 속으로 삭이느라 흙(土) 기운에 가슴이 굳어졌습니다.',
+    choice: '오늘 어느 쪽도 고르지 못해 우유부단한 흙(土) 기운으로 제자리를 맴돌았습니다.',
+  },
+  수: {
+    health: '오늘 차가운 기운과 피로에 젖어 물(水) 기운의 냉기로 면역과 기력이 가라앉았습니다.',
+    money: '오늘 앞날의 돈 걱정과 불안에 물(水) 기운의 파도가 마음을 집어삼켰습니다.',
+    work: '오늘 직장에서의 미래 불안으로 물(水) 기운의 차가운 안개 속에 갇혔습니다.',
+    relation: '오늘 상대의 차가운 반응에 위축되어 물(水) 기운으로 마음이 꽁꽁 얼어붙었습니다.',
+    choice: '오늘 흔들리는 불안감에 휩쓸려 물(水) 기운으로 갈피를 잡지 못했습니다.',
+  },
+};
+
+const LACKING_ACTION: Record<string, string> = {
+  Metal: '당신 사주에 원래 없는 금(金) 기운을 보충하여 상처 입은 몸을 회복하고 있습니다.',
+  Wood: '당신 사주에 결핍된 목(木) 기운의 생명력을 불어넣어 막힌 숨통을 틔우고 있습니다.',
+  Water: '당신 사주에 메마른 수(水) 기운의 유연함과 지혜를 채워 과열된 열기를 식히고 있습니다.',
+  Fire: '당신 사주에 부족한 화(火) 기운의 따스한 온기를 지펴 차가워진 기운을 북돋우고 있습니다.',
+  Earth: '흔들리는 마음을 흙(土)의 방파제로 굳건히 다지고 있습니다.',
+  금: '당신 사주에 원래 없는 금(金) 기운을 보충하여 상처 입은 몸을 회복하고 있습니다.',
+  목: '당신 사주에 결핍된 목(木) 기운의 생명력을 불어넣어 막힌 숨통을 틔우고 있습니다.',
+  수: '당신 사주에 메마른 수(水) 기운의 유연함과 지혜를 채워 과열된 열기를 식히고 있습니다.',
+  화: '당신 사주에 부족한 화(火) 기운의 따스한 온기를 지펴 차가워진 기운을 북돋우고 있습니다.',
+  토: '흔들리는 마음을 흙(土)의 방파제로 굳건히 다지고 있습니다.',
+};
+
+const DEFAULT_ACTION: Record<EmotionElement, Record<EventId, string>> = {
+  금: {
+    health: '당신 사주에 원래 없는 금(金) 기운을 보충하여 상처 입은 몸을 회복하고 있습니다.',
+    money: '날 선 결단(金)을 멈추고 흙(土)의 여유로 마음 곳간을 단단히 채우고 있습니다.',
+    work: '베어낸 칼날을 거두고 따뜻한 밥(土)과 휴식으로 내면의 힘을 기르고 있습니다.',
+    relation: '날카로운 시선을 거두고 온화한 흙(土)의 품으로 평온을 되찾고 있습니다.',
+    choice: '조급한 결정을 멈추고 하룻밤 재워 맑은 직관을 깨우고 있습니다.',
+  },
+  목: {
+    health: '굳은 근육을 풀고 흙(土)의 대지 위에 편안히 누워 기력을 회복하고 있습니다.',
+    money: '흔들리는 마음을 흙(土)의 방파제로 굳건히 다지고 있습니다.',
+    work: '치솟는 분노를 다스리고 태산(戊土)의 묵직함으로 중심을 잡고 있습니다.',
+    relation: '조급함을 내려놓고 여유로운 호흡으로 마음의 거리를 조율하고 있습니다.',
+    choice: '한 걸음 물러서서 태산(戊土)의 시야로 전체 판세를 내려다보고 있습니다.',
+  },
+  화: {
+    health: '찬물 한 잔으로 타오르는 열을 식히고 수(水) 기운으로 온몸을 정화하고 있습니다.',
+    money: '달아오른 충동을 물(水) 기운의 차분함으로 가라앉히고 있습니다.',
+    work: '과열된 머리를 식히고 차분한 수(水)의 지혜로 내일을 설계하고 있습니다.',
+    relation: '뜨거워진 감정을 식히고 잔잔한 호수 같은 평온을 채우고 있습니다.',
+    choice: '열기가 가라앉은 새벽의 맑은 이성으로 최선의 길을 비추고 있습니다.',
+  },
+  토: {
+    health: '가벼운 스트레칭과 목(木) 기운의 생기로 굳어있던 혈자리를 풀고 있습니다.',
+    money: '막힌 돈길에 목(木) 기운의 물꼬를 터서 새로운 흐름을 만들고 있습니다.',
+    work: '굳어있던 태산에 목(木)의 싹을 틔워 시원하게 돌파구를 열고 있습니다.',
+    relation: '먼저 건네는 따뜻한 한마디로 굳어있던 관계의 얼음을 녹이고 있습니다.',
+    choice: '가장 작은 한 걸음부터 내딛어 굳어있던 운명의 수레바퀴를 굴리고 있습니다.',
+  },
+  수: {
+    health: '배를 따뜻하게 데우고 화(火)와 토(土)의 온기로 냉기를 몰아내고 있습니다.',
+    money: '밀려드는 불안의 파도에 흙(土)의 튼튼한 제방을 쌓아 안정을 찾고 있습니다.',
+    work: '차가운 안개를 걷어내고 태산(戊土)의 굳건한 신념으로 길을 밝히고 있습니다.',
+    relation: '따뜻한 차 한 잔으로 얼어붙은 마음을 녹이고 온기를 되찾고 있습니다.',
+    choice: '불안을 종이에 적어 둑(土)을 쌓고 맑은 물길만을 흘려보내고 있습니다.',
+  },
+};
+
 /**
- * 네트워크 없이 즉시 계산되는 2줄 행동 처방. 일간 戊土(태산)와 선택한 감정 오행의 관계에,
- * 사건 영역을 교차해 5 × 5 = 25가지 조합이 모두 다른 문장을 낸다.
+ * 1단계 감정 + 2단계 사건 + 원국 결핍 오행 삼위일체 결합 맞춤 처방.
  */
-export function getOfflinePrescription(emotion: EmotionElement, event: EventId): OfflinePrescription {
+export function getOfflinePrescription(
+  emotion: EmotionElement,
+  event: EventId,
+  lacking?: string | null
+): OfflinePrescription {
+  const diagnosis =
+    DYNAMIC_DIAGNOSIS[emotion]?.[event] ?? EMOTION_DIAGNOSIS[emotion](EVENT_SCENE[event]);
+  let action = '';
+  if (lacking && LACKING_ACTION[lacking]) {
+    action = LACKING_ACTION[lacking];
+  } else {
+    action = DEFAULT_ACTION[emotion]?.[event] ?? EMOTION_ACTION[emotion][event];
+  }
   return {
-    diagnosis: EMOTION_DIAGNOSIS[emotion](EVENT_SCENE[event]),
-    action: EMOTION_ACTION[emotion][event],
+    diagnosis,
+    action,
   };
 }
 
@@ -269,7 +371,11 @@ const COLORS = {
 const CHARGE_MS = 500;
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCategorySelect }) => {
+export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
+  onSave,
+  onEventCategorySelect,
+  lackingElement,
+}) => {
   const [emotion, setEmotion] = useState<EmotionElement | null>(null);
   const [eventId, setEventId] = useState<EventId | null>(null);
   const [energy, setEnergy] = useState<EnergyLevel | null>(null);
@@ -377,7 +483,10 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({ onSave, onEventCat
     }
   }, [saving, emotion, eventId, energy, shortMemo, onSave, resetAll]);
 
-  const prescription = charged && emotion !== null && eventId !== null ? getOfflinePrescription(emotion, eventId) : null;
+  const prescription =
+    charged && emotion !== null && eventId !== null
+      ? getOfflinePrescription(emotion, eventId, lackingElement)
+      : null;
 
   const fillWidth = fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const fillColor = fill.interpolate({ inputRange: [0, 1], outputRange: [COLORS.cyan, COLORS.gold] });

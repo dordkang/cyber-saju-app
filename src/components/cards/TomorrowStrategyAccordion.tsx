@@ -1,5 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
@@ -50,6 +51,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   const [expanded, setExpanded] = useState(false);
   const [category, setCategory] = useState<CoreCategory>('wealth');
   const [planText, setPlanText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(0);
+  const [hasCalculated, setHasCalculated] = useState(false);
 
   // 기준일의 익일(내일) 오행 및 신살
   const tomorrowDate = useMemo(() => {
@@ -83,6 +87,23 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   const handleSelectCategory = (cat: CoreCategory) => {
     void playHaptic('tap');
     setCategory(cat);
+  };
+
+  const handleCalculate = () => {
+    if (isLoading) return;
+    void playHaptic('tap');
+    setIsLoading(true);
+    setLoadingPhase(0);
+
+    setTimeout(() => {
+      setLoadingPhase(1);
+    }, 900);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      setHasCalculated(true);
+      void playHaptic('snap');
+    }, 1800);
   };
 
   if (!unlocked) {
@@ -213,13 +234,54 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
             />
           </View>
 
-          {/* 무당 지문 톤 맞춤 작전 해단 카드 */}
-          <View style={styles.strategyBox}>
-            <View style={styles.strategyHeader}>
-              <Text style={styles.strategyKicker}>{strategy.headline}</Text>
+          {/* ⚡ 옥동자 맞춤 작전 해단받기 버튼 */}
+          <Pressable
+            onPress={handleCalculate}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="옥동자 맞춤 작전 해단받기"
+            style={({ pressed }) => [
+              styles.calcActionBtn,
+              isLoading && styles.calcActionBtnBusy,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.calcActionBtnText}>
+              {isLoading
+                ? '신명의 천기를 맞물리는 중...'
+                : hasCalculated
+                ? '↺ 다른 고민으로 다시 점지받기'
+                : '⚡ 옥동자 맞춤 작전 해단받기 ↗'}
+            </Text>
+          </Pressable>
+
+          {/* 신명 연산 로딩 상태 */}
+          {isLoading && (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="small" color="#ff2a4b" />
+              <Text style={styles.loadingPulseText}>
+                {loadingPhase === 0
+                  ? `🔮 옥동자가 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신 기운을 계산하는 중...`
+                  : '⚡ 신명의 천기를 맞물리는 중... 양인살과 오행 조화 분석 완료'}
+              </Text>
             </View>
-            <Text style={styles.strategyBody}>{strategy.strategyText}</Text>
-          </View>
+          )}
+
+          {/* 연산 완료 후 무당 지문 톤 맞춤 작전 해단 카드 */}
+          {hasCalculated && !isLoading && (
+            <View style={styles.strategyBox}>
+              <View style={styles.strategyHeader}>
+                <Text style={styles.strategyKicker}>{strategy.headline}</Text>
+              </View>
+              <Text style={styles.strategyBody}>{strategy.strategyText}</Text>
+            </View>
+          )}
+
+          {!hasCalculated && !isLoading && (
+            <Text style={styles.preCalcHint}>
+              분야와 고민을 확인하신 후 위 [작전 해단받기]를 누르시면 옥동자의 신명 연산이 시작됩니다.
+            </Text>
+          )}
         </View>
       )}
     </View>
@@ -522,6 +584,60 @@ const styles = StyleSheet.create({
     ...KEEP_ALL,
   },
 
+  calcActionBtn: {
+    backgroundColor: '#ff1f3d',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 18px rgba(255, 31, 61, 0.45)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  calcActionBtnBusy: {
+    backgroundColor: 'rgba(180, 20, 40, 0.65)',
+  },
+  calcActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  loadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(28, 4, 8, 0.95)',
+    borderWidth: 1.5,
+    borderColor: '#ff2a4b',
+    padding: 14,
+    marginBottom: 14,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 20px rgba(255, 42, 75, 0.35)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  loadingPulseText: {
+    color: '#ff758f',
+    fontSize: 12,
+    fontWeight: '800',
+    flex: 1,
+    lineHeight: 18,
+    ...KEEP_ALL,
+  },
+  preCalcHint: {
+    color: '#a8868e',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 6,
+    ...KEEP_ALL,
+  },
   pressed: {
     opacity: 0.8,
   },

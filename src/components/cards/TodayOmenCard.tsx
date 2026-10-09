@@ -1,5 +1,16 @@
 import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  Animated,
+  Easing,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,9 +88,34 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   const pulse = useRef(new Animated.Value(0.4)).current;
   const compact = height < 700;
 
+  // 조언 전문 상세 모달 상태
+  const [fortuneModalOpen, setFortuneModalOpen] = useState(false);
+
   // 기준 일자 선택 상태
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const dateInputRef = useRef<any>(null);
+
+  // 오늘 날짜 키 (YYYY-MM-DD)
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${mm}-${dd}`;
+  }, []);
+
+  // 1일 1회 정산 제한 락 상태
+  const [isSettledToday, setIsSettledToday] = useState(false);
+
+  useEffect(() => {
+    try {
+      const settled = (globalThis as any)?.localStorage?.getItem(`cybersaju.daily_settled.${todayStr}`);
+      if (settled === 'true' || isBatteryFull) {
+        setIsSettledToday(true);
+      }
+    } catch {
+      if (isBatteryFull) setIsSettledToday(true);
+    }
+  }, [todayStr, isBatteryFull]);
 
   // 날짜 변경에 따른 실시간 일진/오행/십신 재계산
   const dynamicOmen = useMemo(() => {
@@ -161,8 +197,23 @@ export const TodayOmenCard = memo(function TodayOmenCard({
 
   const handleDaily = () => {
     if (!active) return;
+    if (isSettledToday) return;
+
     void playHaptic('tap');
-    onOpenDaily?.();
+    Alert.alert(
+      '⚠️ 신중 정산 안내',
+      '오늘의 기운은 하루에 단 한 번만 새길 수 있습니다. 신중하게 정산하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '신중히 새기기',
+          onPress: () => {
+            void playHaptic('tap');
+            onOpenDaily?.();
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -286,46 +337,66 @@ export const TodayOmenCard = memo(function TodayOmenCard({
         </View>
 
         {/* 3. 하단 "오늘의 열쇠" 카드 (딥 와인 글래스모피즘, 은은한 크림슨 테두리) */}
-        <View style={[styles.glass, WINE_GLASS]}>
-          <Text style={styles.keywordLabel}>
-            {dynamicOmen.god ? `${dynamicOmen.god}의 열쇠` : '오늘의 열쇠'}
-          </Text>
+        <Pressable
+          onPress={() => {
+            void playHaptic('tap');
+            setFortuneModalOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="천기 해단 전문 보기"
+          style={({ pressed }) => [styles.glass, WINE_GLASS, pressed && styles.glassPressed]}
+        >
+          <View style={styles.glassHeaderRow}>
+            <Text style={styles.keywordLabel}>
+              {dynamicOmen.god ? `${dynamicOmen.god}의 열쇠` : '오늘의 열쇠'}
+            </Text>
+            <View style={styles.readMoreBadge}>
+              <Text style={styles.readMoreText}>천기 전문 보기 ↗</Text>
+            </View>
+          </View>
           <Text style={styles.keyword}>
             {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
           </Text>
-          <Text style={styles.fortune} numberOfLines={compact ? 2 : 4}>
+          <Text style={styles.fortune} numberOfLines={2}>
             {data.fortuneText}
           </Text>
           {!compact && (
-            <>
-              <View style={styles.itemRow}>
-                <Text style={styles.itemLabel}>곁에 둘 물건</Text>
-                <Text style={styles.itemValue}>{data.luckyItem}</Text>
-              </View>
-              <Text style={styles.itemReason}>{data.luckyReason}</Text>
-            </>
+            <View style={styles.itemRow}>
+              <Text style={styles.itemLabel}>곁에 둘 물건</Text>
+              <Text style={styles.itemValue}>{data.luckyItem}</Text>
+            </View>
           )}
-        </View>
+        </Pressable>
 
-        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기") */}
+        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기" / 1일 1회 잠금) */}
         <Pressable
           onPress={handleDaily}
+          disabled={isSettledToday}
           accessibilityRole="button"
-          accessibilityLabel="오늘 기운 새기기"
+          accessibilityLabel={isSettledToday ? '오늘 기운 새김 완료' : '오늘 기운 새기기'}
           style={({ pressed }) => [
             styles.ctaWrapperInline,
-            WEB_CTA_SHADOW,
-            pressed && styles.pressed,
+            !isSettledToday && WEB_CTA_SHADOW,
+            isSettledToday && styles.ctaDisabled,
+            pressed && !isSettledToday && styles.pressed,
           ]}
         >
-          <LinearGradient
-            colors={['#ff1f3d', '#e50914', '#b3001b']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.ctaGradient}
-          >
-            <Text style={styles.ctaText}>오늘 기운 새기기</Text>
-          </LinearGradient>
+          {isSettledToday ? (
+            <View style={styles.ctaDisabledBox}>
+              <Text style={styles.ctaDisabledText}>
+                ✨ 오늘의 기운이 이미 마음에 새겨졌습니다 (내일 다시 열림)
+              </Text>
+            </View>
+          ) : (
+            <LinearGradient
+              colors={['#ff1f3d', '#e50914', '#b3001b']}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.ctaGradient}
+            >
+              <Text style={styles.ctaText}>오늘 기운 새기기</Text>
+            </LinearGradient>
+          )}
         </Pressable>
 
         {/* 5. 배터리 100% 완충 시 해금되는 [내일의 천기 & 작전 설계] 아코디언 카드 */}
@@ -339,6 +410,88 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           onOpenPartner={onOpenPartner}
         />
       </ScrollView>
+
+      {/* 6. 천기 해단 상세 전문 모달 (화면 전체 덮는 딥 버건디 톤) */}
+      <Modal
+        visible={fortuneModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFortuneModalOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setFortuneModalOpen(false)}
+            accessibilityLabel="배경 닫기"
+          />
+          <View style={styles.modalCard}>
+            <LinearGradient
+              colors={['#24050b', '#160307', '#090103']}
+              locations={[0, 0.5, 1]}
+              style={styles.modalGradient}
+            >
+              {/* 모달 상단 헤더 */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalBadge}>
+                  <Text style={styles.modalBadgeText}>🔮 옥동자 천기(天氣) 해단 전문</Text>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    void playHaptic('tap');
+                    setFortuneModalOpen(false);
+                  }}
+                  hitSlop={12}
+                  style={styles.modalCloseBtn}
+                  accessibilityLabel="닫기"
+                >
+                  <Text style={styles.modalCloseText}>✕</Text>
+                </Pressable>
+              </View>
+
+              <Text style={styles.modalKeyword}>
+                {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
+              </Text>
+              <Text style={styles.modalDateSub}>
+                {formatTodayLabel(selectedDate)} · {dynamicOmen.dayPillarText}
+              </Text>
+
+              {/* 전문 스크롤 영역 */}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.modalScroll}
+                contentContainerStyle={styles.modalScrollContent}
+              >
+                <View style={styles.modalQuoteBox}>
+                  <Text style={styles.modalFortuneText}>{data.fortuneText}</Text>
+                </View>
+
+                {Boolean(data.luckyItem) && (
+                  <View style={styles.modalItemSection}>
+                    <View style={styles.modalItemRow}>
+                      <Text style={styles.modalItemLabel}>곁에 둘 비책 물건</Text>
+                      <Text style={styles.modalItemValue}>{data.luckyItem}</Text>
+                    </View>
+                    {Boolean(data.luckyReason) && (
+                      <Text style={styles.modalItemReason}>{data.luckyReason}</Text>
+                    )}
+                  </View>
+                )}
+              </ScrollView>
+
+              {/* 하단 확인 버튼 */}
+              <Pressable
+                onPress={() => {
+                  void playHaptic('tap');
+                  setFortuneModalOpen(false);
+                }}
+                style={({ pressed }) => [styles.modalConfirmBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.modalConfirmText}>마음에 깊이 새기기 (닫기)</Text>
+              </Pressable>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 });
@@ -475,10 +628,12 @@ const styles = StyleSheet.create({
   sigilWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 220,
+    minHeight: 290,
+    paddingVertical: 18,
     position: 'relative',
+    overflow: 'visible',
   },
-  sigilWrapCompact: { minHeight: 160 },
+  sigilWrapCompact: { minHeight: 230, paddingVertical: 12, overflow: 'visible' },
   radialBackglow: {
     position: 'absolute',
     width: 280,
@@ -689,6 +844,193 @@ const styles = StyleSheet.create({
           textShadow: '0 1px 3px rgba(0, 0, 0, 0.45)',
         } as unknown as TextStyle)
       : null),
+  },
+  glassHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  readMoreBadge: {
+    backgroundColor: 'rgba(255, 30, 56, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.45)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  readMoreText: {
+    color: '#ff4b60',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  glassPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+
+  ctaDisabled: {
+    opacity: 0.85,
+  },
+  ctaDisabledBox: {
+    width: '100%',
+    paddingVertical: 14,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(28, 6, 12, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(127, 29, 29, 0.5)',
+    paddingHorizontal: 16,
+  },
+  ctaDisabledText: {
+    color: '#c9a4aa',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+    ...KEEP_ALL,
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    ...(IS_WEB
+      ? ({
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '85%',
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 30, 60, 0.65)',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 32px rgba(255, 20, 50, 0.35)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  modalGradient: {
+    padding: 22,
+    height: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalBadge: {
+    backgroundColor: 'rgba(255, 30, 56, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  modalBadgeText: {
+    color: '#ff4b60',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  modalCloseBtn: {
+    padding: 6,
+  },
+  modalCloseText: {
+    color: '#a8868e',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalKeyword: {
+    color: '#F4F7FB',
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 2,
+    ...KEEP_ALL,
+  },
+  modalDateSub: {
+    color: '#ff758f',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    gap: 16,
+    paddingBottom: 16,
+  },
+  modalQuoteBox: {
+    borderRadius: 14,
+    backgroundColor: 'rgba(15, 2, 4, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(185, 28, 28, 0.5)',
+    padding: 16,
+  },
+  modalFortuneText: {
+    color: '#F4F7FB',
+    fontSize: 15,
+    lineHeight: 25,
+    fontWeight: '700',
+    ...KEEP_ALL,
+  },
+  modalItemSection: {
+    borderRadius: 14,
+    backgroundColor: 'rgba(28, 8, 14, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(127, 29, 29, 0.45)',
+    padding: 14,
+    gap: 6,
+  },
+  modalItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalItemLabel: {
+    color: '#a8868e',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  modalItemValue: {
+    color: '#ff4b60',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  modalItemReason: {
+    color: '#c9a4aa',
+    fontSize: 12,
+    lineHeight: 18,
+    ...KEEP_ALL,
+  },
+  modalConfirmBtn: {
+    marginTop: 14,
+    backgroundColor: '#ff1f3d',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 20px rgba(255, 31, 61, 0.45)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   pressed: {
     opacity: 0.82,

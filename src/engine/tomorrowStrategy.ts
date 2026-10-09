@@ -211,75 +211,51 @@ export function generateCoreStrategy(
   const ganjiText = omen.ganji;
   const shinsalMain = omen.shinsal.primary;
 
-  // 1. 💰 [재물 (Wealth)]: 편재/정재/식상 vs 비겁/군겁쟁재 분석
+  // 1. 💰 [재물 (Wealth)]: 양인살의 겁재/손재수 경계, 충동지출 차단 및 현금 회수 전략
   if (category === 'wealth') {
-    const isMoneyGod = ['편재', '정재', '식신', '상관'].includes(omen.stemGod);
-    const isRobberyGod = ['비견', '겁재'].includes(omen.stemGod);
-
-    if (isMoneyGod) {
-      return {
-        headline: `💰 ${omen.stemGod}의 금맥 개방 · 단가 협상과 대금 수금의 결정적 순간`,
-        strategyText:
-          `(탁자를 탕 내리치며 서슬 퍼런 눈으로) "똑똑히 봐라! 내일 ${ganjiText} 날은 네 일간 ${myDay}에게 ${omen.stemGod}의 금고 문이 활짝 열리는 날이다! ` +
-          `${inputSnippet ? `네가 벼르는 ${inputSnippet} 일에서 ` : ''}말끝을 흐리지 말고 원하는 숫자와 단가를 칠판에 못박아라! ` +
-          `어설프게 양보하면 들어올 복도 샌다. 당당하게 네 몫을 요구하고 정산서에 날짜를 박아라. 내일은 숫자로 승부하는 놈이 천하를 쥔다!"`,
-      };
-    }
-
-    if (isRobberyGod) {
-      return {
-        headline: `🔒 ${omen.stemGod}의 군겁쟁재 경고 · 지갑 빗장 걸고 현금 사수`,
-        strategyText:
-          `(단호하게 칼을 짚으며 호통치듯) "정신 똑바로 차려라! 내일은 하늘에 ${omen.stemGod}이 떠서 승냥이들이 네 밥그릇을 넘보는 형국이다. ` +
-          `${inputSnippet ? `${inputSnippet} 진행할 때 ` : ''}동업이나 보증, 외상 따위는 단칼에 거절해라! ` +
-          `판돈을 크게 벌리지 말고 계좌에 자물쇠를 단단히 채워라. 내일은 지키는 것이 곧 수억을 버는 비결이다!"`,
-      };
+    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    let specificTactic = '충동적인 지출이나 애매한 호의는 단칼에 잘라내라! 들어올 돈은 날짜를 못박아 독촉하고, 단가 협상에서는 네 이익을 1원도 깎아주지 마라.';
+    if (/투자|코인|주식|펀드|부동산|청약/.test(p)) {
+      specificTactic = `네가 고심하는 '${p}' 투자 판은 내일 양인(羊刃)의 조급한 탐욕이 도사리고 있다! 원금을 꽁꽁 묶어두고 신규 진입이나 추격 매수는 절대 금물이다.`;
+    } else if (/회수|빌려|외상|미수|받을|정산|입금/.test(p)) {
+      specificTactic = `내일은 못 받은 돈을 회수하기에 양인의 서슬 퍼런 기세가 제격이다. 미적거리지 말고 내일까지 입금하라고 칼같이 기한을 못박아라!`;
+    } else if (/협상|단가|계약|비용|가격|인상|인하/.test(p)) {
+      specificTactic = `단가 협상 자리에서 1원이라도 먼저 깎아주면 기선제압당한다. 내일은 네 마진을 단두대처럼 지키는 놈이 판돈을 쓸어 담는다!`;
+    } else if (/지출|쇼핑|결제|충동|사고|구매/.test(p)) {
+      specificTactic = `지갑을 여는 순간 손재수가 덮친다. 눈에 밟히는 것이 있어도 결제창을 닫고 하룻밤 재워라!`;
     }
 
     return {
-      headline: `🪙 ${omen.stemGod}의 실리 포석 · 알짜배기 현금 흐름 확보`,
+      headline: `💰 ${omen.stemGod}·${isYangin ? '양인(羊刃) 손재수 차단' : '금맥 개방'} · 단가 협상과 현금 회수`,
       strategyText:
-        `(부채를 촥 펴며 낮게 깔린 목소리로) "내일은 뜬구름 잡는 대박을 좇을 때가 아니다. ` +
-        `${inputSnippet ? `${inputSnippet}에 집중하되 ` : ''}손에 쥐어지는 현금과 확실한 계약만 취해라. ` +
-        `지출을 1원 단위까지 옥죄고 불필요한 결제를 미루면, 내일 굳힌 밑천이 올가을 큰 재물 운의 종잣돈이 된다!"`,
+        `(탁자를 탕 내리치며 서슬 퍼런 눈으로) "똑똑히 봐라! 내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 ${isYangin ? '칼날 같은 양인살(羊刃)이 번뜩이는' : `${omen.stemGod}의`} 날이다! ` +
+        `지갑이 헐거워지면 눈 깜짝할 새에 돈이 털린다. ${inputSnippet ? `네가 생각하는 ${inputSnippet} 일에서도 ` : ''}${specificTactic} ` +
+        `내일은 지키고 긁어모으는 놈이 마지막에 웃는다!"`,
     };
   }
 
-  // 2. 🏢 [비즈니스 (Business)]: 관성(신용/법인/계약)과 인성(문서/도장) 흐름 분석
+  // 2. 🏢 [비즈니스 (Business)]: 비견·양인의 독선 경계, 판세 장악 및 계약서 검토
   if (category === 'business') {
-    const isContractGod = ['정관', '정인', '편인'].includes(omen.stemGod);
-    const isPressureGod = ['편관', '상관'].includes(omen.stemGod);
-
-    if (isContractGod) {
-      return {
-        headline: `🏢 ${omen.stemGod}의 귀인 문서운 · 계약 체결과 도장 날인의 적기`,
-        strategyText:
-          `(부채로 등을 팍 치며 호탕하게) "기회가 왔다! 내일 ${ganjiText} 날은 공문서와 귀인의 도장이 네 손으로 떨어지는 ${omen.stemGod}의 날이다! ` +
-          `${inputSnippet ? `${inputSnippet} 담판에서 ` : ''}명분과 신용을 앞세워 밀어붙여라. ` +
-          `상대의 잔기술에 말려들지 말고 규정과 법도를 당당히 들이밀면 상대가 먼저 펜을 든다. 네 칼날이 명분을 쥐었으니 거침없이 밀고 나가라!"`,
-      };
-    }
-
-    if (isPressureGod) {
-      return {
-        headline: `⚠️ ${omen.stemGod}의 관재구설 주의 · 감정 배제와 서면 근거 사수`,
-        strategyText:
-          `(서슬 퍼런 눈으로 쏘아보며 속삭이듯) "조심해라! 내일은 ${omen.stemGod}의 칼바람이 불어 사소한 말 한마디가 소송과 구설로 튈 수 있다. ` +
-          `${inputSnippet ? `${inputSnippet} 협상할 때 ` : ''}절대 감정 섞인 말이나 구두 약속은 입 밖에도 내지 마라! ` +
-          `오직 메일과 공문, 계약서 조항 하나하나 현미경으로 뜯어봐라. 꼬투리를 잡히지 않는 자만이 최후의 승자가 된다!"`,
-      };
+    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    let businessTactic = '겉으로는 온화하게 상대의 말을 끝까지 들어주되, 손끝으로는 계약서 조항의 숨은 덫을 현미경으로 파헤쳐라.';
+    if (/계약|도장|서명|조항|특약|싸인/.test(p)) {
+      businessTactic = `계약서에 도장을 찍기 전, 숨겨진 불리한 특약이나 위약금 조항을 세 번 정독해라. 서두르는 쪽이 반드시 코를 꿰인다.`;
+    } else if (/미팅|협상|담판|대표|파트너|동업/.test(p)) {
+      businessTactic = `상대방의 달콤한 제안 뒤에 숨은 계산속을 꿰뚫어 봐라. 네 패를 먼저 까지 말고 상대가 안달 나서 조건을 올릴 때까지 침묵해라.`;
+    } else if (/분쟁|소송|싸움|갈등|경쟁/.test(p)) {
+      businessTactic = `감정적으로 맞서지 말고 명문화된 증거와 기록으로 상대를 포위해라. 양인의 칼은 법도와 명분을 쥘 때 백전백승이다!`;
     }
 
     return {
-      headline: `🏛️ ${shinsalMain}의 판세 장악 · 주도권을 틀어쥐는 비즈니스`,
+      headline: `🏢 ${omen.stemGod}·${isYangin ? '양인(羊刃) 판세 장악' : '신용 확보'} · 독선 경계와 계약서 검토`,
       strategyText:
-        `(탁자를 묵직하게 짚으며) "내일은 ${shinsalMain}의 기운이 판을 지배한다. ` +
-        `${inputSnippet ? `${inputSnippet} 자리에서 ` : ''}남들 눈치 보며 끌려다니지 마라. ` +
-        `네가 판의 룰을 정하고 선수를 쳐라. 흔들림 없는 눈빛 하나로 기선을 제압해야 내일 회의실의 패권을 쥔다!"`,
+        `(부채로 등을 팍 치며 호탕하게) "내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
+        `${inputSnippet ? `${inputSnippet} 자리에서 ` : ''}네 고집만 부리다간 거래처와 파열음이 난다. ` +
+        `${businessTactic} 판을 설계한 뒤 도장을 찍으면 천하의 터전이 네 손안에 들어온다!"`,
     };
   }
 
-  // 3. ❤️ [사랑 (Love)]: 도화/홍염/일지합충 + 상대방 사주 연동
+  // 3. ❤️ [사랑 (Love)]: 도화·홍염 상호작용 및 주도권, 상대방 감정 조율
   if (category === 'love') {
     if (!partnerSaju) {
       return {
@@ -305,54 +281,75 @@ export function generateCoreStrategy(
 
     let chemistryNote = '';
     if (isStemCombined || isBranchCombined) {
-      chemistryNote = `너와 ${alias} 사이에는 하늘과 땅의 끈끈한 합(合)이 들어맞아 말 한마디에도 심장이 통하는 날이다.`;
+      chemistryNote = `너와 ${alias} 사이에는 하늘과 땅의 끈끈한 합(合)이 들어맞아 도화의 꽃잎이 활짝 피어난다.`;
     } else if (isBranchClashed) {
-      chemistryNote = `너와 ${alias}의 자리가 沖(충)으로 부딪치니 자존심 싸움이나 말실수 한 번에 판이 깨질 수 있다.`;
+      chemistryNote = `너와 ${alias}의 자리가 沖(충)으로 맞부딪치니 자존심 싸움이나 말실수 한 번에 판이 깨질 수 있다.`;
     } else {
-      chemistryNote = `${alias}의 일간 ${partnerDay}와 네 일간 ${myDay} 사이에 미묘한 기류가 감도는 날이다.`;
+      chemistryNote = `${alias}의 일간 ${partnerDay}와 네 일간 ${myDay} 사이에 미묘한 긴장과 끌림이 교차하는 날이다.`;
+    }
+
+    let loveTactic = isBranchClashed
+      ? '절대 고집부리지 말고 상대의 투정을 한 박자 받아줘라.'
+      : '분위기가 무르익었을 때 뜸 들이지 말고 먼저 손을 쥐어라.';
+
+    if (/싸움|다툼|서운|화해|갈등/.test(p)) {
+      loveTactic = `내일은 자존심 세우는 쪽이 패자다. 상대의 서운함을 먼저 보듬어주고 한 발 양보해야 뒤틀린 실타래가 풀린다.`;
+    } else if (/고백|소개팅|데이트|첫만남/.test(p)) {
+      loveTactic = `시선을 피하지 말고 3초 이상 지그시 응시해라. 네 눈빛에 깃든 도화의 빛이 상대의 심장을 먼저 두드릴 것이다.`;
+    } else if (/연락|카톡|문자|전화/.test(p)) {
+      loveTactic = `답장을 너무 재지 마라. 진솔하고 담백한 한마디가 백 마디 밀당보다 상대의 마음을 녹인다.`;
     }
 
     return {
       headline: `💘 ${alias}과의 천기 인연 대조 · ${shinsalMain} 맞춤 공략`,
       strategyText:
         `(눈을 번뜩이며 귓가에 낮게 속삭이듯) "똑똑히 들어라! ${chemistryNote} ` +
-        `내일 ${ganjiText} 날은 ${omen.stemGod}과 ${shinsalMain}이 솟구치는 때다. ` +
-        `${inputSnippet ? `${inputSnippet}에서 ` : ''}어설프게 폼 잡거나 잰체하지 말고 시선을 깊게 맞춰라. ` +
-        `${isBranchClashed ? '절대 고집부리지 말고 상대방 말에 고개를 끄덕여라.' : '분위기가 무르익었을 때 뜸 들이지 말고 먼저 손을 쥐어라.'} ` +
-        `내일 주도권을 잡는 쪽이 상대의 영혼을 통째로 낚아챈다!"`,
+        `내일 ${ganjiText} 날은 도화와 홍염의 붉은 불길이 요동친다. ` +
+        `${inputSnippet ? `${inputSnippet}에서 ` : ''}어설프게 잰체하지 말고 시선을 깊게 맞춰라. ` +
+        `${loveTactic} 감정을 섬세하게 조율하며 주도권을 쥐는 쪽이 상대의 심장을 통째로 사로잡는다!"`,
       needsPartnerNotice: false,
     };
   }
 
-  // 4. 💼 [직업 (Career)]: 관살과 식상, 상사/조직과의 관계
+  // 4. 💼 [직업 (Career)]: 비견·양인의 독선 경계, 조직 내 입지와 평판 극대화
   if (category === 'career') {
+    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    let careerTactic = '윗사람이나 동료들의 불필요한 참견에 발끈하지 마라. 독선은 경계하되 네 전문성만큼은 양보 없이 밀어붙여라.';
+    if (/이직|퇴사|면접|스카우트/.test(p)) {
+      careerTactic = `성급하게 칼을 뽑지 말고 조건을 냉정하게 따져라. 면접 자리에서는 양인의 당당함으로 판을 장악하되 오만함은 감춰라.`;
+    } else if (/보고|발표|프레젠테이션|pt/.test(p)) {
+      careerTactic = `수식어는 다 쳐내고 숫자가 담긴 핵심 결론부터 던져라. 논리가 서슬 퍼럴 때 청중의 기립박수가 터진다.`;
+    } else if (/상사|팀장|동료|부하|정치/.test(p)) {
+      careerTactic = `사내 정치의 구설수에 휘말리지 마라. 오직 문서와 결과물로만 발언하고 묵묵히 네 진지를 지켜라.`;
+    }
+
     return {
-      headline: `💼 ${omen.stemGod}의 직무 결전 · 업무 집중과 평판 극대화`,
+      headline: `💼 ${omen.stemGod}·${isYangin ? '양인(羊刃) 직무 결전' : '신용 증명'} · 업무 집중과 평판 극대화`,
       strategyText:
         `(칼을 쥐어주듯 노려보며) "내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
-        `${inputSnippet ? `${inputSnippet} 업무에서 ` : ''}잡생각을 버리고 오직 결과물로만 증명해라. ` +
-        `윗사람이나 동료들의 불필요한 참견에 발끈하지 마라. 말 대신 압도적인 실력과 문서로 상대를 굴복시켜라. ` +
-        `내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!"`,
+        `${inputSnippet ? `${inputSnippet} 업무에서 ` : ''}잡생각을 버리고 오직 압도적인 결과물로만 증명해라. ` +
+        `${careerTactic} 내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!"`,
     };
   }
 
-  // 5. 🌿 [건강 (Health)]: 오행 과다/결핍 바이오리듬 및 신체 충돌 회피
+  // 5. 🌿 [건강 (Health)]: 화(火) 과다에 따른 심혈관/두통 주의 및 금(金) 보충법
   if (category === 'health') {
-    const el = omen.element;
-    const healthOrgan =
-      el === 'Fire' ? '심장과 혈압, 화병·두통'
-      : el === 'Water' ? '신장과 방광, 극심한 피로'
-      : el === 'Wood' ? '간과 신경계, 근육 뭉침'
-      : el === 'Metal' ? '폐와 기관지, 호흡기 및 뼈마디'
-      : '위장과 소화기, 담적';
+    let healthTactic = '매운 음식과 카페인을 멀리하고, 찬물과 은빛 쇠(金) 기운을 가까이해라.';
+    if (/두통|편두통|혈압|어지럼/.test(p)) {
+      healthTactic = `치솟는 열기로 머리 쪽에 화(火)가 고였으니 관자놀이를 찬물로 식히고 카페인을 단칼에 끊어라.`;
+    } else if (/잠|불면|수면|피로|야근/.test(p)) {
+      healthTactic = `자기 전 스마트폰 화면을 끄고 미지근한 물에 발을 담가라. 뇌의 불길을 식혀야 깊은 잠이 든다.`;
+    } else if (/위장|소화|속쓰림|식사/.test(p)) {
+      healthTactic = `자극적인 음식을 금하고 담백한 밥과 따뜻한 보리차로 위장의 열독을 가라앉혀라.`;
+    }
 
     return {
-      headline: `🌿 ${omen.elementTitle}의 바이오리듬 점검 · ${healthOrgan} 집중 케어`,
+      headline: `🌿 적화(赤火) 과다 경고 · 심혈관·두통 주의 및 금(金) 기운 보충`,
       strategyText:
         `(어깨를 묵직하게 다독이며 엄하게 타이르듯) "몸이 무너지면 천하의 명예와 황금도 물거품이다! ` +
-        `내일 ${ganjiText} 날은 ${omen.elementTitle}이 요동쳐 특히 ${healthOrgan}에 탈이 나기 쉬운 시기다. ` +
-        `${inputSnippet ? `${inputSnippet} 소화하더라도 ` : ''}무리한 야근이나 과음을 피하고 물을 자주 들이켜라. ` +
-        `내일 밤은 온탕에 몸을 담그고 기운을 충전해라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!"`,
+        `내일 ${ganjiText} 날은 한낮의 맹렬한 불(火) 기운이 솟구쳐 심혈관, 혈압, 편두통과 가슴 답답증이 도지기 쉽다. ` +
+        `${inputSnippet ? `${inputSnippet} 소화하더라도 ` : ''}${healthTactic} ` +
+        `내일 밤은 온탕에 몸을 담그고 일찍 불을 꺼라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!"`,
     };
   }
 

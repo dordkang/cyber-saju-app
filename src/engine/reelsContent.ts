@@ -138,7 +138,7 @@ function summarizeAiText(text: string | null | undefined): string {
   return plain.length > MAX_FORTUNE_CHARS ? `${plain.slice(0, MAX_FORTUNE_CHARS - 1).trimEnd()}…` : plain;
 }
 
-function lackingElement(ratio: Partial<Record<FiveElement, number>> | undefined): FiveElement | null {
+export function lackingElement(ratio: Partial<Record<FiveElement, number>> | undefined): FiveElement | null {
   if (!ratio) return null;
   let lowest: FiveElement | null = null;
   let lowestValue = Number.POSITIVE_INFINITY;

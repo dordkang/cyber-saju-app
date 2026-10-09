@@ -18,7 +18,7 @@ import type { PartnerRadarResult } from './src/engine/partnerRadar';
 import { buildPartnerPrescription } from './src/engine/partnerPrescription';
 import type { PartnerPrescription } from './src/engine/partnerPrescription';
 import { analyzeTodayMoney } from './src/engine/moneyEngine';
-import { buildReelsContent } from './src/engine/reelsContent';
+import { buildReelsContent, lackingElement } from './src/engine/reelsContent';
 import { generateTodayCustomAdvice } from './src/engine/tomorrowStrategy';
 import { matchCelebrity } from './src/engine/celebrityEngine';
 import { calculateMbtiSync, calculateSajuMbti, isValidMbti } from './src/engine/mbtiEngine';
@@ -260,6 +260,7 @@ function AppContent() {
   }, [profile]);
 
   const reelsContent = useMemo(() => buildReelsContent(saju), [saju]);
+  const userLacking = useMemo(() => (saju?.elementsRatio ? lackingElement(saju.elementsRatio) : null), [saju]);
   const money = useMemo(() => analyzeTodayMoney(saju), [saju]);
   const celebrityResult = useMemo(() => (saju ? matchCelebrity(saju) : null), [saju]);
 
@@ -542,6 +543,7 @@ function AppContent() {
       // 3단계 배터리 100% 완충 상태 저장 및 내일의 천기 아코디언 해금
       setBatteryLevel(100);
       writeFlag(`cybersaju.battery100.${todayStr}`, 'true');
+      writeFlag(`cybersaju.daily_settled.${todayStr}`, 'true');
 
       setDailyVisible(false);
     } catch (e) {
@@ -792,7 +794,11 @@ function AppContent() {
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
               {saju && <ElementCircuit elementsRatio={saju.elementsRatio} />}
-              <DailyCardDeck onSave={handleSaveDailyCard} onEventCategorySelect={handleEventCategorySelect} />
+              <DailyCardDeck
+                onSave={handleSaveDailyCard}
+                onEventCategorySelect={handleEventCategorySelect}
+                lackingElement={userLacking}
+              />
             </ScrollView>
           </View>
         </View>
