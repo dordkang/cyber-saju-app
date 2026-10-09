@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 import {
   calculateLifeDaeun,
   calculateRemainingMonthsFortune,
@@ -507,8 +508,22 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               {period.stage12}
             </Text>
           </View>
-          <View style={[styles.badge, { borderColor: accent, backgroundColor: `${accent}1A` }]}>
-            <Text style={[styles.badgeText, { color: accent }]}>{badge}</Text>
+          <View
+            style={[
+              styles.badge,
+              { borderColor: accent, backgroundColor: `${accent}1A` },
+              period.isCurrent && styles.badgeCurrent,
+            ]}
+          >
+            <Text
+              style={[
+                styles.badgeText,
+                { color: accent },
+                period.isCurrent && styles.badgeTextCurrent,
+              ]}
+            >
+              {badge}
+            </Text>
           </View>
         </View>
 
@@ -1055,11 +1070,17 @@ const styles = StyleSheet.create({
   daeunCardCurrent: {
     backgroundColor: '#0B1A26',
     borderWidth: 1.5,
+    borderColor: COLOR.cyan,
     shadowColor: COLOR.cyan,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.75,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.9,
+    shadowRadius: 14,
+    elevation: 8,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 20px rgba(0, 240, 255, 0.45), inset 0 0 10px rgba(0, 240, 255, 0.08)',
+        } as unknown as ViewStyle)
+      : null),
   },
   daeunCardFuture: { opacity: 0.7 },
   daeunHeadRow: { flexDirection: 'row', alignItems: 'center' },
@@ -1068,7 +1089,30 @@ const styles = StyleSheet.create({
   daeunAge: { color: COLOR.text, fontSize: 14, fontWeight: '800' },
   daeunYears: { color: COLOR.muted, fontSize: 10, marginTop: 2 },
   badge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999, borderWidth: 1 },
+  badgeCurrent: {
+    borderColor: COLOR.cyan,
+    backgroundColor: 'rgba(0, 240, 255, 0.2)',
+    shadowColor: COLOR.cyan,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.95,
+    shadowRadius: 8,
+    elevation: 4,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 10px rgba(0, 240, 255, 0.55)',
+        } as unknown as ViewStyle)
+      : null),
+  },
   badgeText: { fontSize: 10, fontWeight: '900' },
+  badgeTextCurrent: {
+    color: COLOR.cyan,
+    fontWeight: '900',
+    ...(Platform.OS === 'web'
+      ? ({
+          textShadow: '0 0 8px rgba(0, 240, 255, 0.8)',
+        } as unknown as TextStyle)
+      : null),
+  },
   daeunHeadline: { fontSize: 14, fontWeight: '900', lineHeight: 21, marginTop: 12 },
   daeunSummary: { color: COLOR.text, fontSize: 12, lineHeight: 19, marginTop: 6 },
   factBox: {

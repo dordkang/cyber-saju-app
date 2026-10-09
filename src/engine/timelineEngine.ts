@@ -952,13 +952,15 @@ function daeunInfoAt(chart: Chart, date: YmdParts): DaeunInfo | null {
   const track = loadDaeunTrack(chart);
   if (!track) return null;
 
-  const stampOf = (index: number) =>
-    Date.UTC(track.startYear + 10 * (index - 1), track.startMonth - 1, track.startDay);
-  const stamp = Date.UTC(date.year, date.month - 1, date.day);
-  if (stamp < stampOf(1)) return null;
+  const targetAge = calculateInternationalAge(chart.birthSolar, date);
+  const firstDaeunAge = calculateInternationalAge(chart.birthSolar, {
+    year: track.startYear,
+    month: track.startMonth,
+    day: track.startDay,
+  });
+  if (targetAge < firstDaeunAge) return null;
 
-  let index = 1;
-  while (index < 12 && stamp >= stampOf(index + 1)) index += 1;
+  const index = Math.min(12, Math.max(1, Math.floor((targetAge - firstDaeunAge) / 10) + 1));
 
   const pillarIndex = mod(track.monthIndex + (track.forward ? index : -index), 60);
   const luck: Luck = { stem: stemAt(pillarIndex), branch: branchAt(pillarIndex) };
@@ -1474,10 +1476,12 @@ export function calculateLifeDaeun(
       // 교체일 간격이 정확히 10년이므로 구간 표기는 겹치지 않게 startAge + 9로 둔다.
       const endAge = startAge + 9;
       const periodStartYear = startYmd.year;
+      const periodEndYear = periodStartYear + 9;
 
-      const isPast = refStamp >= nextStamp;
-      const isCurrent = refStamp >= startStamp && refStamp < nextStamp;
-      const isFuture = refStamp < startStamp;
+      // 만 나이(International Age) 기준으로 활성 대운 판별 (currentAge >= startAge && currentAge <= endAge)
+      const isCurrent = currentAge >= startAge && currentAge <= endAge;
+      const isPast = currentAge > endAge;
+      const isFuture = currentAge < startAge;
 
       const stemGod = getTenGod(ctx.dayMaster, luck.stem);
       const branchGod = getBranchTenGod(ctx.dayMaster, luck.branch);
@@ -1498,7 +1502,7 @@ export function calculateLifeDaeun(
         timing: isPast ? 'past' : isCurrent ? 'current' : 'future',
         interactions,
         natalBranchGod: (branch) => getBranchTenGod(ctx.dayMaster, branch),
-        yearsLeft: isCurrent ? Math.max(0, lastDayYmd.year - ref.year) : undefined,
+        yearsLeft: isCurrent ? Math.max(0, periodEndYear - ref.year + 1) : undefined,
         next:
           i < PERIOD_COUNT
             ? { ganjiLabel: nextGanji.label, stemGod: getTenGod(ctx.dayMaster, nextGanji.stem) }
@@ -1511,7 +1515,7 @@ export function calculateLifeDaeun(
         endAge,
         ageLabel: formatAgeRangeLabel(startAge, endAge),
         startYear: periodStartYear,
-        endYear: lastDayYmd.year,
+        endYear: periodEndYear,
         startDate: formatYmd(startYmd.year, startYmd.month, startYmd.day),
         ganji,
         stemGod,
