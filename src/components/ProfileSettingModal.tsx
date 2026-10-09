@@ -17,6 +17,18 @@ import type { CalendarType, Gender } from '../database/db';
 
 export const BIRTH_TIME_UNKNOWN = '모름';
 
+export const UNIVERSAL_LORE_TEMPLATE = `[1. 나의 현재 상황 & 터전]
+- 직업/하는 일: (예: 5년 차 직장인 / 자영업 매장 운영 / 이직 준비 중 / 프리랜서)
+- 현재 환경: (예: 회사를 그만두고 내 일을 시작할지 고민 중 / 매출이 정체되어 돌파구가 필요한 시점)
+
+[2. 가장 답답한 고민 & 풀리지 않는 문제]
+- 돈/진로: (예: 올해 재물운이나 이직운이 언제 열리는지, 무리해서 확장이나 투자를 해도 되는지)
+- 사람/관계: (예: 직장 내 사람 때문에 스트레스가 극심함 / 연인과의 미래나 결혼 문제로 갈등)
+
+[3. 옥동자에게 바라는 점]
+- 뻔한 덕담이나 두루뭉술한 위로는 사절!
+- 내 타고난 사주 원국과 올해 대운의 흐름에 맞춰, 지금 당장 취해야 할 냉혹하고 구체적인 행동 요령을 짚어줄 것.`;
+
 export interface ProfileFormValues {
   birthDate: string;
   /** `HH:mm` 또는 BIRTH_TIME_UNKNOWN */
@@ -143,6 +155,24 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
     setUserLore((initial?.userLore ?? '').slice(0, USER_LORE_MAX_LENGTH));
     setSaving(false);
   }, [visible]);
+
+  const handleLoadTemplate = () => {
+    if (userLore.trim().length > 0 && userLore.trim() !== UNIVERSAL_LORE_TEMPLATE.trim()) {
+      Alert.alert(
+        '템플릿 불러오기',
+        '작성 중인 내용이 옥동자 맞춤 표준 템플릿으로 대체됩니다. 불러오시겠습니까?',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '불러오기',
+            onPress: () => setUserLore(UNIVERSAL_LORE_TEMPLATE),
+          },
+        ]
+      );
+      return;
+    }
+    setUserLore(UNIVERSAL_LORE_TEMPLATE);
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -292,12 +322,22 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
               </View>
             </View>
 
-            <Text style={styles.label}>🔮 나의 현재 현실 상황 & 은밀한 고민</Text>
+            <View style={styles.loreHeaderRow}>
+              <Text style={[styles.label, styles.loreLabel]}>🔮 나의 현재 현실 상황 & 은밀한 고민</Text>
+              <Pressable
+                onPress={handleLoadTemplate}
+                accessibilityRole="button"
+                accessibilityLabel="옥동자 맞춤 템플릿 불러오기"
+                style={({ pressed }) => [styles.templateBtn, pressed && styles.pressed]}
+              >
+                <Text style={styles.templateBtnText}>📋 옥동자 맞춤 템플릿 불러오기</Text>
+              </Pressable>
+            </View>
             <TextInput
               style={[styles.input, styles.loreInput]}
               value={userLore}
               onChangeText={setUserLore}
-              placeholder="예: 새 사업 오픈 준비 중인데 자금 압박이 큼 / 거래처 인간관계로 극심한 스트레스 등"
+              placeholder="직업, 현재 처한 상황, 가장 답답한 돈/사람/진로 고민을 편하게 적어주세요. (상단 템플릿 버튼을 누르면 쉬운 가이드가 제공됩니다)"
               placeholderTextColor="#475569"
               multiline
               maxLength={USER_LORE_MAX_LENGTH}
@@ -440,11 +480,42 @@ const styles = StyleSheet.create({
   },
   chipText: { color: '#8B9BB4', fontSize: 14, fontWeight: '700' },
   chipTextSelected: { color: '#00F0FF' },
+  loreHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 6,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  loreLabel: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  templateBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    backgroundColor: 'rgba(189, 147, 249, 0.14)',
+    borderWidth: 1,
+    borderColor: '#BD93F9',
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  templateBtnText: {
+    color: '#D8B4FE',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
   loreInput: {
-    minHeight: 110,
+    minHeight: 160,
+    maxHeight: 280,
     paddingTop: 10,
     paddingBottom: 10,
     lineHeight: 20,
+    fontSize: 13,
     borderColor: '#BD93F9',
   },
   counter: { color: '#55657E', fontSize: 10, textAlign: 'right', marginTop: 4 },

@@ -1,7 +1,7 @@
-﻿export type Gender = 'male' | 'female';
+export type Gender = 'male' | 'female';
 export type CalendarType = 'solar' | 'lunar';
 
-export const USER_LORE_MAX_LENGTH = 200;
+export const USER_LORE_MAX_LENGTH = 1000;
 
 export interface UserProfile {
   id?: number;
