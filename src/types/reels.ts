@@ -112,9 +112,9 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     id: 'circuit',
     index: 6,
     no: '07',
-    kicker: '오행 회로',
-    title: '목·화·토·금·수\n에너지 밸런스',
-    subtitle: '원국의 과다와 결핍을 네온 서킷으로 보여 줍니다.',
+    kicker: '오행 카운셀링',
+    title: '선천 오행 DNA\n& 결핍 돌파 솔루션',
+    subtitle: '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.',
     accent: 'amber',
   },
   {

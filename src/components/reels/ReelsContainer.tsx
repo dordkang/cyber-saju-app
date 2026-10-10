@@ -17,10 +17,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ElementCircuit } from '../ElementCircuit';
 import { TodayOmenCard } from '../cards/TodayOmenCard';
 import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
+import { TodayCircuitCard } from '../cards/TodayCircuitCard';
 import {
   ELEMENT_AURA,
   REEL_ACCENT_HEX,
@@ -220,8 +220,8 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext): { body: string;
       };
     case 'circuit':
       return {
-        body: '원국 여덟 글자의 오행 비중입니다. 0%는 결핍, 과다는 치우침입니다.',
-        cta: '오늘 기운 새기기',
+        body: '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.',
+        cta: '결핍 보완 실전 비책 보기',
       };
     case 'chamber':
       return {
@@ -337,6 +337,19 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
       );
     }
 
+    if (item.id === 'circuit') {
+      return (
+        <View style={WEB_SNAP_ITEM}>
+          <TodayCircuitCard
+            elementsRatio={context.elementsRatio}
+            active={active}
+            height={pageHeight}
+            saju={context.saju}
+          />
+        </View>
+      );
+    }
+
     const peek = peekCopy(item, context);
     const extra =
       item.id === 'people' ? (
@@ -345,10 +358,6 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
           active={active}
           onChangeTarget={actions.onOpenPartner}
         />
-      ) : item.id === 'circuit' && context.elementsRatio ? (
-        <View style={styles.circuitWrap}>
-          <ElementCircuit elementsRatio={context.elementsRatio} />
-        </View>
       ) : null;
 
     const onPress = () => {
