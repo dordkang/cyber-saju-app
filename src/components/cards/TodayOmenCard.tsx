@@ -154,6 +154,20 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   const aura = ELEMENT_AURA[dynamicOmen.element] ?? ELEMENT_AURA.Fire;
   const ganji = dynamicOmen.ganji;
 
+  const displayFortuneText = useMemo(() => {
+    const raw = data.fortuneText || '';
+    return raw
+      .replace(/\([^)]*탁자[^)]*\)/g, '')
+      .replace(/\([^)]*눈을[^)]*\)/g, '')
+      .replace(/\([^)]*부채[^)]*\)/g, '')
+      .replace(/\([^)]*배터리[^)]*\)/g, '')
+      .replace(/\([^)]*토의 불길[^)]*\)/g, '')
+      .replace(/\([^)]*지문[^)]*\)/g, '')
+      .replace(/^\s*\([^)]+\)\s*/g, '')
+      .replace(/네가\s*오늘\s*['"][^'"]*['"]\s*일로/g, '오늘 마음에 맺힌 일로')
+      .trim();
+  }, [data.fortuneText]);
+
   const handlePrevDay = () => {
     void playHaptic('tap');
     setSelectedDate((prev) => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() - 1));
@@ -358,7 +372,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
             {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
           </Text>
           <Text style={styles.fortune} numberOfLines={2}>
-            {data.fortuneText}
+            {displayFortuneText}
           </Text>
           {!compact && (
             <View style={styles.itemRow}>
@@ -462,7 +476,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                 contentContainerStyle={styles.modalScrollContent}
               >
                 <View style={styles.modalQuoteBox}>
-                  <Text style={styles.modalFortuneText}>{data.fortuneText}</Text>
+                  <Text style={styles.modalFortuneText}>{displayFortuneText}</Text>
                 </View>
 
                 {Boolean(data.luckyItem) && (

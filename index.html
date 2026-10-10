@@ -408,6 +408,29 @@
       const el = document.getElementById('currentDateStr');
       if (el) el.textContent = `${yr}.${mo}.${da}`;
     })();
+
+    // 기존 캐시(localStorage) 즉시 무효화 처리 (2026.10.10 등 구버전 잔존 데이터 강제 삭제)
+    (function invalidateLegacyCache() {
+      try {
+        const targetDates = ['2026-10-10', new Date().toISOString().slice(0, 10)];
+        targetDates.forEach(dateKey => {
+          const k = `cybersaju.customFortune.${dateKey}`;
+          const stored = localStorage.getItem(k);
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (!parsed.version || parsed.version !== 'v3_deep' || (parsed.fortuneText && (parsed.fortuneText.includes('(') || parsed.fortuneText.includes('네가 오늘')))) {
+                localStorage.removeItem(k);
+              }
+            } catch {
+              localStorage.removeItem(k);
+            }
+          }
+        });
+      } catch (err) {
+        // ignore
+      }
+    })();
   </script>
 </body>
 </html>

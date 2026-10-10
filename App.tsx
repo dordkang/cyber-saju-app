@@ -383,19 +383,38 @@ function AppContent() {
 
         const storedBattery100 = readFlag(`cybersaju.battery100.${todayStr}`) === 'true';
         const storedCustomFortune = readFlag(`cybersaju.customFortune.${todayStr}`);
-        let initialCustom: { keyword: string; fortuneText: string } | null = null;
+        let initialCustom: { keyword: string; fortuneText: string; version?: string } | null = null;
         if (storedCustomFortune) {
           try {
-            initialCustom = JSON.parse(storedCustomFortune);
+            const parsed = JSON.parse(storedCustomFortune);
+            // 구버전(추임새 괄호 또는 따옴표 인용 잔존) 캐시 무효화
+            if (
+              parsed &&
+              parsed.version === 'v3_deep' &&
+              !parsed.fortuneText.includes('(') &&
+              !parsed.fortuneText.includes('네가 오늘')
+            ) {
+              initialCustom = parsed;
+            }
           } catch {
             // ignore
           }
-        } else if (savedLog?.emotion_element && savedLog?.event_category) {
-          initialCustom = generateTodayCustomAdvice(
-            savedLog.emotion_element,
-            savedLog.event_category,
-            savedLog.short_memo ?? undefined
-          );
+        }
+        
+        // 캐시가 없거나 무효화된 경우 새로운 3단계 심층 서사로 강제 재계산
+        if (!initialCustom && savedLog?.emotion_element && savedLog?.event_category) {
+          initialCustom = {
+            ...generateTodayCustomAdvice(
+              savedLog.emotion_element,
+              savedLog.event_category,
+              savedLog.short_memo ?? undefined
+            ),
+            version: 'v3_deep',
+          };
+          writeFlag(`cybersaju.customFortune.${todayStr}`, JSON.stringify(initialCustom));
+        } else if (!initialCustom && storedCustomFortune) {
+          // 구버전 오염 캐시 삭제
+          writeFlag(`cybersaju.customFortune.${todayStr}`, '');
         }
 
         // 이미 정보를 입력한 사용자는 안내 없이 바로 릴스로 들어간다.
@@ -440,21 +459,34 @@ function AppContent() {
     setPartner(savedPartner);
     if (savedOnboarding) setLifeOnboarding(savedOnboarding);
     setBatteryLevel(storedBattery100 || savedLog?.energy_level === 100 ? 100 : (savedLog?.energy_level ?? null));
+    let reloadedCustom: { keyword: string; fortuneText: string; version?: string } | null = null;
     if (storedCustomFortune) {
       try {
-        setCustomFortune(JSON.parse(storedCustomFortune));
+        const parsed = JSON.parse(storedCustomFortune);
+        if (
+          parsed &&
+          parsed.version === 'v3_deep' &&
+          !parsed.fortuneText.includes('(') &&
+          !parsed.fortuneText.includes('네가 오늘')
+        ) {
+          reloadedCustom = parsed;
+        }
       } catch {
         // ignore
       }
-    } else if (savedLog?.emotion_element && savedLog?.event_category) {
-      setCustomFortune(
-        generateTodayCustomAdvice(
+    }
+    if (!reloadedCustom && savedLog?.emotion_element && savedLog?.event_category) {
+      reloadedCustom = {
+        ...generateTodayCustomAdvice(
           savedLog.emotion_element,
           savedLog.event_category,
           savedLog.short_memo ?? undefined
-        )
-      );
+        ),
+        version: 'v3_deep',
+      };
+      writeFlag(`cybersaju.customFortune.${todayStr}`, JSON.stringify(reloadedCustom));
     }
+    setCustomFortune(reloadedCustom);
   }, []);
 
   const afterModalClose = (action: () => void) => {
@@ -535,8 +567,11 @@ function AppContent() {
         data.tarotCard
       );
 
-      // 사용자 감정/사건/한줄기록 맞춤 해단 생성 및 즉시 반영
-      const custom = generateTodayCustomAdvice(data.emotionElement, data.eventCategory, data.shortMemo);
+      // 사용자 감정/사건/한줄기록 맞춤 해단 생성 및 즉시 반영 (v3_deep 버전 스탬프)
+      const custom = {
+        ...generateTodayCustomAdvice(data.emotionElement, data.eventCategory, data.shortMemo),
+        version: 'v3_deep',
+      };
       setCustomFortune(custom);
       writeFlag(`cybersaju.customFortune.${todayStr}`, JSON.stringify(custom));
 
