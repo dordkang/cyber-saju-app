@@ -199,45 +199,16 @@ export interface StrategyResult {
 export type ShamanGestureType = 'grief' | 'fury' | 'insight' | 'triumph' | 'warning' | 'affection';
 
 const SHAMAN_GESTURES: Record<ShamanGestureType, string[]> = {
-  grief: [
-    '(쯧쯧 혀를 차며 안쓰러운 듯 거친 손으로 네 손등을 감싸 쥐고)',
-    '(땅이 꺼져라 깊은 한숨을 내쉬며 손을 가만히 어루만진다)',
-    '(깊은 한숨을 푹 내쉬며 손등을 어루만진다)',
-    '(안타까운 눈빛으로 네 굳은 어깨를 가만히 토닥이며)',
-  ],
-  fury: [
-    '(서슬 퍼런 눈으로 허공을 노려보며 이를 악물고)',
-    '(탁자를 묵직하게 짚으며 목소리를 깔고 서늘하게)',
-    '(눈을 번뜩이며 서늘한 목소리로 직격하듯)',
-    '(칼을 쥐어주듯 네 어깨를 묵직하게 움켜쥐며)',
-  ],
-  insight: [
-    '(부채를 촥 펴서 얼굴을 가렸다가 번뜩이는 눈빛을 쏘며)',
-    '(귀에 대고 낮게 속삭이듯)',
-    '(호롱불을 흔들며 귓가에 서늘한 혜안을 찔러 넣듯)',
-    '(지그시 눈을 감고 손가락으로 주역 괘를 튕기며)',
-  ],
-  triumph: [
-    '(방울을 짤랑 흔들며 껄껄 웃음을 터뜨린다)',
-    '(네 등을 팍 내리치며 기운을 불어넣듯)',
-    '(부채로 무릎을 탁 치며 호탕하게 웃어젖힌다)',
-    '(양팔을 벌려 천기의 기운을 한껏 모아 네 정수리에 불어넣듯)',
-  ],
-  warning: [
-    '(서슬 퍼런 눈으로 정면을 응시하며 엄하게 타이르듯)',
-    '(부채를 접어 가슴팍을 툭 치며 경고하듯)',
-    '(향을 피워 올리며 서늘하게 천기를 읽어내리듯)',
-  ],
-  affection: [
-    '(상대의 차가운 손을 덥석 쥐며 가만히 떨리는 숨을 들이쉬고)',
-    '(안쓰러운 눈으로 네 핏기 없는 얼굴을 찬찬히 뜯어보며)',
-    '(거친 손으로 등을 묵직하게 쓸어내리며)',
-  ],
+  grief: [],
+  fury: [],
+  insight: [],
+  triumph: [],
+  warning: [],
+  affection: [],
 };
 
-export function pickGesture(type: ShamanGestureType, seed = 0): string {
-  const list = SHAMAN_GESTURES[type] || SHAMAN_GESTURES.insight;
-  return list[Math.abs(seed) % list.length];
+export function pickGesture(_type?: ShamanGestureType, _seed = 0): string {
+  return '';
 }
 
 /** 5대 본질 코어 카테고리 기반 사주 명리학 맞춤 작전 생성 (따옴표 인용 폐기, 자연스러운 체화 구어체) */
@@ -282,10 +253,10 @@ export function generateCoreStrategy(
     return {
       headline: `💰 ${omen.stemGod}·${isYangin ? '양인(羊刃) 손재수 차단' : '금맥 개방'} · 단가 협상과 현금 회수`,
       strategyText:
-        `${gesture} "똑똑히 봐라! ${situationLead} ` +
+        `똑똑히 봐라! ${situationLead} ` +
         `내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 ${isYangin ? '칼날 같은 양인살(羊刃)이 번뜩이는' : `${omen.stemGod}의`} 날이다. ` +
         `지갑이 헐거워지면 눈 깜짝할 새에 돈이 털린다. ${actionTactic} ` +
-        `내일은 지키고 긁어모으는 놈이 마지막에 웃는다!"`,
+        `내일은 지키고 긁어모으는 놈이 마지막에 웃는다!`,
     };
   }
 
@@ -313,9 +284,9 @@ export function generateCoreStrategy(
     return {
       headline: `🏢 ${omen.stemGod}·${isYangin ? '양인(羊刃) 판세 장악' : '신용 확보'} · 독선 경계와 계약서 검토`,
       strategyText:
-        `${gesture} "내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
+        `내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
         `${situationLead} 네 고집만 부리다간 거래처와 파열음이 난다. ` +
-        `${actionTactic} 판을 장악한 뒤 도장을 찍으면 천하의 터전이 네 손안에 들어온다!"`,
+        `${actionTactic} 판을 장악한 뒤 도장을 찍으면 천하의 터전이 네 손안에 들어온다!`,
     };
   }
 
@@ -325,9 +296,9 @@ export function generateCoreStrategy(
       return {
         headline: `❤️ 상대 명식 미등록 · 단독 도화 분석 및 상대 등록 권고`,
         strategyText:
-          `${pickGesture('affection', 0)} "네 가슴에 연정의 불길이 일렁이나, 아직 상대방의 사주 명식이 내 손에 들어오지 않았다! ` +
+          `네 가슴에 연정의 불길이 일렁이나, 아직 상대방의 사주 명식이 내 손에 들어오지 않았다! ` +
           `내일 ${ganjiText} 날은 ${shinsalMain}의 기운이 맴도니 분위기는 타오르겠으나, 상대의 속마음과 두 사람의 합충을 보지 못하면 헛발질하기 십상이다. ` +
-          `아래 등록창에서 상대방의 생년월일을 먼저 새겨라. 그래야 내일 밤 손을 덥석 잡을지, 한 발 물러설지 천기를 찔러준다!"`,
+          `아래 등록창에서 상대방의 생년월일을 먼저 새겨라. 그래야 내일 밤 손을 덥석 잡을지, 한 발 물러설지 천기를 찔러준다!`,
         needsPartnerNotice: true,
       };
     }
@@ -375,9 +346,9 @@ export function generateCoreStrategy(
     return {
       headline: `💘 ${alias}과의 천기 인연 대조 · ${shinsalMain} 맞춤 공략`,
       strategyText:
-        `${gesture} "똑똑히 들어라! ${chemistryNote} ${situationLead} ` +
+        `똑똑히 들어라! ${chemistryNote} ${situationLead} ` +
         `내일 ${ganjiText} 날은 도화와 홍염의 붉은 불길이 요동친다. 어설프게 잰체하지 말고 시선을 깊게 맞춰라. ` +
-        `${actionTactic} 감정을 섬세하게 조율하며 주도권을 쥐는 쪽이 상대의 심장을 통째로 사로잡는다!"`,
+        `${actionTactic} 감정을 섬세하게 조율하며 주도권을 쥐는 쪽이 상대의 심장을 통째로 사로잡는다!`,
       needsPartnerNotice: false,
     };
   }
@@ -406,28 +377,24 @@ export function generateCoreStrategy(
     return {
       headline: `💼 ${omen.stemGod}·${isYangin ? '양인(羊刃) 직무 결전' : '신용 증명'} · 업무 집중과 평판 극대화`,
       strategyText:
-        `${gesture} "내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
+        `내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
         `${situationLead} 잡생각을 버리고 오직 압도적인 결과물로만 증명해라. ` +
-        `${actionTactic} 내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!"`,
+        `${actionTactic} 내일 흘린 땀방울 하나가 네 승진과 평판의 황금 갑옷이 된다!`,
     };
   }
 
   // 5. 🌿 [건강 (Health)]: 화(火) 과다에 따른 심혈관/두통 주의 및 금(金) 보충법
   if (category === 'health') {
-    let gesture = pickGesture('grief', 1);
     let situationLead = '갈아 넣은 육신이 비명을 지르는데도 쉴 틈 없이 하루를 버텨내느라 벼랑 끝에 서 있구나.';
     let actionTactic = '매운 음식과 카페인을 멀리하고, 찬물과 은빛 쇠(金) 기운을 가까이해라.';
 
     if (/두통|편두통|혈압|어지럼/.test(p)) {
-      gesture = pickGesture('warning', 0);
       situationLead = '머리가 깨질 듯 지끈거리고 가슴이 답답해 숨을 헐떡였겠구나.';
       actionTactic = '치솟는 열기로 머리 쪽에 화(火)가 고였으니 관자놀이를 찬물로 식히고 카페인을 단칼에 끊어라.';
     } else if (/잠|불면|수면|피로|야근/.test(p)) {
-      gesture = pickGesture('grief', 0);
       situationLead = '밤새 뒤척이며 잠 못 이루고 갈아 넣은 육신이 비명을 지르는데도 악으로 버티고 있구나.';
       actionTactic = '자기 전 스마트폰 화면을 끄고 미지근한 물에 발을 담가라. 뇌의 불길을 식혀야 깊은 잠이 든다.';
     } else if (/위장|소화|속쓰림|식사/.test(p)) {
-      gesture = pickGesture('affection', 1);
       situationLead = '속이 쓰리고 위장이 뒤틀려 밥 한술 제대로 넘기지 못할 정도로 기운이 메말랐어.';
       actionTactic = '자극적인 음식을 금하고 담백한 밥과 따뜻한 보리차로 위장의 열독을 가라앉혀라.';
     }
@@ -435,9 +402,9 @@ export function generateCoreStrategy(
     return {
       headline: `🌿 적화(赤火) 과다 경고 · 심혈관·두통 주의 및 금(金) 기운 보충`,
       strategyText:
-        `${gesture} "몸이 무너지면 천하의 명예와 황금도 물거품이다! ${situationLead} ` +
+        `몸이 무너지면 천하의 명예와 황금도 물거품이다! ${situationLead} ` +
         `내일 ${ganjiText} 날은 한낮의 맹렬한 불(火) 기운이 솟구쳐 심혈관, 혈압, 편두통과 가슴 답답증이 도지기 쉽다. ` +
-        `${actionTactic} 내일 밤은 온탕에 몸을 담그고 일찍 불을 꺼라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!"`,
+        `${actionTactic} 내일 밤은 온탕에 몸을 담그고 일찍 불을 꺼라. 몸을 다스려야 다음 주의 칼날을 휘두를 수 있다!`,
     };
   }
 
@@ -445,7 +412,7 @@ export function generateCoreStrategy(
   return {
     headline: `⚡ ${ganjiText} 날의 천기 직설`,
     strategyText:
-      `${pickGesture('triumph', 0)} "내일은 ${ganjiText} 날, ${omen.stemGod}과 ${shinsalMain}의 기운이 요동친다! 네 심지 하나 믿고 거침없이 세상을 베어라!"`,
+      `내일은 ${ganjiText} 날, ${omen.stemGod}과 ${shinsalMain}의 기운이 요동친다! 네 심지 하나 믿고 거침없이 세상을 베어라!`,
   };
 }
 

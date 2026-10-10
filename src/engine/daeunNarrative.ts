@@ -646,9 +646,9 @@ function buildDetail(input: DaeunNarrativeInput, ranked: readonly InteractionNot
   }
 
   if (isTurningPoint(input) && input.next) {
-    line3 += ` (부채로 등을 팍 치며) "피눈물 흘리며 버텨온 세월은 헛된 것이 아니다! 곧 ${input.next.ganjiLabel}(${input.next.stemGod}) 대운이 문을 박차고 들어오는 교운기니, 네 칼날은 완성되었으니 나가서 세상을 베어라!"`;
+    line3 += ` 피눈물 흘리며 버텨온 세월은 헛된 것이 아니다! 곧 ${input.next.ganjiLabel}(${input.next.stemGod}) 대운이 문을 박차고 들어오는 교운기니, 네 칼날은 완성되었으니 나가서 세상을 당당히 베어라!`;
   } else {
-    line3 += ` (탁자를 탕 내리치며) "하늘이 너를 거저 고생시킨 줄 아느냐? 천하를 쥐어주려고 황금 갑옷을 담금질하는 법이다!"`;
+    line3 += ` 하늘이 너를 거저 고생시킨 줄 아느냐? 천하를 쥐어주려고 황금 갑옷을 담금질하는 법이다!`;
   }
 
   return [line1, line2, line3].join('\n');
