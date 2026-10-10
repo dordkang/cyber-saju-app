@@ -109,13 +109,18 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   useEffect(() => {
     try {
       const settled = (globalThis as any)?.localStorage?.getItem(`cybersaju.daily_settled.${todayStr}`);
-      if (settled === 'true' || isBatteryFull) {
+      const battery100 = (globalThis as any)?.localStorage?.getItem(`cybersaju.battery100.${todayStr}`);
+      if (settled === 'true' || battery100 === 'true' || isBatteryFull) {
         setIsSettledToday(true);
+      } else {
+        setIsSettledToday(false);
       }
     } catch {
       if (isBatteryFull) setIsSettledToday(true);
     }
   }, [todayStr, isBatteryFull]);
+
+  const isSettled = isSettledToday || Boolean(isBatteryFull);
 
   // 날짜 변경에 따른 실시간 일진/오행/십신 재계산
   const dynamicOmen = useMemo(() => {
@@ -203,26 +208,6 @@ export const TodayOmenCard = memo(function TodayOmenCard({
     return () => loop.stop();
   }, [active, pulse]);
 
-  const handleDaily = () => {
-    if (!active) return;
-    if (isSettledToday) return;
-
-    void playHaptic('tap');
-    Alert.alert(
-      '⚠️ 신중 정산 안내',
-      '오늘의 기운은 하루에 단 한 번만 새길 수 있습니다. 신중하게 정산하시겠습니까?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '신중히 새기기',
-          onPress: () => {
-            void playHaptic('tap');
-            onOpenDaily?.();
-          },
-        },
-      ]
-    );
-  };
 
   return (
     <View style={[styles.page, { height }]} pointerEvents={active ? 'auto' : 'none'}>
@@ -376,40 +361,54 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           )}
         </Pressable>
 
-        {/* 4. 하단 CTA 버튼 ("오늘 기운 새기기" / 1일 1회 잠금) */}
-        <Pressable
-          onPress={handleDaily}
-          disabled={isSettledToday}
-          accessibilityRole="button"
-          accessibilityLabel={isSettledToday ? '오늘 기운 새김 완료' : '오늘 기운 새기기'}
-          style={({ pressed }) => [
-            styles.ctaWrapperInline,
-            !isSettledToday && WEB_CTA_SHADOW,
-            isSettledToday && styles.ctaDisabled,
-            pressed && !isSettledToday && styles.pressed,
-          ]}
-        >
-          {isSettledToday ? (
-            <View style={styles.ctaDisabledBox}>
-              <Text style={styles.ctaDisabledText}>
-                ✨ 오늘의 기운이 이미 마음에 새겨졌습니다 (내일 다시 열림)
+        {/* 4. 중단 버튼 영역: [하루 3초 오행 정산] / [100% 완료 뱃지 + 다시 정산하기] */}
+        {isSettled ? (
+          <View style={styles.settledContainer}>
+            <View style={styles.settledBadge}>
+              <Text style={styles.settledBadgeText}>
+                ✨ 오늘 충전량 100% (오행 정산 완료)
               </Text>
             </View>
-          ) : (
+            <Pressable
+              onPress={() => {
+                void playHaptic('tap');
+                onOpenDaily?.();
+              }}
+              style={styles.reSettleButton}
+              accessibilityRole="button"
+              accessibilityLabel="오행 다시 정산하기"
+            >
+              <Text style={styles.reSettleButtonText}>[다시 정산하기]</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => {
+              void playHaptic('tap');
+              onOpenDaily?.();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="하루 3초 오행 정산하고 내일 작전 열기"
+            style={({ pressed }) => [
+              styles.ctaWrapperInline,
+              WEB_CTA_SHADOW,
+              pressed && styles.pressed,
+            ]}
+          >
             <LinearGradient
-              colors={['#ff1f3d', '#e50914', '#b3001b']}
+              colors={['#ff1f3d', '#ff5722', '#ff9800']}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.ctaGradient}
             >
-              <Text style={styles.ctaText}>오늘 기운 새기기</Text>
+              <Text style={styles.ctaText}>⚡ 하루 3초 오행 정산하고 내일 작전 열기</Text>
             </LinearGradient>
-          )}
-        </Pressable>
+          </Pressable>
+        )}
 
-        {/* 5. 배터리 100% 완충 시 해금되는 [내일의 천기 & 작전 설계] 아코디언 카드 */}
+        {/* 5. 배터리 100% 완충 / 정산 완료 시 해금되는 [내일의 천기 & 작전 설계] 아코디언 카드 */}
         <TomorrowStrategyAccordion
-          unlocked={Boolean(isBatteryFull)}
+          unlocked={isSettled}
           saju={saju ?? null}
           partner={partner}
           partnerSaju={partnerSaju}
@@ -877,27 +876,42 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
 
-  ctaDisabled: {
-    opacity: 0.85,
+  settledContainer: {
+    marginVertical: 12,
+    alignItems: 'center',
+    gap: 8,
   },
-  ctaDisabledBox: {
+  settledBadge: {
     width: '100%',
     paddingVertical: 14,
-    minHeight: 52,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 184, 0, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 184, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
-    backgroundColor: 'rgba(28, 6, 12, 0.9)',
-    borderWidth: 1,
-    borderColor: 'rgba(127, 29, 29, 0.5)',
-    paddingHorizontal: 16,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 20px rgba(255, 184, 0, 0.35)',
+        } as unknown as ViewStyle)
+      : null),
   },
-  ctaDisabledText: {
-    color: '#c9a4aa',
+  settledBadgeText: {
+    color: '#FFD700',
+    fontSize: 14.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  reSettleButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  reSettleButtonText: {
+    color: '#B8A8A8',
     fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
-    ...KEEP_ALL,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 
   modalBackdrop: {

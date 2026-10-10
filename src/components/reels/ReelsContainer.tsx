@@ -205,14 +205,6 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext): { body: string;
           : '사주와 오늘 일진으로 돈의 흐름을 읽어요.',
         cta: '돈 버는 엔진 심층 분석 보기',
       };
-    case 'health':
-      return {
-        body:
-          context.batteryLevel != null
-            ? `오늘 충전량 ${context.batteryLevel}%. 잔량을 다시 재면 처방이 바뀝니다.`
-            : '오늘은 아직 충전 전이에요. 감정 카드 한 장이면 충분합니다.',
-        cta: '3초 오행 정산',
-      };
     case 'celebrity':
       return {
         body: '일간과 최다 오행이 겹치는 사람을 로컬 명단에서 고릅니다. 서버로 나가지 않아요.',
@@ -356,7 +348,6 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         case 'money':
           Alert.alert('돈의 흐름', peek.body);
           break;
-        case 'health':
         case 'circuit':
           actions.onOpenDailyCard?.();
           break;

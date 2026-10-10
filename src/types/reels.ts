@@ -2,14 +2,13 @@ import type { FiveElement, SajuResult } from '../engine/types';
 import type { PartnerProfile } from '../database/db';
 
 /** 세로 스냅 릴스가 고정으로 다루는 카드 수 */
-export const REEL_SECTION_COUNT = 9;
+export const REEL_SECTION_COUNT = 8;
 
 export type ReelSectionId =
   | 'omen'
   | 'life'
   | 'people'
   | 'money'
-  | 'health'
   | 'celebrity'
   | 'mbti'
   | 'circuit'
@@ -92,18 +91,9 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     accent: 'amber',
   },
   {
-    id: 'health',
+    id: 'celebrity',
     index: 4,
     no: '05',
-    kicker: '건강 · 리셋',
-    title: '하루 3초,\n오행 배터리',
-    subtitle: '감정·사건·잔량만 고르면 처방이 바로 뜹니다.',
-    accent: 'cyan',
-  },
-  {
-    id: 'celebrity',
-    index: 5,
-    no: '06',
     kicker: '영혼의 공명',
     title: '나와 같은 결의\n유명인 매칭',
     subtitle: '일간과 오행이 겹치는 사람을 로컬에서 고릅니다.',
@@ -111,8 +101,8 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
   },
   {
     id: 'mbti',
-    index: 6,
-    no: '07',
+    index: 5,
+    no: '06',
     kicker: '가면과 본성',
     title: '선천 사주 코어\nvs 현실 가면',
     subtitle: '페르소나를 유지하느라 새는 에너지를 수치화해요.',
@@ -120,8 +110,8 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
   },
   {
     id: 'circuit',
-    index: 7,
-    no: '08',
+    index: 6,
+    no: '07',
     kicker: '오행 회로',
     title: '목·화·토·금·수\n에너지 밸런스',
     subtitle: '원국의 과다와 결핍을 네온 서킷으로 보여 줍니다.',
@@ -129,8 +119,8 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
   },
   {
     id: 'chamber',
-    index: 8,
-    no: '09',
+    index: 7,
+    no: '08',
     kicker: '도사의 방',
     title: '말투를 고르고\n설정을 닫아요',
     subtitle: '프로필, 백업, 배경음은 여기서 한 번에 다룹니다.',

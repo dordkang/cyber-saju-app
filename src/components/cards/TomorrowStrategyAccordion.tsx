@@ -48,12 +48,19 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   onOpenDaily,
   onOpenPartner,
 }: TomorrowStrategyAccordionProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(unlocked);
   const [category, setCategory] = useState<CoreCategory>('wealth');
   const [planText, setPlanText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [hasCalculated, setHasCalculated] = useState(false);
+
+  // 정산 완료(unlocked) 시 자동으로 아코디언이 스르륵 펼쳐지도록 연동
+  React.useEffect(() => {
+    if (unlocked) {
+      setExpanded(true);
+    }
+  }, [unlocked]);
 
   // 기준일의 익일(내일) 오행 및 신살
   const tomorrowDate = useMemo(() => {
