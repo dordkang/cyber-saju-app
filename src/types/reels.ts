@@ -170,6 +170,18 @@ export interface ReelsMoneyPeek {
   power: number;
   defense: number;
   status: string;
+  inflowPower: number;
+  inflowLabel: string;
+  outflowRisk: number;
+  outflowLabel: string;
+  modeBadge: string;
+  energyBadge: string;
+  godName: string;
+  godHanja: string;
+  elementName: string;
+  insight: string;
+  actionDo: string;
+  actionDont: string;
 }
 
 export interface ReelsMbtiPeek {

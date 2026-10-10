@@ -340,7 +340,24 @@ function AppContent() {
       life: daeun,
       people: partnerInfo,
       money: money
-        ? { headline: money.headline, power: money.power, defense: money.defense, status: money.status }
+        ? {
+            headline: money.headline,
+            power: money.power,
+            defense: money.defense,
+            status: money.status,
+            inflowPower: money.inflowPower,
+            inflowLabel: money.inflowLabel,
+            outflowRisk: money.outflowRisk,
+            outflowLabel: money.outflowLabel,
+            modeBadge: money.modeBadge,
+            energyBadge: money.energyBadge,
+            godName: money.godName,
+            godHanja: money.godHanja,
+            elementName: money.elementName,
+            insight: money.insight,
+            actionDo: money.actionDo,
+            actionDont: money.actionDont,
+          }
         : null,
       batteryLevel,
       mbti: mbtiInfo,

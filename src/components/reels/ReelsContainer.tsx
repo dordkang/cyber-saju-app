@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElementCircuit } from '../ElementCircuit';
 import { TodayOmenCard } from '../cards/TodayOmenCard';
+import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import {
   ELEMENT_AURA,
   REEL_ACCENT_HEX,
@@ -200,9 +201,9 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext): { body: string;
     case 'money':
       return {
         body: context.money
-          ? `${context.money.headline}\n엔진 ${context.money.power}% · 방어 ${context.money.defense}% · ${context.money.status}`
+          ? `${context.money.headline}\n유입 ${context.money.inflowPower}% (${context.money.inflowLabel}) · 누수 ${context.money.outflowRisk}% (${context.money.outflowLabel})\n[${context.money.modeBadge}]`
           : '사주와 오늘 일진으로 돈의 흐름을 읽어요.',
-        cta: '돈 버는 엔진 보기',
+        cta: '돈 버는 엔진 심층 분석 보기',
       };
     case 'health':
       return {
@@ -311,6 +312,19 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             partner={context.partnerProfile}
             partnerSaju={context.partnerSaju}
             onOpenPartner={actions.onOpenPartner}
+          />
+        </View>
+      );
+    }
+
+    if (item.id === 'money') {
+      return (
+        <View style={WEB_SNAP_ITEM}>
+          <TodayMoneyCard
+            data={context.money}
+            active={active}
+            height={pageHeight}
+            saju={context.saju}
           />
         </View>
       );
