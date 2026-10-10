@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -14,6 +14,12 @@ import { playHaptic } from '../reels/haptics';
 import type { ReelsMbtiPeek } from '../../types/reels';
 import type { SajuResult } from '../../engine/types';
 import { calculateSajuMbti } from '../../engine/mbtiEngine';
+import { getDailyLog } from '../../database/db';
+import type { DailyLog } from '../../database/db';
+import { getTomorrowOmen } from '../../engine/tomorrowStrategy';
+import type { CoreCategory } from '../../engine/tomorrowStrategy';
+import { calculateSaju } from '../../engine/calculator';
+import { formatGanji } from '../../engine/reelsContent';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -31,7 +37,7 @@ const LUXURY_GLASS = (
 const CYAN_NEON_GLOW = (
   IS_WEB
     ? {
-        boxShadow: '0 0 16px rgba(0, 245, 212, 0.4)',
+        boxShadow: '0 0 16px rgba(0, 245, 212, 0.35)',
       }
     : null
 ) as unknown as ViewStyle | null;
@@ -39,7 +45,7 @@ const CYAN_NEON_GLOW = (
 const CRIMSON_NEON_GLOW = (
   IS_WEB
     ? {
-        boxShadow: '0 0 16px rgba(255, 42, 75, 0.4)',
+        boxShadow: '0 0 16px rgba(255, 42, 75, 0.35)',
       }
     : null
 ) as unknown as ViewStyle | null;
@@ -53,6 +59,22 @@ const CTA_NEON_SHADOW = (
     : null
 ) as unknown as ViewStyle | null;
 
+const NIGHT_AUDIT_GLOW = (
+  IS_WEB
+    ? {
+        boxShadow: '0 0 20px rgba(168, 85, 247, 0.25)',
+      }
+    : null
+) as unknown as ViewStyle | null;
+
+const TACTIC_FIRE_GLOW = (
+  IS_WEB
+    ? {
+        boxShadow: '0 0 20px rgba(255, 42, 75, 0.3)',
+      }
+    : null
+) as unknown as ViewStyle | null;
+
 export interface TodayMbtiCardProps {
   data?: ReelsMbtiPeek | null;
   active: boolean;
@@ -60,6 +82,14 @@ export interface TodayMbtiCardProps {
   saju?: SajuResult | null;
   onOpenMbti?: () => void;
 }
+
+const CATEGORY_NAMES: Record<CoreCategory, { label: string; icon: string }> = {
+  wealth: { label: '재물', icon: '💰' },
+  love: { label: '사랑', icon: '❤️' },
+  career: { label: '직업', icon: '💼' },
+  health: { label: '건강', icon: '🌿' },
+  business: { label: '비즈니스', icon: '🏢' },
+};
 
 // 16개 MBTI별 선천 기질(사주 코어) 설명
 const INNATE_DESCRIPTIONS: Record<string, { summary: string; element: string }> = {
@@ -199,14 +229,60 @@ const ACTUAL_DESCRIPTIONS: Record<string, { summary: string; mask: string }> = {
 
 export const TodayMbtiCard = memo(function TodayMbtiCard({
   data,
-  active: _active,
+  active,
   height,
   saju,
   onOpenMbti,
 }: TodayMbtiCardProps) {
   const insets = useSafeAreaInsets();
 
-  // 선천 MBTI 산출 (데이터 우선, 없을 시 사주에서 직접 계산)
+  // 오늘 날짜 키 (YYYY-MM-DD)
+  const todayStr = useMemo(() => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${mm}-${dd}`;
+  }, []);
+
+  // 섹션 01 데이터 상태 (오늘 정산 기록 및 내일 작전 카테고리)
+  const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
+  const [tomorrowCategory, setTomorrowCategory] = useState<CoreCategory>('business');
+
+  const loadSection01Data = useCallback(async () => {
+    try {
+      const log = await getDailyLog(todayStr);
+      setDailyLog(log);
+      const savedCat = (globalThis as any)?.localStorage?.getItem('cybersaju.tomorrow_category');
+      if (savedCat && ['wealth', 'love', 'career', 'health', 'business'].includes(savedCat)) {
+        setTomorrowCategory(savedCat as CoreCategory);
+      }
+    } catch {}
+  }, [todayStr]);
+
+  useEffect(() => {
+    loadSection01Data();
+  }, [loadSection01Data, active]);
+
+  // 오늘 일진 기운 (예: 丁巳(정사))
+  const todayGanjiText = useMemo(() => {
+    try {
+      const now = new Date();
+      const calculated = calculateSaju(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12, 0, true);
+      const pillar = calculated.pillars.day;
+      return formatGanji(pillar.stem, pillar.branch);
+    } catch {
+      return '오늘 일진';
+    }
+  }, []);
+
+  // 내일 일진 및 신살 오행
+  const tomorrowOmen = useMemo(() => {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0);
+    return getTomorrowOmen(saju ?? null, tomorrow);
+  }, [saju]);
+
+  // 선천 MBTI 산출
   const innateMbti = useMemo(() => {
     if (data?.innate) return data.innate;
     if (saju) {
@@ -240,22 +316,38 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         mask: '현실 가면 미설정',
       };
 
-  // 누수율에 따른 동적 진단 처방
-  const prescription = useMemo(() => {
-    if (!actualMbti) {
-      return '현실에서 주로 연기하는 가면을 고르면, 사주 코어와의 간극과 일일 에너지 방전율을 즉시 분석해 드립니다.';
+  // 정산 완료 여부 확인
+  const hasSettled = useMemo(() => {
+    if (dailyLog && dailyLog.event_category) return true;
+    try {
+      const flag = (globalThis as any)?.localStorage?.getItem(`cybersaju.daily_settled.${todayStr}`);
+      const b100 = (globalThis as any)?.localStorage?.getItem(`cybersaju.battery100.${todayStr}`);
+      return flag === 'true' || b100 === 'true';
+    } catch {
+      return false;
     }
-    if (leakage === 0) {
-      return '본성과 가면이 완벽히 일치하여 내면의 갈등 없이 기운이 자연스럽게 흐르는 최적의 조화 상태입니다.';
+  }, [dailyLog, todayStr]);
+
+  // ① 🌙 [오늘 밤 가면 피로도 역학 진단 (Today Audit)] 동적 서사
+  const auditProse = useMemo(() => {
+    const eventName = dailyLog?.event_category || '직장/인간관계';
+    const emotion = dailyLog?.emotion_element ? `${dailyLog.emotion_element} 기운의 ` : '';
+    return `오늘 거센 ${todayGanjiText}의 흐름 속에서 [${eventName}] 문제로 치였음에도, 본성(${innateMbti})의 화끈한 표현을 누르고 ${actualMbti || '가면'}의 인내하는 태도를 쓰느라 마음속 과열이 극에 달했습니다. 속에 담아둔 말을 억지로 삼키느라 하루 에너지의 ${leakage}%가 누수되었으니, 오늘 밤은 철저히 혼자만의 방에서 ${emotion}열기를 식히십시오.`;
+  }, [dailyLog, todayGanjiText, innateMbti, actualMbti, leakage]);
+
+  // ② ⚔️ [내일의 페르소나 스위칭 처방 (Tomorrow Tactic)] 동적 서사
+  const tacticProse = useMemo(() => {
+    const catInfo = CATEGORY_NAMES[tomorrowCategory] || CATEGORY_NAMES.business;
+    let focusAdvice = '상대방의 페이스에 휘말리지 말고 테이블을 먼저 주도해야 승기를 잡습니다.';
+    if (tomorrowCategory === 'wealth') {
+      focusAdvice = '체면치레용 지출 가면을 과감히 벗어던지고, 사주 본연의 냉철한 계산법으로 지갑을 방어하십시오.';
+    } else if (tomorrowCategory === 'love') {
+      focusAdvice = '눈치 보며 참는 소극성을 내려놓고, 본연의 솔직담백한 직진 표현으로 상대의 마음을 여십시오.';
+    } else if (tomorrowCategory === 'career') {
+      focusAdvice = '평소의 신중한 침묵을 깨고, 본래의 추진력과 비전을 확신 있게 브리핑하여 주도권을 쥐십시오.';
     }
-    if (leakage <= 25) {
-      return `본성과 다른 ${actualMbti} 가면을 유지하느라 매일 ${leakage}%의 기력이 소모되고 있습니다. 혼자만의 온전한 휴식으로 에너지를 충전하세요.`;
-    }
-    if (leakage <= 50) {
-      return `사회생활에서 절반의 에너지를 가면 유지에 소모하고 있습니다. 퇴근 후에는 본래의 본성(${innateMbti})을 마음껏 발산하는 취미를 권장합니다.`;
-    }
-    return `타고난 본성(${innateMbti})을 억누른 채 정반대의 가면(${actualMbti})을 쓰느라 심한 번아웃과 에너지 방전 위험이 높습니다. 본래의 기질을 인정해 주세요.`;
-  }, [actualMbti, leakage, innateMbti]);
+    return `내일은 ${tomorrowOmen.ganji} (${tomorrowOmen.elementTitle})의 기운과 함께 중요한 [${catInfo.label}] 일정이 대기하고 있습니다. 내일만큼은 조심스러운 ${actualMbti || '가면'}을 집에 벗어두고, 사주 본연의 코어인 ${innateMbti}의 배짱과 돌파력을 전면에 꺼내 입으십시오. ${focusAdvice}`;
+  }, [tomorrowCategory, tomorrowOmen, actualMbti, innateMbti]);
 
   return (
     <View style={[styles.root, { height }]}>
@@ -281,10 +373,10 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           },
         ]}
       >
-        {/* 상단 칩 */}
+        {/* 상단 칩: 06 · 페르소나 전술실 */}
         <View style={styles.headerRow}>
           <View style={styles.chip}>
-            <Text style={styles.chipText}>06 · 가면과 본성</Text>
+            <Text style={styles.chipText}>06 · 페르소나 전술실</Text>
           </View>
         </View>
 
@@ -311,7 +403,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           </Text>
         </View>
 
-        {/* 3. 좌우 대비(Side-by-Side) 비주얼 카드 */}
+        {/* 3. 중앙 좌우 대비 카드 (선천 코어 vs 현실 가면) */}
         <View style={styles.comparisonGrid}>
           {/* [좌측 카드: 🔮 사주 선천 코어] */}
           <View style={[styles.compareCard, styles.compareCardInnate, CYAN_NEON_GLOW]}>
@@ -338,43 +430,76 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           </View>
         </View>
 
-        {/* 4. 하단 게이지 & 에너지 누수 분석 카드 */}
-        <View style={[styles.analysisCard, LUXURY_GLASS]}>
-          {/* 수치 헤더 */}
-          <View style={styles.analysisHeader}>
-            <View style={styles.rateBox}>
-              <Text style={styles.rateLabel}>동조 일치율</Text>
-              <Text style={styles.syncRateText}>{syncRate}%</Text>
-            </View>
-            <View style={styles.leakageBadge}>
-              <Text style={styles.leakageBadgeText}>⚡ 에너지 누수율: {leakage}%</Text>
+        {/* 에너지 누수율 게이지 바 */}
+        <View style={[styles.gaugeMiniCard, LUXURY_GLASS]}>
+          <View style={styles.gaugeHeaderRow}>
+            <Text style={styles.gaugeLabel}>동조 일치율: <Text style={styles.gaugeValueCyan}>{syncRate}%</Text></Text>
+            <View style={styles.leakageTag}>
+              <Text style={styles.leakageTagText}>⚡ 에너지 누수율 {leakage}%</Text>
             </View>
           </View>
-
-          {/* 듀얼 네온 게이지 바 */}
           <View style={styles.gaugeTrack}>
-            <View
-              style={[
-                styles.gaugeFillCyan,
-                { width: `${syncRate}%` },
-              ]}
-            />
-            {leakage > 0 && (
-              <View
-                style={[
-                  styles.gaugeFillCrimson,
-                  { width: `${leakage}%` },
-                ]}
-              />
-            )}
-          </View>
-
-          {/* 진단 처방 */}
-          <View style={styles.prescriptionBox}>
-            <Text style={styles.prescriptionKicker}>진단 처방</Text>
-            <Text style={styles.prescriptionText}>{prescription}</Text>
+            <View style={[styles.gaugeFillCyan, { width: `${syncRate}%` }]} />
+            {leakage > 0 && <View style={[styles.gaugeFillCrimson, { width: `${leakage}%` }]} />}
           </View>
         </View>
+
+        {/* ======================================================== */}
+        {/* 4. [신규] 동적 2대 핵심 전략 카드 (섹션 01 연동 작전실) */}
+        {/* ======================================================== */}
+        {!hasSettled ? (
+          /* 섹션 01 미정산 시 안내 카드 */
+          <View style={[styles.unsettledSyncBox, LUXURY_GLASS]}>
+            <Text style={styles.unsettledIcon}>⚡</Text>
+            <View style={styles.unsettledTextBox}>
+              <Text style={styles.unsettledTitle}>섹션 01 데이터 동기화 대기 중</Text>
+              <Text style={styles.unsettledBody}>
+                섹션 01에서 오늘 오행 정산과 내일 작전을 완료하면, 실시간 맞춤 페르소나 전술이 여기에 동기화됩니다.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          /* 정산 완료 시: 2대 핵심 전략 카드 노출 */
+          <View style={styles.tacticalCardsContainer}>
+            {/* ① 🌙 [오늘 밤 가면 피로도 역학 진단 (Today Audit)] (달/밤 테마 다크 카드) */}
+            <View style={[styles.auditCard, NIGHT_AUDIT_GLOW]}>
+              <View style={styles.cardHeaderWithTag}>
+                <View style={styles.cardHeaderTitleRow}>
+                  <Text style={styles.cardIconNight}>🌙</Text>
+                  <Text style={styles.cardTitleNight}>오늘 밤 가면 피로도 역학 진단</Text>
+                </View>
+                <View style={styles.tagNight}>
+                  <Text style={styles.tagNightText}>TODAY AUDIT</Text>
+                </View>
+              </View>
+              <Text style={styles.cardSubTagNight}>
+                [{todayGanjiText}] 일진 × [{dailyLog?.event_category || '직장/관계'}] 충돌 분석
+              </Text>
+              <View style={styles.auditBodyBox}>
+                <Text style={styles.auditBodyText}>{auditProse}</Text>
+              </View>
+            </View>
+
+            {/* ② ⚔️ [내일의 페르소나 스위칭 처방 (Tomorrow Tactic)] (칼/불 테마 네온 레드 카드) */}
+            <View style={[styles.tacticCard, TACTIC_FIRE_GLOW]}>
+              <View style={styles.cardHeaderWithTag}>
+                <View style={styles.cardHeaderTitleRow}>
+                  <Text style={styles.cardIconFire}>⚔️</Text>
+                  <Text style={styles.cardTitleFire}>내일의 페르소나 스위칭 처방</Text>
+                </View>
+                <View style={styles.tagFire}>
+                  <Text style={styles.tagFireText}>TOMORROW TACTIC</Text>
+                </View>
+              </View>
+              <Text style={styles.cardSubTagFire}>
+                [{tomorrowOmen.ganji}] 기운 × [{CATEGORY_NAMES[tomorrowCategory]?.label || '비즈니스'}] 돌파 전술
+              </Text>
+              <View style={styles.tacticBodyBox}>
+                <Text style={styles.tacticBodyText}>{tacticProse}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* 5. 하단 CTA 버튼: 🎭 내 현실 MBTI(사회생활 가면) 변경하기 */}
         <Pressable
@@ -515,7 +640,7 @@ const styles = StyleSheet.create({
   comparisonGrid: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   compareCard: {
     flex: 1,
@@ -523,7 +648,7 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: 'rgba(13, 19, 33, 0.85)',
     borderWidth: 1,
-    minHeight: 175,
+    minHeight: 165,
   },
   compareCardInnate: {
     borderColor: 'rgba(0, 245, 212, 0.35)',
@@ -597,58 +722,50 @@ const styles = StyleSheet.create({
     ...KEEP_ALL,
   },
 
-  /* 하단 에너지 누수 분석 카드 */
-  analysisCard: {
+  /* 게이지 미니 카드 */
+  gaugeMiniCard: {
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(0, 245, 212, 0.22)',
-    padding: 13,
-    marginBottom: 14,
+    padding: 10,
+    marginBottom: 12,
   },
-  analysisHeader: {
+  gaugeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  rateBox: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  rateLabel: {
+  gaugeLabel: {
     color: '#94A3B8',
     fontSize: 11,
     fontWeight: '700',
   },
-  syncRateText: {
+  gaugeValueCyan: {
     color: '#00F5D4',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '900',
   },
-  leakageBadge: {
-    backgroundColor: 'rgba(255, 42, 75, 0.14)',
+  leakageTag: {
+    backgroundColor: 'rgba(255, 42, 75, 0.12)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255, 42, 75, 0.4)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderColor: 'rgba(255, 42, 75, 0.35)',
   },
-  leakageBadgeText: {
+  leakageTagText: {
     color: '#FF4D6D',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   gaugeTrack: {
-    height: 10,
+    height: 8,
     borderRadius: 999,
     backgroundColor: '#0F172A',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
     flexDirection: 'row',
-    marginBottom: 10,
   },
   gaugeFillCyan: {
     height: '100%',
@@ -660,23 +777,152 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF2A4B',
     borderRadius: 999,
   },
-  prescriptionBox: {
-    backgroundColor: 'rgba(8, 14, 28, 0.75)',
-    borderRadius: 10,
+
+  /* 섹션 01 미정산 시 안내 카드 */
+  unsettledSyncBox: {
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    padding: 10,
+    borderColor: 'rgba(255, 184, 0, 0.35)',
+    padding: 14,
+    marginBottom: 14,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
   },
-  prescriptionKicker: {
-    color: '#00F5D4',
-    fontSize: 10.5,
-    fontWeight: '800',
+  unsettledIcon: {
+    fontSize: 22,
+  },
+  unsettledTextBox: {
+    flex: 1,
+  },
+  unsettledTitle: {
+    color: '#FFB800',
+    fontSize: 13,
+    fontWeight: '900',
     marginBottom: 3,
   },
-  prescriptionText: {
-    color: '#E2E8F0',
+  unsettledBody: {
+    color: '#CBD5E1',
     fontSize: 11.5,
-    lineHeight: 17,
+    lineHeight: 16.5,
+    ...KEEP_ALL,
+  },
+
+  /* 2대 핵심 전략 카드 컨테이너 */
+  tacticalCardsContainer: {
+    gap: 10,
+    marginBottom: 14,
+  },
+
+  /* ① 🌙 달/밤 테마 다크 카드 */
+  auditCard: {
+    backgroundColor: 'rgba(17, 12, 31, 0.9)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.45)',
+    padding: 12,
+  },
+  cardHeaderWithTag: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  cardHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  cardIconNight: {
+    fontSize: 13,
+  },
+  cardTitleNight: {
+    color: '#E9D5FF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  tagNight: {
+    backgroundColor: 'rgba(168, 85, 247, 0.15)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.4)',
+  },
+  tagNightText: {
+    color: '#C084FC',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cardSubTagNight: {
+    color: '#A855F7',
+    fontSize: 10.5,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  auditBodyBox: {
+    backgroundColor: 'rgba(10, 6, 20, 0.75)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.18)',
+  },
+  auditBodyText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    lineHeight: 18,
+    ...KEEP_ALL,
+  },
+
+  /* ② ⚔️ 칼/불 테마 네온 레드 카드 */
+  tacticCard: {
+    backgroundColor: 'rgba(28, 8, 14, 0.9)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.45)',
+    padding: 12,
+  },
+  cardIconFire: {
+    fontSize: 13,
+  },
+  cardTitleFire: {
+    color: '#FFE4E6',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  tagFire: {
+    backgroundColor: 'rgba(255, 42, 75, 0.15)',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.4)',
+  },
+  tagFireText: {
+    color: '#FF4D6D',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cardSubTagFire: {
+    color: '#FF4D6D',
+    fontSize: 10.5,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  tacticBodyBox: {
+    backgroundColor: 'rgba(18, 4, 8, 0.75)',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.18)',
+  },
+  tacticBodyText: {
+    color: '#FEE2E2',
+    fontSize: 12,
+    lineHeight: 18,
     ...KEEP_ALL,
   },
 

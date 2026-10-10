@@ -49,7 +49,15 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   onOpenPartner,
 }: TomorrowStrategyAccordionProps) {
   const [expanded, setExpanded] = useState(unlocked);
-  const [category, setCategory] = useState<CoreCategory>('wealth');
+  const [category, setCategory] = useState<CoreCategory>(() => {
+    try {
+      const saved = (globalThis as any)?.localStorage?.getItem('cybersaju.tomorrow_category');
+      if (saved && ['wealth', 'love', 'career', 'health', 'business'].includes(saved)) {
+        return saved as CoreCategory;
+      }
+    } catch {}
+    return 'wealth';
+  });
   const [planText, setPlanText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
@@ -97,6 +105,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   const handleSelectCategory = (cat: CoreCategory) => {
     void playHaptic('tap');
     setCategory(cat);
+    try {
+      (globalThis as any)?.localStorage?.setItem('cybersaju.tomorrow_category', cat);
+    } catch {}
   };
 
   const handleCalculate = () => {

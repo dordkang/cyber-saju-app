@@ -103,7 +103,7 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     id: 'mbti',
     index: 5,
     no: '06',
-    kicker: '가면과 본성',
+    kicker: '페르소나 전술실',
     title: '선천 사주 코어\nvs 현실 가면',
     subtitle: '동양의 사주 오행과 서양의 MBTI로 풀어내는 나의 에너지 누수 리포트',
     accent: 'cyan',
