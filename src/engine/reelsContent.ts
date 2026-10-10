@@ -132,6 +132,7 @@ function summarizeAiText(text: string | null | undefined): string {
   if (!text) return '';
   const plain = text
     .replace(/^\s*\[[^\]]{1,20}\]\s*/, '')
+    .replace(/\([^)]*\)/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   if (!plain) return '';

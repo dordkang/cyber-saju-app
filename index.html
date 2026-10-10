@@ -361,12 +361,17 @@
       const selectedAmulet = AMULET_POOL[Math.floor(Math.random() * AMULET_POOL.length)];
       const selectedKw = KEYWORD_POOL[Math.floor(Math.random() * KEYWORD_POOL.length)];
 
+      // 2중 방어 로직: 괄호 및 괄호 안의 내용 전면 제거 정규식 필터링
+      const cleanStep1 = selectedIntro.replace(/\([^)]*\)/g, '').trim();
+      const cleanStep2 = selectedAnalysis.replace(/\([^)]*\)/g, '').trim();
+      const cleanStep3 = selectedPrescription.replace(/\([^)]*\)/g, '').trim();
+
       // 돔 반영
       document.getElementById('modalKeyword').textContent = selectedKw.keyword;
       document.getElementById('modalDateSub').textContent = `2026년 10월 10일 · ${selectedKw.sub}`;
-      document.getElementById('fortuneStep1').textContent = selectedIntro;
-      document.getElementById('fortuneStep2').textContent = selectedAnalysis;
-      document.getElementById('fortuneStep3').textContent = selectedPrescription;
+      document.getElementById('fortuneStep1').textContent = cleanStep1;
+      document.getElementById('fortuneStep2').textContent = cleanStep2;
+      document.getElementById('fortuneStep3').textContent = cleanStep3;
       document.getElementById('fortuneAmuletTitle').textContent = selectedAmulet.title;
       document.getElementById('fortuneAmuletReason').textContent = selectedAmulet.reason;
 

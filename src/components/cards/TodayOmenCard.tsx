@@ -157,13 +157,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   const displayFortuneText = useMemo(() => {
     const raw = data.fortuneText || '';
     return raw
-      .replace(/\([^)]*탁자[^)]*\)/g, '')
-      .replace(/\([^)]*눈을[^)]*\)/g, '')
-      .replace(/\([^)]*부채[^)]*\)/g, '')
-      .replace(/\([^)]*배터리[^)]*\)/g, '')
-      .replace(/\([^)]*토의 불길[^)]*\)/g, '')
-      .replace(/\([^)]*지문[^)]*\)/g, '')
-      .replace(/^\s*\([^)]+\)\s*/g, '')
+      .replace(/\([^)]*\)/g, '')
       .replace(/네가\s*오늘\s*['"][^'"]*['"]\s*일로/g, '오늘 마음에 맺힌 일로')
       .trim();
   }, [data.fortuneText]);

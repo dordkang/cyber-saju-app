@@ -426,7 +426,10 @@ function AppContent() {
           setPartner(savedPartner);
           if (savedOnboarding) setLifeOnboarding(savedOnboarding);
           setBatteryLevel(storedBattery100 || savedLog?.energy_level === 100 ? 100 : (savedLog?.energy_level ?? null));
-          if (initialCustom) setCustomFortune(initialCustom);
+          if (initialCustom) {
+            initialCustom.fortuneText = initialCustom.fortuneText.replace(/\([^)]*\)/g, '').trim();
+            setCustomFortune(initialCustom);
+          }
           if (isAgentType(savedPersona)) setPersona(savedPersona);
           setOnboarding(needsOnboarding);
           setProfileVisible(needsOnboarding);
@@ -485,6 +488,9 @@ function AppContent() {
         version: 'v3_deep',
       };
       writeFlag(`cybersaju.customFortune.${todayStr}`, JSON.stringify(reloadedCustom));
+    }
+    if (reloadedCustom) {
+      reloadedCustom.fortuneText = reloadedCustom.fortuneText.replace(/\([^)]*\)/g, '').trim();
     }
     setCustomFortune(reloadedCustom);
   }, []);
@@ -567,9 +573,11 @@ function AppContent() {
         data.tarotCard
       );
 
-      // 사용자 감정/사건/한줄기록 맞춤 해단 생성 및 즉시 반영 (v3_deep 버전 스탬프)
+      // 사용자 감정/사건/한줄기록 맞춤 해단 생성 및 즉시 반영 (v3_deep 버전 스탬프 & 2중 방어 필터)
+      const generated = generateTodayCustomAdvice(data.emotionElement, data.eventCategory, data.shortMemo);
       const custom = {
-        ...generateTodayCustomAdvice(data.emotionElement, data.eventCategory, data.shortMemo),
+        ...generated,
+        fortuneText: generated.fortuneText.replace(/\([^)]*\)/g, '').trim(),
         version: 'v3_deep',
       };
       setCustomFortune(custom);

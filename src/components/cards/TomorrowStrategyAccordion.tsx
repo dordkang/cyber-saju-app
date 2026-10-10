@@ -62,18 +62,21 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
 
   const omen = useMemo(() => getTomorrowOmen(saju, tomorrowDate), [saju, tomorrowDate]);
 
-  const strategy = useMemo(
-    () =>
-      generateCoreStrategy(
-        category,
-        planText,
-        omen,
-        saju,
-        partnerSaju ?? null,
-        partner?.alias || partner?.relation
-      ),
-    [category, planText, omen, saju, partnerSaju, partner]
-  );
+  const strategy = useMemo(() => {
+    const raw = generateCoreStrategy(
+      category,
+      planText,
+      omen,
+      saju,
+      partnerSaju ?? null,
+      partner?.alias || partner?.relation
+    );
+    return {
+      ...raw,
+      headline: raw.headline.replace(/\([^)]*\)/g, '').trim(),
+      strategyText: raw.strategyText.replace(/\([^)]*\)/g, '').trim(),
+    };
+  }, [category, planText, omen, saju, partnerSaju, partner]);
 
   const toggleExpand = () => {
     void playHaptic('tap');
@@ -261,13 +264,13 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
               <ActivityIndicator size="small" color="#ff2a4b" />
               <Text style={styles.loadingPulseText}>
                 {loadingPhase === 0
-                  ? '🔮 옥동자가 방울을 흔들며 신명을 부르는 중...'
+                  ? '🔮 옥통자가 천기를 관조하는 중...'
                   : `⚡ 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신·신살 기운을 맞물리는 중...`}
               </Text>
             </View>
           )}
 
-          {/* 연산 완료 후 무당 지문 톤 맞춤 작전 해단 카드 */}
+          {/* 연산 완료 후 정통 명리 작전 해단 카드 */}
           {hasCalculated && !isLoading && (
             <View style={styles.strategyBox}>
               <View style={styles.strategyHeader}>
@@ -279,7 +282,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
 
           {!hasCalculated && !isLoading && (
             <Text style={styles.preCalcHint}>
-              분야와 고민을 확인하신 후 위 [작전 해단받기]를 누르시면 옥동자의 신명 연산이 시작됩니다.
+              분야와 고민을 확인하신 후 위 [작전 해단받기]를 누르시면 옥통자의 천기 연산이 시작됩니다.
             </Text>
           )}
         </View>

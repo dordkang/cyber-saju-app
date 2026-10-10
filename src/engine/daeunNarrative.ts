@@ -626,8 +626,8 @@ function buildDetail(input: DaeunNarrativeInput, ranked: readonly InteractionNot
   const { stemGod, branchGod, stem, branch, dayMaster, stage12 } = input;
 
   const line1 =
-    `(신령한 눈빛으로 네 손등을 거칠게 부여잡으며) "똑똑히 봐라! 하늘의 ${josa(`${stemGod}(${stem})`, '은', '는')} ${STEM_PSYCHE[stemGod]}, ` +
-    `땅의 ${josa(`${branchGod}(${branch})`, '은', '는')} ${BRANCH_ENV[branchGod]}."`;
+    `하늘의 ${josa(`${stemGod}(${stem})`, '은', '는')} ${STEM_PSYCHE[stemGod]}, ` +
+    `땅의 ${josa(`${branchGod}(${branch})`, '은', '는')} ${BRANCH_ENV[branchGod]}.`;
 
   const line2 = `일간 ${dayMaster}에게 이 땅(${branch})은 12운성 ${stage12}의 자리로, ${STAGE_DRAMA[stage12]}.`;
 
