@@ -105,7 +105,7 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     no: '06',
     kicker: '가면과 본성',
     title: '선천 사주 코어\nvs 현실 가면',
-    subtitle: '페르소나를 유지하느라 새는 에너지를 수치화해요.',
+    subtitle: '동양의 사주 오행과 서양의 MBTI로 풀어내는 나의 에너지 누수 리포트',
     accent: 'cyan',
   },
   {

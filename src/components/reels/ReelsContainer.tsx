@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ElementCircuit } from '../ElementCircuit';
 import { TodayOmenCard } from '../cards/TodayOmenCard';
 import { TodayMoneyCard } from '../cards/TodayMoneyCard';
+import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import {
   ELEMENT_AURA,
   REEL_ACCENT_HEX,
@@ -215,7 +216,7 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext): { body: string;
         body: context.mbti
           ? `선천 ${context.mbti.innate} → 가면 ${context.mbti.actual} · 일치 ${context.mbti.syncRate}% · 누수 ${context.mbti.leakage}%`
           : '현실에서 쓰는 유형을 고르면, 사주 코어와의 간극이 숫자로 뜹니다.',
-        cta: '가면 고르기',
+        cta: '🎭 내 현실 MBTI(사회생활 가면) 변경하기',
       };
     case 'circuit':
       return {
@@ -317,6 +318,20 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             active={active}
             height={pageHeight}
             saju={context.saju}
+          />
+        </View>
+      );
+    }
+
+    if (item.id === 'mbti') {
+      return (
+        <View style={WEB_SNAP_ITEM}>
+          <TodayMbtiCard
+            data={context.mbti}
+            active={active}
+            height={pageHeight}
+            saju={context.saju}
+            onOpenMbti={actions.onOpenMbti}
           />
         </View>
       );
