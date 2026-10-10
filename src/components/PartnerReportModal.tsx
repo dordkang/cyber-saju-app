@@ -24,7 +24,7 @@ const LOCKED_ITEMS: ReadonlyArray<{ title: string; hint: string }> = [
   { title: '도화 분석 · 이 사람의 끌림 구조', hint: '어느 자리에 도화가 앉았는지, 그게 무슨 뜻인지 짚어 드려요.' },
   { title: '딴마음이 올라오는 시기', hint: '올해 달마다 조심해야 할 시기를 짚어 드려요.' },
   { title: '연락이 뜸해지는 패턴', hint: '이런 신호가 보이면 이미 마음이 흔들린 거예요.' },
-  { title: '옥동자 처방 · 내가 먼저 할 행동 3가지', hint: '붙잡는 법, 확인하는 법, 놓아야 할 때까지.' },
+  { title: '옥통자 처방 · 내가 먼저 할 행동 3가지', hint: '붙잡는 법, 확인하는 법, 놓아야 할 때까지.' },
 ];
 
 interface PartnerReportModalProps {
@@ -116,7 +116,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                     ))}
 
                     <View style={[styles.sectionCard, styles.prescriptionCard]}>
-                      <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>옥동자 처방 · 내가 먼저 할 행동 3가지</Text>
+                      <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>옥통자 처방 · 내가 먼저 할 행동 3가지</Text>
                       {prescription.actions.map((action, index) => (
                         <View key={action} style={styles.actionRow}>
                           <Text style={styles.actionNo}>{index + 1}</Text>

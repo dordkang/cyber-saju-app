@@ -17,18 +17,43 @@ import type { CalendarType, Gender, PartnerProfile } from '../database/db';
 import { BIRTH_TIME_UNKNOWN, validateProfileForm } from './ProfileSettingModal';
 import { playHaptic } from './reels/haptics';
 
+export interface SijinOption {
+  key: string;
+  name: string;
+  label: string;
+  time: string; // HH:mm
+}
+
+export const SIJIN_OPTIONS: readonly SijinOption[] = [
+  { key: '자시', name: '자시', label: '자시 (23:30 ~ 01:29)', time: '00:30' },
+  { key: '축시', name: '축시', label: '축시 (01:30 ~ 03:29)', time: '02:30' },
+  { key: '인시', name: '인시', label: '인시 (03:30 ~ 05:29)', time: '04:30' },
+  { key: '묘시', name: '묘시', label: '묘시 (05:30 ~ 07:29)', time: '06:30' },
+  { key: '진시', name: '진시', label: '진시 (07:30 ~ 09:29)', time: '08:30' },
+  { key: '사시', name: '사시', label: '사시 (09:30 ~ 11:29)', time: '10:30' },
+  { key: '오시', name: '오시', label: '오시 (11:30 ~ 13:29)', time: '12:30' },
+  { key: '미시', name: '미시', label: '미시 (13:30 ~ 15:29)', time: '14:30' },
+  { key: '신시', name: '신시', label: '신시 (15:30 ~ 17:29)', time: '16:30' },
+  { key: '유시', name: '유시', label: '유시 (17:30 ~ 19:29)', time: '18:30' },
+  { key: '술시', name: '술시', label: '술시 (19:30 ~ 21:29)', time: '20:30' },
+  { key: '해시', name: '해시', label: '해시 (21:30 ~ 23:29)', time: '22:30' },
+];
+
 export interface TargetFormValues {
   relation: string;
   alias: string;
   birthDate: string;
+  birthTime: string;
   calendarType: CalendarType;
   gender: Gender;
+  targetBirthTime?: string;
+  isTimeUnknown?: boolean;
 }
 
 interface TargetSettingModalProps {
   visible: boolean;
   onClose: () => void;
-  initialValues?: Partial<Pick<PartnerProfile, 'relation' | 'alias' | 'birthDate' | 'calendarType' | 'gender'>> | null;
+  initialValues?: Partial<PartnerProfile> | null;
   /** DB 저장이 끝난 뒤 호출된다. 예외를 던지면 모달을 유지한다. */
   onApply: (values: TargetFormValues) => void | Promise<void>;
 }
@@ -71,6 +96,9 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
 }) => {
   const [relationKey, setRelationKey] = useState('애인');
   const [birthDate, setBirthDate] = useState('');
+  const [selectedSijinKey, setSelectedSijinKey] = useState<string>('자시');
+  const [isTimeUnknown, setIsTimeUnknown] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [calendarType, setCalendarType] = useState<CalendarType>('solar');
   const [gender, setGender] = useState<Gender | null>(null);
   const [saving, setSaving] = useState(false);
@@ -85,12 +113,40 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
     setBirthDate(initial?.birthDate ?? '');
     setCalendarType(initial?.calendarType ?? 'solar');
     setGender(initial?.gender ?? null);
+
+    const unknown = Boolean(
+      initial?.isTimeUnknown ??
+      (initial?.birthTime ? initial.birthTime === BIRTH_TIME_UNKNOWN : false)
+    );
+    setIsTimeUnknown(unknown);
+    setIsDropdownOpen(false);
+
+    if (initial?.birthTime && initial.birthTime !== BIRTH_TIME_UNKNOWN) {
+      const found = SIJIN_OPTIONS.find(
+        (s) => s.time === initial.birthTime || s.label === initial.targetBirthTime || s.key === initial.targetBirthTime
+      );
+      if (found) {
+        setSelectedSijinKey(found.key);
+      } else {
+        setSelectedSijinKey('자시');
+      }
+    } else if (initial?.targetBirthTime && initial.targetBirthTime !== BIRTH_TIME_UNKNOWN) {
+      const found = SIJIN_OPTIONS.find((s) => s.key === initial.targetBirthTime || s.label === initial.targetBirthTime);
+      setSelectedSijinKey(found?.key ?? '자시');
+    } else {
+      setSelectedSijinKey('자시');
+    }
     setSaving(false);
   }, [visible]);
 
+  const currentSijin = SIJIN_OPTIONS.find((s) => s.key === selectedSijinKey) ?? SIJIN_OPTIONS[0];
+
   const handleApply = async () => {
     if (saving) return;
-    const error = validateProfileForm(birthDate, BIRTH_TIME_UNKNOWN, gender, calendarType);
+    const finalBirthTime = isTimeUnknown ? BIRTH_TIME_UNKNOWN : currentSijin.time;
+    const finalTargetBirthTime = isTimeUnknown ? BIRTH_TIME_UNKNOWN : currentSijin.label;
+
+    const error = validateProfileForm(birthDate, finalBirthTime, gender, calendarType);
     if (error || !gender) {
       Alert.alert('입력 확인', error ?? '성별을 선택해 주세요.');
       return;
@@ -101,8 +157,11 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
       relation: relationKey,
       alias,
       birthDate: birthDate.trim(),
+      birthTime: finalBirthTime,
       calendarType,
       gender,
+      targetBirthTime: finalTargetBirthTime,
+      isTimeUnknown,
     };
 
     setSaving(true);
@@ -111,9 +170,11 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
         alias: values.alias,
         relation: values.relation,
         birthDate: values.birthDate,
-        birthTime: BIRTH_TIME_UNKNOWN,
+        birthTime: finalBirthTime,
         calendarType: values.calendarType,
         gender: values.gender,
+        targetBirthTime: finalTargetBirthTime,
+        isTimeUnknown,
       });
       await playHaptic('tap');
       await onApply(values);
@@ -139,7 +200,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
-          <Text style={styles.caption}>생년월일만 있으면 속마음 레이더를 바로 돌립니다. 시간은 모름으로 둡니다.</Text>
+          <Text style={styles.caption}>생년월일과 태어난 시간을 입력하면 시주(時柱)까지 정밀하게 스캔합니다.</Text>
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -176,6 +237,94 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
               style={styles.input}
               accessibilityLabel="상대 생년월일"
             />
+
+            {/* 태어난 시간 섹션 */}
+            <View style={styles.timeHeaderRow}>
+              <Text style={styles.label}>태어난 시간</Text>
+              <Pressable
+                onPress={() => {
+                  void playHaptic('tap');
+                  setIsTimeUnknown((prev) => {
+                    const next = !prev;
+                    if (next) setIsDropdownOpen(false);
+                    return next;
+                  });
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isTimeUnknown }}
+                style={[styles.unknownToggle, isTimeUnknown && styles.unknownToggleOn]}
+              >
+                <Text style={[styles.unknownCheckText, isTimeUnknown && styles.unknownCheckTextOn]}>
+                  {isTimeUnknown ? '☑' : '☐'}
+                </Text>
+                <Text style={[styles.unknownLabelText, isTimeUnknown && styles.unknownLabelTextOn]}>
+                  시간 모름
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* 시진 드롭다운 셀렉터 */}
+            <Pressable
+              onPress={() => {
+                if (isTimeUnknown) return;
+                void playHaptic('tap');
+                setIsDropdownOpen((prev) => !prev);
+              }}
+              disabled={isTimeUnknown}
+              accessibilityRole="button"
+              accessibilityLabel="태어난 시진 선택"
+              style={[
+                styles.dropdownTrigger,
+                !isTimeUnknown && isDropdownOpen && styles.dropdownTriggerOpen,
+                isTimeUnknown && styles.dropdownTriggerDisabled,
+              ]}
+            >
+              <Text style={[styles.dropdownValue, isTimeUnknown && styles.dropdownValueDisabled]}>
+                {isTimeUnknown ? '시간 미상 (삼주 정밀 분석)' : currentSijin.label}
+              </Text>
+              <Text style={[styles.dropdownArrow, isTimeUnknown && styles.dropdownArrowDisabled]}>
+                {isDropdownOpen && !isTimeUnknown ? '▲' : '▼'}
+              </Text>
+            </Pressable>
+
+            {/* 드롭다운 옵션 목록 */}
+            {isDropdownOpen && !isTimeUnknown && (
+              <View style={styles.dropdownMenu}>
+                <ScrollView
+                  style={styles.dropdownScroll}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={true}
+                >
+                  {SIJIN_OPTIONS.map((item) => {
+                    const isSelected = selectedSijinKey === item.key;
+                    return (
+                      <Pressable
+                        key={item.key}
+                        onPress={() => {
+                          void playHaptic('tap');
+                          setSelectedSijinKey(item.key);
+                          setIsDropdownOpen(false);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        style={[styles.dropdownItem, isSelected && styles.dropdownItemOn]}
+                      >
+                        <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextOn]}>
+                          {item.label}
+                        </Text>
+                        {isSelected && <Text style={styles.dropdownCheckMark}>✓</Text>}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
+            <Text style={styles.timeHint}>
+              {isTimeUnknown
+                ? '✨ 시간 미상(삼주 정밀 분석)으로 연산이 수행됩니다.'
+                : `⚡ ${currentSijin.name} 입력 완료 · 시주(時柱)까지 4주 8자 온전 분석`}
+            </Text>
 
             <Text style={styles.label}>달력</Text>
             <View style={styles.chipRow}>
@@ -251,7 +400,7 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     alignSelf: 'center',
     marginHorizontal: 'auto',
-    maxHeight: '88%',
+    maxHeight: '90%',
     backgroundColor: OBSIDIAN,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -298,6 +447,124 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
     fontWeight: '700',
+  },
+  timeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  unknownToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#2A3144',
+    backgroundColor: '#121722',
+  },
+  unknownToggleOn: {
+    borderColor: CRIMSON,
+    backgroundColor: 'rgba(255, 51, 102, 0.16)',
+  },
+  unknownCheckText: {
+    color: '#8B97A8',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  unknownCheckTextOn: {
+    color: CRIMSON,
+  },
+  unknownLabelText: {
+    color: '#8B97A8',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  unknownLabelTextOn: {
+    color: CRIMSON,
+  },
+  dropdownTrigger: {
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A3144',
+    backgroundColor: '#121722',
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownTriggerOpen: {
+    borderColor: CRIMSON,
+    backgroundColor: 'rgba(255, 51, 102, 0.08)',
+  },
+  dropdownTriggerDisabled: {
+    opacity: 0.45,
+    backgroundColor: '#0D111A',
+    borderColor: '#1F2636',
+  },
+  dropdownValue: {
+    color: '#F4F7FB',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  dropdownValueDisabled: {
+    color: '#6B7A90',
+  },
+  dropdownArrow: {
+    color: '#8A99AD',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  dropdownArrowDisabled: {
+    color: '#4B5565',
+  },
+  dropdownMenu: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 51, 102, 0.35)',
+    backgroundColor: '#0E131F',
+    maxHeight: 180,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  dropdownScroll: {
+    maxHeight: 180,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(42, 49, 68, 0.4)',
+  },
+  dropdownItemOn: {
+    backgroundColor: 'rgba(255, 51, 102, 0.16)',
+  },
+  dropdownItemText: {
+    color: '#C9D3E0',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dropdownItemTextOn: {
+    color: CRIMSON,
+    fontWeight: '800',
+  },
+  dropdownCheckMark: {
+    color: CRIMSON,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  timeHint: {
+    color: '#7E8B9E',
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+    marginBottom: 4,
   },
   apply: {
     minHeight: 52,

@@ -51,6 +51,8 @@ export interface PartnerProfile {
   calendarType: CalendarType;
   relation: string;
   createdAt: string;
+  targetBirthTime?: string;
+  isTimeUnknown?: boolean;
 }
 
 /** 레거시 일기 타입. 웹 전환 후 저장소는 없고 호출 호환용으로만 유지한다. */
@@ -717,6 +719,8 @@ export async function savePartnerProfile(
     birthTime,
     calendarType: normalizeCalendarType(data.calendarType) ?? 'solar',
     relation,
+    targetBirthTime: data.targetBirthTime,
+    isTimeUnknown: Boolean(data.isTimeUnknown),
     createdAt: new Date().toISOString(),
   });
   writeJson(STORAGE_KEYS.partners, partners);

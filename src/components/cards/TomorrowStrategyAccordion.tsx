@@ -237,12 +237,12 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
             />
           </View>
 
-          {/* ⚡ 옥동자 맞춤 작전 해단받기 버튼 */}
+          {/* ⚡ 옥통자 맞춤 작전 해단받기 버튼 */}
           <Pressable
             onPress={handleCalculate}
             disabled={isLoading}
             accessibilityRole="button"
-            accessibilityLabel="옥동자 맞춤 작전 해단받기"
+            accessibilityLabel="옥통자 맞춤 작전 해단받기"
             style={({ pressed }) => [
               styles.calcActionBtn,
               isLoading && styles.calcActionBtnBusy,
@@ -251,10 +251,10 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           >
             <Text style={styles.calcActionBtnText}>
               {isLoading
-                ? '🔮 옥동자가 신명을 부르는 중...'
+                ? '🔮 옥통자가 천기를 관조하는 중...'
                 : hasCalculated
                 ? '↺ 다른 고민으로 다시 점지받기'
-                : '⚡ 옥동자 맞춤 작전 해단받기 ↗'}
+                : '⚡ 옥통자 맞춤 작전 해단받기 ↗'}
             </Text>
           </Pressable>
 
