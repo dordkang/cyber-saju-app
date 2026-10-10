@@ -4,6 +4,7 @@
     "expo": "^57.0.22",
     "expo-haptics": "~57.0.3",
     "expo-linear-gradient": "~57.0.2",
+    "html-to-image": "^1.11.13",
     "lunar-javascript": "^1.7.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
