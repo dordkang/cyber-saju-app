@@ -500,7 +500,7 @@ export function generateTodayCustomAdvice(
     }
   }
 
-  const fortuneText = `${gesture} "${lead} 오늘 배터리를 100% 채워 묵은 기운을 다 씻어냈으니 지난 액운은 불길 속에 다 태워졌다. 이제 문에 빗장을 걸어 잠그고 깊은 잠을 청해라. 내일은 하늘이 네 편이다!"`;
+  const fortuneText = `${lead}\n\n오늘 들어온 일진의 흉살을 오행의 정화 불길 속에 다 태워 없앴으니 더는 지난 시간에 미련 두지 마라. 오늘 밤은 문에 빗장을 걸어 잠그고 깊은 잠을 청해라. 내일은 하늘이 네 편이다!`;
 
   return {
     keyword,

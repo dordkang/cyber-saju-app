@@ -433,7 +433,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
               {/* 모달 상단 헤더 */}
               <View style={styles.modalHeader}>
                 <View style={styles.modalBadge}>
-                  <Text style={styles.modalBadgeText}>🔮 옥동자 천기(天氣) 해단 전문</Text>
+                  <Text style={styles.modalBadgeText}>🔮 옥통자 천기(天氣) 해단 전문</Text>
                 </View>
                 <Pressable
                   onPress={() => {
