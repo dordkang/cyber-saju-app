@@ -23,6 +23,8 @@ import { formatGanji, ELEMENT_TITLE_KR } from '../../engine/reelsContent';
 import { getTenGod } from '../../engine/timelineEngine';
 import { playHaptic } from '../reels/haptics';
 import { TomorrowStrategyAccordion } from './TomorrowStrategyAccordion';
+import { useLocale } from '../../locales';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -60,8 +62,8 @@ export interface TodayOmenCardProps {
   onOpenPartner?: () => void;
 }
 
-function formatTodayLabel(now: Date): string {
-  const week = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()] ?? '';
+function formatTodayLabel(now: Date, isJa: boolean = false): string {
+  const week = (isJa ? ['日', '月', '火', '水', '木', '金', '土'] : ['일', '월', '화', '수', '목', '금', '토'])[now.getDay()] ?? '';
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
   return `${now.getFullYear()}.${mm}.${dd} (${week})`;
@@ -87,6 +89,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
   const insets = useSafeAreaInsets();
   const pulse = useRef(new Animated.Value(0.4)).current;
   const compact = height < 700;
+  const { isJa } = useLocale();
 
   // 조언 전문 상세 모달 상태
   const [fortuneModalOpen, setFortuneModalOpen] = useState(false);
@@ -235,13 +238,13 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           <View style={styles.chipRow}>
             <View style={styles.chip}>
               <Text style={styles.chipText}>
-                {META?.no} · {META?.kicker}
+                {META?.no} · {isJa ? '今日の予兆' : META?.kicker}
               </Text>
             </View>
 
             {/* 날짜 선택 컨트롤 바 */}
             <View style={styles.dateControlBar}>
-              <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel="이전 날">
+              <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '前日' : '이전 날'}>
                 <Text style={styles.dateNavText}>◀</Text>
               </Pressable>
 
@@ -257,9 +260,9 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                   }
                 }}
                 style={styles.dateCenterBtn}
-                accessibilityLabel="날짜 변경"
+                accessibilityLabel={isJa ? '日付変更' : '날짜 변경'}
               >
-                <Text style={styles.dateCenterText}>📅 {formatTodayLabel(selectedDate)}</Text>
+                <Text style={styles.dateCenterText}>📅 {formatTodayLabel(selectedDate, isJa)}</Text>
                 {IS_WEB && (
                   <input
                     ref={dateInputRef}
@@ -277,17 +280,19 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                 )}
               </Pressable>
 
-              <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel="오늘로 복귀">
-                <Text style={styles.dateTodayText}>오늘</Text>
+              <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel={isJa ? '今日に戻る' : '오늘로 복귀'}>
+                <Text style={styles.dateTodayText}>{isJa ? '今日' : '오늘'}</Text>
               </Pressable>
 
-              <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel="다음 날">
+              <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '翌日' : '다음 날'}>
                 <Text style={styles.dateNavText}>▶</Text>
               </Pressable>
             </View>
           </View>
 
-          <Text style={[styles.title, compact && styles.titleCompact]}>{META?.title}</Text>
+          <Text style={[styles.title, compact && styles.titleCompact]}>
+            {isJa ? '天が送る\n今日の予兆' : META?.title}
+          </Text>
           {!!data.profileLabel && !compact && <Text style={styles.profile}>{data.profileLabel}</Text>}
         </View>
 
@@ -366,7 +371,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           <View style={styles.settledContainer}>
             <View style={styles.settledBadge}>
               <Text style={styles.settledBadgeText}>
-                ✨ 오늘 충전량 100% (오행 정산 완료)
+                {isJa ? '✨ 本日の充電量 100% (五行決算 完了)' : '✨ 오늘 충전량 100% (오행 정산 완료)'}
               </Text>
             </View>
             <Pressable
@@ -376,9 +381,11 @@ export const TodayOmenCard = memo(function TodayOmenCard({
               }}
               style={styles.reSettleButton}
               accessibilityRole="button"
-              accessibilityLabel="오행 다시 정산하기"
+              accessibilityLabel={isJa ? '五行を再決算する' : '오행 다시 정산하기'}
             >
-              <Text style={styles.reSettleButtonText}>[다시 정산하기]</Text>
+              <Text style={styles.reSettleButtonText}>
+                {isJa ? '[再決算する]' : '[다시 정산하기]'}
+              </Text>
             </Pressable>
           </View>
         ) : (
@@ -388,7 +395,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
               onOpenDaily?.();
             }}
             accessibilityRole="button"
-            accessibilityLabel="하루 3초 오행 정산하고 내일 작전 열기"
+            accessibilityLabel={isJa ? '1日3秒五行決算と明日の作戦' : '하루 3초 오행 정산하고 내일 작전 열기'}
             style={({ pressed }) => [
               styles.ctaWrapperInline,
               WEB_CTA_SHADOW,
@@ -401,7 +408,9 @@ export const TodayOmenCard = memo(function TodayOmenCard({
               end={{ x: 1, y: 0.5 }}
               style={styles.ctaGradient}
             >
-              <Text style={styles.ctaText}>⚡ 하루 3초 오행 정산하고 내일 작전 열기</Text>
+              <Text style={styles.ctaText}>
+                {isJa ? '⚡ 1日3秒 五行決算と明日の作戦' : '⚡ 하루 3초 오행 정산하고 내일 작전 열기'}
+              </Text>
             </LinearGradient>
           </Pressable>
         )}

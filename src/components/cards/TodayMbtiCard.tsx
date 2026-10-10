@@ -20,6 +20,7 @@ import { getTomorrowOmen } from '../../engine/tomorrowStrategy';
 import type { CoreCategory } from '../../engine/tomorrowStrategy';
 import { calculateSaju } from '../../engine/calculator';
 import { formatGanji } from '../../engine/reelsContent';
+import { useLocale } from '../../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -235,6 +236,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
   onOpenMbti,
 }: TodayMbtiCardProps) {
   const insets = useSafeAreaInsets();
+  const { isJa } = useLocale();
 
   // 오늘 날짜 키 (YYYY-MM-DD)
   const todayStr = useMemo(() => {
@@ -376,15 +378,21 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         {/* 상단 칩: 06 · 페르소나 전술실 */}
         <View style={styles.headerRow}>
           <View style={styles.chip}>
-            <Text style={styles.chipText}>06 · 페르소나 전술실</Text>
+            <Text style={styles.chipText}>
+              {isJa ? '06 · ペルソナ戦術室' : '06 · 페르소나 전술실'}
+            </Text>
           </View>
         </View>
 
         {/* 1. 메인 타이틀 & 서브타이틀 */}
         <View style={styles.titleWrap}>
-          <Text style={styles.mainTitle}>선천 사주 코어 vs 현실 가면</Text>
+          <Text style={styles.mainTitle}>
+            {isJa ? '生まれ持った本質 vs 社会的仮面' : '선천 사주 코어 vs 현실 가면'}
+          </Text>
           <Text style={styles.subTitle}>
-            동양의 사주 오행과 서양의 MBTI로 풀어내는 나의 에너지 누수 리포트
+            {isJa
+              ? '東洋の四柱五行と西洋のMBTIで読み解くエネルギー漏洩レポート'
+              : '동양의 사주 오행과 서양의 MBTI로 풀어내는 나의 에너지 누수 리포트'}
           </Text>
         </View>
 

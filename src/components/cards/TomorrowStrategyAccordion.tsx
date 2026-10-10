@@ -31,12 +31,14 @@ interface TomorrowStrategyAccordionProps {
   onOpenPartner?: () => void;
 }
 
-const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; icon: string }> = [
-  { key: 'wealth', label: '재물', icon: '💰' },
-  { key: 'love', label: '사랑', icon: '❤️' },
-  { key: 'career', label: '직업', icon: '💼' },
-  { key: 'health', label: '건강', icon: '🌿' },
-  { key: 'business', label: '비즈니스', icon: '🏢' },
+import { useLocale } from '../../locales';
+
+const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; labelJa: string; icon: string }> = [
+  { key: 'wealth', label: '재물', labelJa: '金運', icon: '💰' },
+  { key: 'love', label: '사랑', labelJa: '恋愛', icon: '❤️' },
+  { key: 'career', label: '직업', labelJa: '仕事', icon: '💼' },
+  { key: 'health', label: '건강', labelJa: '健康', icon: '🌿' },
+  { key: 'business', label: '비즈니스', labelJa: 'ビジネス', icon: '🏢' },
 ];
 
 export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion({
@@ -62,6 +64,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [hasCalculated, setHasCalculated] = useState(false);
+  const { isJa } = useLocale();
 
   // 정산 완료(unlocked) 시 자동으로 아코디언이 스르륵 펼쳐지도록 연동
   React.useEffect(() => {
@@ -132,19 +135,19 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
       <Pressable
         onPress={toggleExpand}
         accessibilityRole="button"
-        accessibilityLabel="내일의 천기 및 작전 설계 잠금 상태. 정산으로 해금"
+        accessibilityLabel={isJa ? '明日の天機 ＆ 作戦設計 ロック状態' : '내일의 천기 및 작전 설계 잠금 상태. 정산으로 해금'}
         style={({ pressed }) => [styles.lockedCard, pressed && styles.pressed]}
       >
         <View style={styles.lockedHeader}>
           <Text style={styles.lockedIcon}>🔒</Text>
           <View style={styles.lockedTitleBox}>
-            <Text style={styles.lockedTitle}>내일의 천기 & 작전 설계</Text>
+            <Text style={styles.lockedTitle}>{isJa ? '明日の天機 ＆ 作戦設計' : '내일의 천기 & 작전 설계'}</Text>
             <Text style={styles.lockedSub}>
-              3초 오행 정산에서 배터리 100% 완충 시 즉시 해금됩니다
+              {isJa ? '1日3秒五行決算でバッテリー100%充電時に即時解禁' : '3초 오행 정산에서 배터리 100% 완충 시 즉시 해금됩니다'}
             </Text>
           </View>
           <View style={styles.lockedBadge}>
-            <Text style={styles.lockedBadgeText}>충전 필요 ⚡</Text>
+            <Text style={styles.lockedBadgeText}>{isJa ? '充電が必要 ⚡' : '충전 필요 ⚡'}</Text>
           </View>
         </View>
       </Pressable>
@@ -162,15 +165,19 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
       >
         <View style={styles.headerLeft}>
           <View style={styles.unlockedChip}>
-            <Text style={styles.unlockedChipText}>✨ 100% 완충 해금 · 천기누설</Text>
+            <Text style={styles.unlockedChipText}>
+              {isJa ? '✨ 100%充電完了 · 天機漏洩' : '✨ 100% 완충 해금 · 천기누설'}
+            </Text>
           </View>
-          <Text style={styles.cardTitle}>내일의 천기 & 작전 설계</Text>
+          <Text style={styles.cardTitle}>{isJa ? '明日の天機 ＆ 作戦設計' : '내일의 천기 & 작전 설계'}</Text>
           <Text style={styles.cardSub}>
-            내일 {omen.ganji} ({omen.stemGod}·{omen.branchGod}) · {omen.shinsal.primary}
+            {isJa ? '明日' : '내일'} {omen.ganji} ({omen.stemGod}·{omen.branchGod}) · {omen.shinsal.primary}
           </Text>
         </View>
         <View style={styles.toggleBtn}>
-          <Text style={styles.toggleBtnText}>{expanded ? '▲ 접기' : '▼ 작전 열기'}</Text>
+          <Text style={styles.toggleBtnText}>
+            {expanded ? (isJa ? '▲ 閉じる' : '▲ 접기') : (isJa ? '▼ 作戦を開く' : '▼ 작전 열기')}
+          </Text>
         </View>
       </Pressable>
 
@@ -180,18 +187,20 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           {/* 내일 신살 & 일진 배지 */}
           <View style={styles.omenBadgeRow}>
             <View style={styles.omenBadge}>
-              <Text style={styles.omenBadgeLabel}>내일 일진</Text>
+              <Text style={styles.omenBadgeLabel}>{isJa ? '明日の日辰' : '내일 일진'}</Text>
               <Text style={styles.omenBadgeValue}>{omen.ganji} ({omen.stemGod})</Text>
             </View>
             <View style={styles.omenBadge}>
-              <Text style={styles.omenBadgeLabel}>핵심 기운·신살</Text>
+              <Text style={styles.omenBadgeLabel}>{isJa ? '核心の気·神殺' : '핵심 기운·신살'}</Text>
               <Text style={styles.omenBadgeValueHighlight}>{omen.shinsal.primary}</Text>
             </View>
           </View>
           <Text style={styles.shinsalDesc}>{omen.shinsal.description}</Text>
 
           {/* 5대 본질 코어 카테고리 선택 칩 */}
-          <Text style={styles.inputLabel}>5대 코어 작전 분야를 선택하세요</Text>
+          <Text style={styles.inputLabel}>
+            {isJa ? '5大コア作戦分野を選択してください' : '5대 코어 작전 분야를 선택하세요'}
+          </Text>
           <View style={styles.coreChipsRow}>
             {CORE_CATEGORIES.map((c) => {
               const selected = category === c.key;
@@ -207,7 +216,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
                   ]}
                 >
                   <Text style={[styles.coreChipText, selected && styles.coreChipTextSelected]}>
-                    {c.icon} {c.label}
+                    {c.icon} {isJa ? c.labelJa : c.label}
                   </Text>
                 </Pressable>
               );

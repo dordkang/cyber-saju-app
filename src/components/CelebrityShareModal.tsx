@@ -14,6 +14,7 @@ import {
 import type { TextStyle, ViewStyle } from 'react-native';
 import type { CelebrityMatchResult } from '../engine/celebrityEngine';
 import { playHaptic } from './reels/haptics';
+import { useLocale, openTwitterShare, type Locale } from '../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -102,11 +103,75 @@ const TUNER_CELEBRITIES: Record<'musk' | 'jobs' | 'huang' | 'buffett', TunerCele
   },
 };
 
-function getCelebByFreq(freq: number): TunerCelebrity {
-  if (freq >= 90) return TUNER_CELEBRITIES.musk;
-  if (freq >= 80) return TUNER_CELEBRITIES.jobs;
-  if (freq >= 70) return TUNER_CELEBRITIES.huang;
-  return TUNER_CELEBRITIES.buffett;
+const TUNER_CELEBRITIES_JA: Record<'musk' | 'jobs' | 'huang' | 'buffett', TunerCelebrity> = {
+  musk: {
+    id: 'elon-musk',
+    name: 'イーロン・マスク',
+    title: 'テスラ・スペースX CEO / 火星を目指す勝負師',
+    sajuFact: '戊土 × 偏官 突破型開拓者',
+    archetype: '確率を超える突破型開拓者',
+    quote: '重要なことなら、確率が味方でなくてもやるべきだ。',
+    accentColor: '#FF2A4B',
+    glowColor: 'rgba(255, 42, 75, 0.75)',
+    badgeBg: 'rgba(255, 42, 75, 0.14)',
+    originDestiny:
+      '巨大な泰山(戊土)のような粘り強さの上に、極限のプレッシャーを切り裂く偏官の刃を宿しています。不可能と笑われる領域を単身で正面突破する圧倒的な気勢を持ちます。',
+    realityAction:
+      '破産の危機に直面しても破壊的革新にオールインする極限の勝負師の気質が、あなたの魂の核と90%以上同調しています。',
+  },
+  jobs: {
+    id: 'steve-jobs',
+    name: 'スティーブ・ジョブズ',
+    title: 'アップル創業者 / 革新的ビジョナリー',
+    sajuFact: '丙火 × 傷官 世界を変えた直感',
+    archetype: '美学を貫くビジョナリー',
+    quote: 'Stay hungry, stay foolish. (ハングリーであれ、愚かであれ)',
+    accentColor: '#00F0FF',
+    glowColor: 'rgba(0, 240, 255, 0.75)',
+    badgeBg: 'rgba(0, 240, 255, 0.14)',
+    originDestiny:
+      '世界を照らす太陽(丙火)の情熱の上に、既成概念を打破する傷官の天才的直感が融合。完璧なディテールと妥協なき美学を最後まで貫きます。',
+    realityAction:
+      '市場調査よりも内なる直感を信じ、世界の基準を自分に合わせようとする強烈な現実歪曲フィールドがあなたと深く共鳴しています。',
+  },
+  huang: {
+    id: 'jensen-huang',
+    name: 'ジェンスン・フアン',
+    title: 'NVIDIA CEO / 革ジャンのAI錬金術師',
+    sajuFact: '庚金 × 偏財 潮目を読む執念',
+    archetype: '潮目を読む不屈の執念',
+    quote: '偉大さは知性からではなく、痛みに耐える品格から生まれる。',
+    accentColor: '#00FF88',
+    glowColor: 'rgba(0, 255, 136, 0.75)',
+    badgeBg: 'rgba(0, 255, 136, 0.14)',
+    originDestiny:
+      '硬い原石と刃(庚金)の冷徹さの上に、巨大な市場の流れを見抜く偏財のビジネス第六感を装備。10年先を見据えて刃を研ぎ続ける粘り強さを誇ります。',
+    realityAction:
+      '誰もが目を向けない時期でもブレずに巨大な潮流の要所を先回りし、独占的領域を築く痛みに耐える勝負手があなたの気運と70%以上一致します。',
+  },
+  buffett: {
+    id: 'warren-buffett',
+    name: 'ウォーレン・バフェット',
+    title: 'バークシャー・ハサウェイ会長 / オマハの賢人',
+    sajuFact: '己土 × 正財 複利の巨人',
+    archetype: '複利を育てる忍耐の賢人',
+    quote: '他人が貪欲なときに恐れ、他人が恐れているときに貪欲であれ。',
+    accentColor: '#FFB800',
+    glowColor: 'rgba(255, 184, 0, 0.75)',
+    badgeBg: 'rgba(255, 184, 0, 0.14)',
+    originDestiny:
+      '万物を育てる肥沃な田畑(己土)の粘り強さに、塵を積もらせ山とする正財の緻密な管理力が極大化。一時の流行に惑わされない根深い安定性を誇ります。',
+    realityAction:
+      '感情的衝動を徹底して排除し時間の力を味方にして最後に笑う、遅くとも最も確実な複利の法則があなたの資質と一致します。',
+  },
+};
+
+function getCelebByFreq(freq: number, locale: Locale = 'ko'): TunerCelebrity {
+  const table = locale === 'ja' ? TUNER_CELEBRITIES_JA : TUNER_CELEBRITIES;
+  if (freq >= 90) return table.musk;
+  if (freq >= 80) return table.jobs;
+  if (freq >= 70) return table.huang;
+  return table.buffett;
 }
 
 const CARD_RATIO = 9 / 16;
@@ -123,6 +188,7 @@ function formatToday(): string {
 export function CelebrityShareModal({ visible, onClose, celebrityResult, userDayMaster }: Props) {
   const { width, height } = useWindowDimensions();
   const [isSharing, setIsSharing] = useState(false);
+  const { locale } = useLocale();
 
   // 기본 주파수 슬라이더 초기값 (사용자 사주 기반 syncRate 반영, 60~99% 범위)
   const initialFreq = useMemo(() => {
@@ -139,7 +205,16 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
     }
   }, [visible, initialFreq]);
 
-  const currentCeleb = useMemo(() => getCelebByFreq(sliderFreq), [sliderFreq]);
+  const currentCeleb = useMemo(() => getCelebByFreq(sliderFreq, locale), [sliderFreq, locale]);
+
+  const handleTwitterShare = () => {
+    void playHaptic('tap');
+    openTwitterShare({
+      celebName: currentCeleb.name,
+      rate: sliderFreq,
+      locale,
+    });
+  };
 
   if (!visible) {
     return null;
@@ -253,7 +328,9 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
             {/* 1. 상단 사이버 헤더 */}
             <View style={styles.header}>
               <Text style={[styles.headerTitle, { color: currentCeleb.accentColor }]} numberOfLines={1}>
-                CYBER-SAJU // SOUL FREQUENCY MATRIX
+                {locale === 'ja'
+                  ? 'CYBER-推命 // 魂の周波数マトリクス'
+                  : 'CYBER-SAJU // SOUL FREQUENCY MATRIX'}
               </Text>
               <Text style={styles.headerDate}>{formatToday()}</Text>
             </View>
@@ -289,7 +366,9 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
                 >
                   {sliderFreq}%
                 </Text>
-                <Text style={styles.syncLabel}>주파수 동조</Text>
+                <Text style={styles.syncLabel}>
+                  {locale === 'ja' ? '周波数同調' : '주파수 동조'}
+                </Text>
               </View>
             </View>
 
@@ -411,7 +490,7 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
               <View style={styles.analysisItem}>
                 <View style={styles.analysisItemHeader}>
                   <Text style={[styles.analysisItemTitle, { color: currentCeleb.accentColor }]}>
-                    ☯️ 본원과 십신의 결
+                    {locale === 'ja' ? '☯️ 本元と十神の性質' : '☯️ 본원과 십신의 결'}
                   </Text>
                 </View>
                 <Text style={styles.analysisItemBody}>{currentCeleb.originDestiny}</Text>
@@ -421,7 +500,7 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
               <View style={styles.analysisItem}>
                 <View style={styles.analysisItemHeader}>
                   <Text style={[styles.analysisItemTitle, { color: currentCeleb.accentColor }]}>
-                    ⚡ 현실 행동 동기화
+                    {locale === 'ja' ? '⚡ 現実行動の同期' : '⚡ 현실 행동 동기화'}
                   </Text>
                 </View>
                 <Text style={styles.analysisItemBody}>{currentCeleb.realityAction}</Text>
@@ -431,7 +510,7 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
             {/* 7. 푸터 */}
             <View style={styles.footer}>
               <Text style={styles.footerBrand}>
-                CYBER-SAJU // {userDayMaster ? `${userDayMaster} 일간 공명` : 'LOCAL EDGE AI'}
+                {locale === 'ja' ? 'CYBER-推命' : 'CYBER-SAJU'} // {userDayMaster ? `${userDayMaster} ${locale === 'ja' ? '日干共鳴' : '일간 공명'}` : 'LOCAL EDGE AI'}
               </Text>
               <Text style={styles.footerCta}>INSTAGRAM STORY SPEC // 9:16</Text>
             </View>
@@ -441,7 +520,7 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
         {/* 하단 컨트롤 버튼 영역 */}
         <View style={[styles.buttonRow, { width: cardWidth }]}>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-            <Text style={styles.closeBtnText}>닫기</Text>
+            <Text style={styles.closeBtnText}>{locale === 'ja' ? '閉じる' : '닫기'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.shareBtn, { backgroundColor: currentCeleb.accentColor }]}
@@ -449,8 +528,19 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
             disabled={isSharing}
             activeOpacity={0.8}
           >
-            <Text style={styles.shareBtnText}>
-              {isSharing ? '📸 스토리 캡처 중...' : '📲 인스타 스토리에 공유하기'}
+            <Text style={styles.shareBtnText} numberOfLines={1}>
+              {isSharing
+                ? (locale === 'ja' ? '📸 キャプチャ中...' : '📸 캡처 중...')
+                : (locale === 'ja' ? '📲 Instagram 共有' : '📲 인스타 공유')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.twitterBtn}
+            onPress={handleTwitterShare}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.twitterBtnText} numberOfLines={1}>
+              {locale === 'ja' ? '𝕏 ポスト' : '𝕏 포스트하기'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -675,7 +765,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   closeBtn: {
-    flex: 1,
+    flex: 0.85,
     minHeight: 44,
     borderRadius: 10,
     backgroundColor: '#1E293B',
@@ -683,22 +773,46 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   closeBtnText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: 'bold',
   },
   shareBtn: {
-    flex: 2.2,
+    flex: 1.55,
     minHeight: 44,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   shareBtnText: {
     color: '#090D16',
-    fontSize: 13,
+    fontSize: 12.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  twitterBtn: {
+    flex: 1.45,
+    minHeight: 44,
+    borderRadius: 10,
+    backgroundColor: '#000000',
+    borderWidth: 1.2,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 14px rgba(255, 255, 255, 0.15)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  twitterBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
     fontWeight: '900',
     letterSpacing: 0.2,
   },

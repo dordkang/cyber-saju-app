@@ -21,6 +21,8 @@ import { TodayOmenCard } from '../cards/TodayOmenCard';
 import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import { TodayCircuitCard } from '../cards/TodayCircuitCard';
+import { useLocale } from '../../locales';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 import {
   ELEMENT_AURA,
   REEL_ACCENT_HEX,
@@ -185,58 +187,59 @@ const PeekCard = memo(function PeekCard({
   );
 });
 
-function peekCopy(meta: ReelSectionMeta, context: ReelsContext): { body: string; cta: string } {
+function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = false): { body: string; cta: string } {
   switch (meta.id) {
     case 'life':
       return {
         body: context.life
           ? `${context.life.currentAgeLabel ? `${context.life.currentAgeLabel} · ` : ''}${context.life.ageLabel} · ${context.life.ganji}\n${context.life.theme}`
-          : '생년월일과 성별을 입력하면 지금 어느 파도 위에 있는지 알려 드려요.',
-        cta: '10년 대운 전체보기',
+          : (isJa ? '生年月日と性別を入力すると、今どの波に乗っているかをお伝えします。' : '생년월일과 성별을 입력하면 지금 어느 파도 위에 있는지 알려 드려요.'),
+        cta: isJa ? '10年大運全体を見る' : '10년 대운 전체보기',
       };
     case 'people':
       return {
         body: '',
-        cta: context.people ? '정밀 분석 리포트' : '대상 설정하고 스캔',
+        cta: context.people ? (isJa ? '精密分析レポート' : '정밀 분석 리포트') : (isJa ? '対象を設定してスキャン' : '대상 설정하고 스캔'),
       };
     case 'money':
       return {
         body: context.money
-          ? `${context.money.headline}\n유입 ${context.money.inflowPower}% (${context.money.inflowLabel}) · 누수 ${context.money.outflowRisk}% (${context.money.outflowLabel})\n[${context.money.modeBadge}]`
-          : '사주와 오늘 일진으로 돈의 흐름을 읽어요.',
-        cta: '돈 버는 엔진 심층 분석 보기',
+          ? `${context.money.headline}\n${isJa ? '流入' : '유입'} ${context.money.inflowPower}% (${context.money.inflowLabel}) · ${isJa ? '漏洩' : '누수'} ${context.money.outflowRisk}% (${context.money.outflowLabel})\n[${context.money.modeBadge}]`
+          : (isJa ? '四柱推命と今日の日辰で金運の潮流を読み解きます。' : '사주와 오늘 일진으로 돈의 흐름을 읽어요.'),
+        cta: isJa ? '金運エンジン深層分析' : '돈 버는 엔진 심층 분석 보기',
       };
     case 'celebrity':
       return {
-        body: '일간과 최다 오행이 겹치는 사람을 로컬 명단에서 고릅니다. 서버로 나가지 않아요.',
-        cta: '유명인 매칭 열기',
+        body: isJa ? '日干と五行が重なる人物をローカル名簿から選出します。' : '일간과 최다 오행이 겹치는 사람을 로컬 명단에서 고릅니다. 서버로 나가지 않아요.',
+        cta: isJa ? '有名人マッチングを開く' : '유명인 매칭 열기',
       };
     case 'mbti':
       return {
         body: context.mbti
-          ? `선천 ${context.mbti.innate} → 가면 ${context.mbti.actual} · 일치 ${context.mbti.syncRate}% · 누수 ${context.mbti.leakage}%`
-          : '현실에서 쓰는 유형을 고르면, 사주 코어와의 간극이 숫자로 뜹니다.',
-        cta: '🎭 내 현실 MBTI(사회생활 가면) 변경하기',
+          ? `${isJa ? '先天' : '선천'} ${context.mbti.innate} → ${isJa ? '仮面' : '가면'} ${context.mbti.actual} · ${isJa ? '一致' : '일치'} ${context.mbti.syncRate}% · ${isJa ? '漏洩' : '누수'} ${context.mbti.leakage}%`
+          : (isJa ? '現実で使っているタイプを選ぶと、四柱コアとのギャップが数字で出ます。' : '현실에서 쓰는 유형을 고르면, 사주 코어와의 간극이 숫자로 뜹니다.'),
+        cta: isJa ? '🎭 現実MBTI(社会的仮面)を変更する' : '🎭 내 현실 MBTI(사회생활 가면) 변경하기',
       };
     case 'circuit':
       return {
-        body: '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.',
-        cta: '결핍 보완 실전 비책 보기',
+        body: isJa ? '生まれ持った最強の武器と最大の弱点を突き、現実の補強策を処方します。' : '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.',
+        cta: isJa ? '欠乏突破の実戦処方を見る' : '결핍 보완 실전 비책 보기',
       };
     case 'chamber':
       return {
         body: context.personaLabel
-          ? `지금 말투 · ${context.personaLabel}\n프로필 재설정, 로컬 백업, 배경음은 설정에서 다룹니다.`
-          : '도사 말투와 기기 설정은 여기서 바꿉니다.',
-        cta: '설정 열기',
+          ? `${isJa ? '現在の口調' : '지금 말투'} · ${context.personaLabel}\n${isJa ? 'プロフィール再設定、ローカルバックアップ、環境音は設定で調整します。' : '프로필 재설정, 로컬 백업, 배경음은 설정에서 다룹니다.'}`
+          : (isJa ? '道士の口調と端末設定はここで変更します。' : '도사 말투와 기기 설정은 여기서 바꿉니다.'),
+        cta: isJa ? '設定を開く' : '설정 열기',
       };
     default:
-      return { body: meta.subtitle, cta: '계속' };
+      return { body: meta.subtitle, cta: isJa ? '次へ' : '계속' };
   }
 }
 
 export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, context, ...actions }) => {
   const insets = useSafeAreaInsets();
+  const { isJa } = useLocale();
   const listRef = useRef<FlatList<ReelSectionMeta>>(null);
   const activeRef = useRef(0);
   const skipHapticRef = useRef(true);
@@ -350,7 +353,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
       );
     }
 
-    const peek = peekCopy(item, context);
+    const peek = peekCopy(item, context, isJa);
     const extra =
       item.id === 'people' ? (
         <PeopleTargetBlock
@@ -440,6 +443,20 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
       {paused && <View pointerEvents="none" style={styles.dim} />}
 
+      {/* 우측 상단 바 [ 🇰🇷 KR | 🇯🇵 JP ] 1초 언어 스위처 */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.topBarSwitcher,
+          {
+            top: insets.top + 8,
+            right: 28,
+          },
+        ]}
+      >
+        <LanguageSwitcher compact />
+      </View>
+
       <View pointerEvents="box-none" style={[styles.chrome, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.dots} accessibilityLabel={`${activeIndex + 1}번째 카드`}>
           {REEL_SECTIONS.map((section, i) => (
@@ -456,20 +473,32 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         <View style={[styles.rail, { marginBottom: Math.max(insets.bottom, 8) }]}>
           <RailButton
             icon="✦"
-            label={resonance > 0 ? String(resonance) : '공명'}
+            label={resonance > 0 ? String(resonance) : (isJa ? '共鳴' : '공명')}
             onPress={() =>
               railTap(() => {
                 setResonance((n) => n + 1);
               })
             }
           />
-          <RailButton icon="↗" label="공유" onPress={() => railTap(() => shareOmen(omenShareText))} />
+          <RailButton
+            icon="↗"
+            label={isJa ? '共有' : '공유'}
+            onPress={() => railTap(() => shareOmen(omenShareText))}
+          />
           <RailButton
             icon={context.soundOn ? '🔊' : '🔇'}
-            label={context.soundOn ? '소리 켜짐' : '소리'}
+            label={
+              context.soundOn
+                ? (isJa ? '音声ON' : '소리 켜짐')
+                : (isJa ? '音声' : '소리')
+            }
             onPress={() => railTap(() => actions.onToggleSound?.())}
           />
-          <RailButton icon="⚙️" label="설정" onPress={() => railTap(() => actions.onSettingsPress?.())} />
+          <RailButton
+            icon="⚙️"
+            label={isJa ? '設定' : '설정'}
+            onPress={() => railTap(() => actions.onSettingsPress?.())}
+          />
           <View style={[styles.railAvatar, { borderColor: aura.core }]}>
             <Text style={[styles.railAvatarText, { color: aura.core }]}>{aura.hanja}</Text>
           </View>
@@ -584,7 +613,10 @@ const styles = StyleSheet.create({
   ctaInk: { color: REEL_PALETTE.text },
   ctaInkDark: { color: REEL_PALETTE.ink },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
-
+  topBarSwitcher: {
+    position: 'absolute',
+    zIndex: 99,
+  },
   chrome: {
     position: 'absolute',
     top: 0,

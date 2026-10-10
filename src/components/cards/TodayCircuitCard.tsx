@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playHaptic } from '../reels/haptics';
 import type { FiveElement, SajuResult } from '../../engine/types';
+import { useLocale } from '../../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -175,6 +176,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
 }: TodayCircuitCardProps) {
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
+  const { isJa } = useLocale();
 
   // 기본 더미 데이터 (사주 정보 없을 시: 木 50%, 火 12.5%, 土 12.5%, 金 0%, 水 25%)
   const ratio = useMemo<Record<FiveElement, number>>(() => {
@@ -251,21 +253,29 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
         {/* 상단 칩: 07 · 오행 카운셀링 */}
         <View style={styles.headerRow}>
           <View style={styles.chip}>
-            <Text style={styles.chipText}>07 · 오행 카운셀링</Text>
+            <Text style={styles.chipText}>
+              {isJa ? '07 · 五行カウンセリング' : '07 · 오행 카운셀링'}
+            </Text>
           </View>
         </View>
 
         {/* 메인 타이틀 & 서브타이틀 */}
         <View style={styles.titleWrap}>
-          <Text style={styles.mainTitle}>선천 오행 DNA & 결핍 돌파 솔루션</Text>
+          <Text style={styles.mainTitle}>
+            {isJa ? '先天五行DNA ＆ 欠乏突破処方' : '선천 오행 DNA & 결핍 돌파 솔루션'}
+          </Text>
           <Text style={styles.subTitle}>
-            타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.
+            {isJa
+              ? '生まれ持った最強の武器と最大の弱点を突き、現実の補強策を処方します。'
+              : '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.'}
           </Text>
         </View>
 
         {/* 1. 상단: 오행 기운 회로 게이지 */}
         <View style={[styles.circuitCard, LUXURY_GLASS]}>
-          <Text style={styles.circuitHeaderTitle}>[선천 오행 원국 에너지 분포]</Text>
+          <Text style={styles.circuitHeaderTitle}>
+            {isJa ? '[先天五行原局エネルギー分布]' : '[선천 오행 원국 에너지 분포]'}
+          </Text>
           <View style={styles.circuitList}>
             {ELEMENT_ORDER.map((el) => {
               const info = ELEMENT_COUNSELING_MAP[el];
@@ -355,7 +365,9 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.ctaButtonText}>
-            {deficientInfo.icon} 부족한 {deficientInfo.hanja}({deficientInfo.shortConcept}) 기운 채우는 3대 실전 비책 보기 ➔
+            {deficientInfo.icon} {isJa
+              ? `不足している${deficientInfo.hanja}(${deficientInfo.shortConcept})の気を補う3大実戦秘策を見る ➔`
+              : `부족한 ${deficientInfo.hanja}(${deficientInfo.shortConcept}) 기운 채우는 3대 실전 비책 보기 ➔`}
           </Text>
         </Pressable>
       </ScrollView>
@@ -375,9 +387,11 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
             {/* 모달 헤더 */}
             <View style={styles.modalHeaderRow}>
               <View>
-                <Text style={styles.modalKicker}>현실 오행 인공 수혈 솔루션</Text>
+                <Text style={styles.modalKicker}>
+                  {isJa ? '現実の五行人工補強ソリューション' : '현실 오행 인공 수혈 솔루션'}
+                </Text>
                 <Text style={styles.modalTitle}>
-                  {deficientInfo.icon} [{deficientInfo.hanja} 결핍 돌파 3대 실전 비책]
+                  {deficientInfo.icon} [{deficientInfo.hanja} {isJa ? '欠乏突破の3大実戦処方' : '결핍 돌파 3대 실전 비책'}]
                 </Text>
               </View>
               <Pressable
@@ -432,7 +446,9 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
                 }}
                 style={styles.modalConfirmBtn}
               >
-                <Text style={styles.modalConfirmText}>비책 확인 및 기운 수혈하기</Text>
+                <Text style={styles.modalConfirmText}>
+                  {isJa ? '秘策を確認して気を補強する' : '비책 확인 및 기운 수혈하기'}
+                </Text>
               </Pressable>
             </ScrollView>
           </View>
