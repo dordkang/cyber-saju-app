@@ -15,6 +15,7 @@ import {
 import { USER_LORE_MAX_LENGTH } from '../database/db';
 import type { CalendarType, Gender } from '../database/db';
 import { useLocale } from '../locales';
+import { REALITY_PRESETS } from './LifeTimelineModal';
 
 export const BIRTH_TIME_UNKNOWN = '모름';
 
@@ -351,6 +352,38 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
                 </Text>
               </Pressable>
             </View>
+
+            {/* 원터치 현실 프리셋 칩 6종 */}
+            <View style={styles.presetGrid}>
+              {REALITY_PRESETS.map((preset) => {
+                const text = isJa ? preset.jp : preset.kr;
+                const isSelected = userLore.includes(text);
+                return (
+                  <Pressable
+                    key={preset.id}
+                    style={({ pressed }) => [
+                      styles.presetChip,
+                      isSelected && styles.presetChipActive,
+                      pressed && styles.pressed,
+                    ]}
+                    onPress={() => setUserLore(text)}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.presetChipIcon}>{preset.icon}</Text>
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        isSelected && styles.presetChipTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {text}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
             <TextInput
               style={[styles.input, styles.loreInput]}
               value={userLore}
@@ -573,4 +606,43 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { color: '#090D16', fontSize: 14, fontWeight: '900', textAlign: 'center' },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
+  presetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  presetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    maxWidth: '100%',
+  },
+  presetChipActive: {
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 8px rgba(0, 240, 255, 0.3)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  presetChipIcon: {
+    fontSize: 13,
+    marginRight: 6,
+  },
+  presetChipText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  presetChipTextActive: {
+    color: '#00F0FF',
+    fontWeight: '800',
+  },
 });

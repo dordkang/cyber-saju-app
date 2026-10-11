@@ -558,6 +558,7 @@ function AppContent() {
 
   const handleTimelineSynced = async () => {
     setLifeOnboarding(await getUserOnboardingData());
+    setProfile(await getUserProfile());
   };
 
   const handleTimelineRequestProfile = () => {
@@ -845,6 +846,7 @@ function AppContent() {
         calendarType={profile?.calendarType ?? 'solar'}
         initialSyncRatio={lifeOnboarding.syncRatio}
         initialInterests={lifeOnboarding.interests}
+        initialReality={profile?.userLore ?? ''}
         isSynced={lifeOnboarding.isSynced}
         onSynced={handleTimelineSynced}
         onRequestProfile={handleTimelineRequestProfile}

@@ -13,6 +13,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -40,7 +41,7 @@ import {
   TimeSliderMode,
   YearFortuneResult,
 } from '../engine/timelineEngine';
-import { updateUserOnboardingData } from '../database/db';
+import { updateUserOnboardingData, updateUserProfile, getUserProfile } from '../database/db';
 import { useLocale } from '../locales';
 
 const COLOR = {
@@ -72,6 +73,45 @@ const INTEREST_LABEL_JA: Record<InterestKey, string> = {
   love: '恋愛',
   children: '子宝',
   health: '健康',
+};
+
+export interface RealityPreset {
+  id: string;
+  icon: string;
+  kr: string;
+  jp: string;
+}
+
+export const REALITY_PRESETS: RealityPreset[] = [
+  { id: 'biz_expand', icon: '🏢', kr: '사업 확장 및 신규 아이템 추진 중', jp: '事業拡大および新規事業推進中' },
+  { id: 'cash_tight', icon: '💸', kr: '현금 회전 및 자금 유동성 방어 중', jp: '資金繰り・キャッシュフロー防衛中' },
+  { id: 'leave_job', icon: '🚪', kr: '조직 독립 및 퇴사/이직 준비 중', jp: '独立・退職・転身を準備中' },
+  { id: 'partner_issue', icon: '⚖️', kr: '동업자/거래처와의 계약 갈등', jp: '共同事業者・取引先との契約摩擦' },
+  { id: 'love_issue', icon: '❤️', kr: '배우자/연인과의 불화 및 거리두기', jp: '配偶者・恋人との不和・距離感' },
+  { id: 'burnout', icon: '🌿', kr: '극심한 번아웃과 기운 고갈 상태', jp: '深刻なバーンアウトと気力枯渇' },
+];
+
+export const DAEUN_INTEREST_FOCUS_MAP: Record<InterestKey, { kr: string; jp: string }> = {
+  wealth: {
+    kr: '💰 [재물/자금맥]: 지지 금고의 열림 상태와 현금 흐름 점검',
+    jp: '💰 [金運/資金脈]: 地支金庫の開口状態とキャッシュフローの総点検',
+  },
+  business: {
+    kr: '🏢 [사업/판세]: 계약 주도권 및 독립/확장 타이밍',
+    jp: '🏢 [事業/盤勢]: 契約の主導権確保と独立・事業拡張の好機',
+  },
+  love: {
+    kr: '❤️ [애정/인연]: 도화와 충극으로 인한 관계 변동성',
+    jp: '❤️ [恋愛/良縁]: 桃花と沖克による関係性の激変と引き際',
+  },
+  health: {
+    kr: '🌿 [건강/오행]: 쇠약해진 장기 및 오행 편중 질환 경보',
+    jp: '🌿 [健康/五行]: 衰弱した臓器および五行偏重による疾患警報',
+  },
+  children: {
+    kr: '👶 [자식/후대]: 식상 운에 따른 자식과의 유대와 독립',
+    jp: '👶 [子宝/後代]: 食傷運に伴う子世代との絆と自立の節目',
+  },
 };
 
 const RISK_META: Record<RiskLevel, { label: string; color: string }> = {
@@ -309,6 +349,7 @@ export interface LifeTimelineModalProps {
   /** DB에 저장된 값. 모달이 열릴 때마다 이 값으로 초기화한다. */
   initialSyncRatio?: number;
   initialInterests?: readonly string[];
+  initialReality?: string;
   /** 사용자가 이미 대운 동기화를 확정했는지. 미확정이면 initialSyncRatio/initialInterests는 기본값이다. */
   isSynced?: boolean;
   /** DB 저장 성공 직후 호출 */
@@ -333,6 +374,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   calendarType,
   initialSyncRatio,
   initialInterests,
+  initialReality,
   isSynced = false,
   onSynced,
   onRequestProfile,
@@ -344,6 +386,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const [interests, setInterests] = useState<InterestKey[]>([...DEFAULT_INTERESTS]);
   const [syncRatio, setSyncRatio] = useState(DEFAULT_LIFE_SYNC_RATIO);
   const [committedSync, setCommittedSync] = useState(DEFAULT_LIFE_SYNC_RATIO);
+  const [realityInput, setRealityInput] = useState(initialReality ?? '');
   const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
@@ -362,6 +405,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     setSyncRatio(ratio);
     setCommittedSync(ratio);
     setInterests(normalizeInterests(initialInterests));
+    setRealityInput(initialReality ?? '');
+    if (!initialReality) {
+      getUserProfile()
+        .then((p) => {
+          if (p?.userLore) setRealityInput(p.userLore);
+        })
+        .catch(() => undefined);
+    }
     setDragging(false);
     setSaving(false);
     setToastVisible(false);
@@ -371,7 +422,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     setTmYear(Math.min(TM_YEAR_MAX, Math.max(TM_YEAR_MIN, opened.getFullYear())));
     setTmMonth(opened.getMonth() + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialSyncRatio, initialInterestsKey]);
+  }, [visible, initialSyncRatio, initialInterestsKey, initialReality]);
 
   const timeline = useMemo(() => {
     if (!visible || (gender !== 'male' && gender !== 'female')) return null;
@@ -473,6 +524,13 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     setSaving(true);
     try {
       await updateUserOnboardingData(syncRatio, interests);
+      if (realityInput.trim()) {
+        try {
+          await updateUserProfile({ userLore: realityInput.trim() });
+        } catch (e) {
+          console.warn('userLore 저장 실패:', e);
+        }
+      }
       try {
         await onSynced?.(syncRatio, interests);
       } catch (e) {
@@ -551,6 +609,32 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             ? '丁火の燃え盛る灯火が壬水の満ち引きする大河と手を取り合い、一体となって絡み合い（丁壬合・子丑合）、契約や貴人という堅固な防波堤の陰で拠点を固めて耐え抜く中年期。'
             : period.summary}
         </Text>
+
+        {/* ⚡ 선택 관심사 맞춤 해단 네온 박스 */}
+        <View style={styles.interestAdviceBox}>
+          <View style={styles.interestAdviceHeader}>
+            <Text style={styles.interestAdviceHeaderTitle}>
+              {isJa ? '⚡ 選択関心事の個別解断' : '⚡ 선택 관심사 맞춤 해단'}
+            </Text>
+          </View>
+          {interests.length > 0 ? (
+            interests.map((key) => {
+              const item = DAEUN_INTEREST_FOCUS_MAP[key];
+              if (!item) return null;
+              return (
+                <Text key={key} style={styles.interestAdviceItem}>
+                  {isJa ? item.jp : item.kr}
+                </Text>
+              );
+            })
+          ) : (
+            <Text style={styles.interestAdviceEmpty}>
+              {isJa
+                ? '関心事を選択すると10年単位の個別戦略が表示されます'
+                : '관심사를 선택하면 10년 단위 맞춤 전략이 열립니다'}
+            </Text>
+          )}
+        </View>
 
         {isOpen && (
           <View style={styles.factBox}>
@@ -907,18 +991,83 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             </View>
           </View>
 
-          {/* 섹션 4: 신년 운세 */}
+          {/* 섹션 4: 나의 현재 현실 상황 & 원터치 퀵 프리셋 */}
           <Text style={styles.sectionTitle}>
-            [04 · {yearFortune ? `${yearFortune.year} ${yearFortune.ganji.label}년` : `${DEFAULT_TARGET_YEAR}년`} 신년 운세]
+            {isJa ? '[04 · 私の現在の現実状況 · ワンタッチ入力]' : '[04 · 나의 현재 현실 상황 · 원터치 입력]'}
+          </Text>
+          <View style={styles.realitySection}>
+            <Text style={styles.realitySubGuide}>
+              {isJa
+                ? '現在の状況を1タップで選択するか、直接入力してください。大運とAI分析に即時反映されます。'
+                : '현재 처한 상황을 1탭으로 선택하거나 직접 적어주세요. 대운 및 AI 분석에 즉각 반영됩니다.'}
+            </Text>
+
+            {/* 원터치 상황 퀵 프리셋 칩 6종 */}
+            <View style={styles.presetGrid}>
+              {REALITY_PRESETS.map((preset) => {
+                const text = isJa ? preset.jp : preset.kr;
+                const isSelected = realityInput.includes(text);
+                return (
+                  <TouchableOpacity
+                    key={preset.id}
+                    style={[
+                      styles.presetChip,
+                      isSelected && styles.presetChipActive,
+                    ]}
+                    onPress={() => {
+                      setRealityInput(text);
+                    }}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.presetChipIcon}>{preset.icon}</Text>
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        isSelected && styles.presetChipTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {text}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 텍스트 입력창 */}
+            <TextInput
+              style={styles.realityInput}
+              value={realityInput}
+              onChangeText={setRealityInput}
+              placeholder={
+                isJa
+                  ? '現在の状況、ビジネス・転職・人間関係の悩みを自由に入力 (上のチップをタップすると自動入力)...'
+                  : '현재 처한 상황이나 고민을 편하게 적어주세요 (상단 프리셋 칩 탭 시 자동 완성)...'
+              }
+              placeholderTextColor="#475569"
+              multiline
+              maxLength={300}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* 섹션 5: 신년 운세 */}
+          <Text style={styles.sectionTitle}>
+            [05 · {yearFortune ? (isJa ? `${yearFortune.year}年 ${yearFortune.ganji.label}年 新年運勢` : `${yearFortune.year} ${yearFortune.ganji.label}년 신년 운세`) : (isJa ? `${DEFAULT_TARGET_YEAR}年 新年運勢` : `${DEFAULT_TARGET_YEAR}년 신년 운세`)}]
           </Text>
           {yearFortune ? renderYearFortune(yearFortune) : (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>신년 운세를 계산하지 못했습니다. 생년월일을 확인해 주세요.</Text>
+              <Text style={styles.emptyText}>
+                {isJa ? '新年運勢を計算できませんでした。生年月日をご確認ください。' : '신년 운세를 계산하지 못했습니다. 생년월일을 확인해 주세요.'}
+              </Text>
             </View>
           )}
 
-          {/* 섹션 5: 타임머신 슬라이더 */}
-          <Text style={styles.sectionTitle}>[05 · 미래 예측 시간여행]</Text>
+          {/* 섹션 6: 타임머신 슬라이더 */}
+          <Text style={styles.sectionTitle}>
+            {isJa ? '[06 · 未来予測タイムトラベル]' : '[06 · 미래 예측 시간여행]'}
+          </Text>
           <View style={styles.tmBox}>
             <View style={styles.tmTabs}>
               {(['year', 'month'] as const).map((mode) => {
@@ -974,14 +1123,18 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
             {tmResult ? renderTimeMachineHud(tmResult) : (
               <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>선택한 시점의 운세를 계산하지 못했습니다.</Text>
+                <Text style={styles.emptyText}>
+                  {isJa ? '選択した時点の運勢を計算できませんでした。' : '선택한 시점의 운세를 계산하지 못했습니다.'}
+                </Text>
               </View>
             )}
           </View>
 
-          {/* 섹션 6: 올해 남은 N개월 */}
+          {/* 섹션 7: 올해 남은 N개월 */}
           <Text style={styles.sectionTitle}>
-            [06 · 올해 남은 {months.length > 0 ? `${months.length}개월` : '개월'} 잔여운]
+            {isJa
+              ? `[07 · 今年の残り${months.length > 0 ? `${months.length}ヶ月` : ''}運勢]`
+              : `[07 · 올해 남은 ${months.length > 0 ? `${months.length}개월` : '개월'} 잔여운]`}
           </Text>
           {months.length > 0 ? (
             <ScrollView
@@ -1522,4 +1675,103 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   toastText: { color: COLOR.text, fontSize: 13, fontWeight: '800', textAlign: 'center', lineHeight: 19 },
+
+  /* 선택 관심사 맞춤 해단 네온 박스 */
+  interestAdviceBox: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 240, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.35)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 10px rgba(0, 240, 255, 0.15)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  interestAdviceHeader: {
+    marginBottom: 6,
+  },
+  interestAdviceHeaderTitle: {
+    color: '#00F0FF',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  interestAdviceItem: {
+    color: '#E2E8F0',
+    fontSize: 11,
+    lineHeight: 18,
+    fontWeight: '600',
+    marginVertical: 2,
+  },
+  interestAdviceEmpty: {
+    color: '#8B9BB4',
+    fontSize: 11,
+    lineHeight: 16,
+    fontStyle: 'italic',
+  },
+
+  /* 현실 상황 원터치 프리셋 칩 & 입력창 */
+  realitySection: {
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  realitySubGuide: {
+    color: '#8B9BB4',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  presetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  presetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    maxWidth: '100%',
+  },
+  presetChipActive: {
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 8px rgba(0, 240, 255, 0.3)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  presetChipIcon: {
+    fontSize: 13,
+    marginRight: 6,
+  },
+  presetChipText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  presetChipTextActive: {
+    color: '#00F0FF',
+    fontWeight: '800',
+  },
+  realityInput: {
+    backgroundColor: '#0B1220',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1F293D',
+    padding: 12,
+    color: '#E2E8F0',
+    fontSize: 13,
+    lineHeight: 20,
+    minHeight: 76,
+  },
 });
