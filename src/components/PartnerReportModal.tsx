@@ -6,6 +6,8 @@ import type { PartnerRadarResult } from '../engine/partnerRadar';
 import type { PartnerPrescription } from '../engine/partnerPrescription';
 import { IS_TEST_MODE, REPORT_PRICE_LABEL } from '../constants/devFlags';
 import { useLocale } from '../locales';
+import { useSajuAdvice } from '../hooks/useSajuAdvice';
+import { formatSajuTerm } from '../utils/sajuTerms';
 
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
 const BLUR_BACKDROP = { backdropFilter: 'blur(10px)' } as unknown as ViewStyle;
@@ -79,6 +81,20 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
   const hasData = !!partner && !!radar;
   const isUnlocked = IS_TEST_MODE || paid;
   const accent = radar ? levelColor(radar.score) : COLORS.cyan;
+
+  const partnerDate = partner ? (partner.birthDate || `${(partner as any).year || ''}-${(partner as any).month || ''}-${(partner as any).day || ''}`) : undefined;
+  const { advice: aiReport, isLoading: isAiLoading, loadingMessage } = useSajuAdvice({
+    partnerProfile: partner ? {
+      name: partner.alias,
+      relation: formatSajuTerm(partner.relation || partner.alias, isJa ? 'jp' : 'kr'),
+      birthDate: partnerDate,
+      gender: partner.gender || undefined,
+    } : undefined,
+    category: 'love',
+    userInput: partner ? `${partner.alias || '상대'}과의 궁합 및 심리 분석` : undefined,
+    lang: isJa ? 'jp' : 'kr',
+    autoFetch: visible && !!partner,
+  });
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -163,6 +179,27 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                     {isJa
                       ? `桃花シグナル ${radar.peachCount}個 · 魅力ポジション ${radar.charmCount}個`
                       : `도화 신호 ${radar.peachCount}개 · 매력 자리 ${radar.charmCount}개`}
+                  </Text>
+                </View>
+
+                {/* 실시간 AI 딴마음·궁합 심리 리포트 */}
+                <View style={[styles.sectionCard, { borderColor: COLORS.violet, borderWidth: 1, backgroundColor: 'rgba(189, 147, 249, 0.06)' }]}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={[styles.sectionTitle, { color: COLORS.cyan, marginBottom: 0 }]}>
+                      {isJa ? '⚡ AIリアルタイム心理・相性神託' : '⚡ AI 실시간 심리·궁합 해단'}
+                    </Text>
+                    {isAiLoading && (
+                      <Text style={{ fontSize: 11, color: COLORS.muted }}>
+                        {loadingMessage}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={[styles.sectionLine, { lineHeight: 22, color: COLORS.text }]}>
+                    {isAiLoading
+                      ? (isJa ? '天機を演算中...（神託を受信しています）' : '옥통자가 상대의 사주와 기운을 관조하는 중...')
+                      : (aiReport
+                          ? formatSajuTerm(aiReport, isJa ? 'jp' : 'kr')
+                          : (isJa ? '相手の命式とあなたの関係性をAIがリアルタイムに分析中です。' : '상대의 명식과 심리를 실시간 분석 중입니다.'))}
                   </Text>
                 </View>
 

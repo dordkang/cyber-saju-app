@@ -32,6 +32,8 @@ interface TomorrowStrategyAccordionProps {
 }
 
 import { useLocale } from '../../locales';
+import { formatSajuTerm } from '../../utils/sajuTerms';
+import { useSajuAdvice } from '../../hooks/useSajuAdvice';
 
 const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; labelJa: string; icon: string }> = [
   { key: 'wealth', label: '재물', labelJa: '金運', icon: '💰' },
@@ -55,7 +57,7 @@ const GOD_JA_MAP: Record<string, string> = {
 };
 
 function formatGod(god: string, isJa: boolean): string {
-  return isJa ? (GOD_JA_MAP[god] ?? god) : god;
+  return isJa ? formatSajuTerm(GOD_JA_MAP[god] ?? god, 'jp') : god;
 }
 
 function formatShinsal(name: string, isJa: boolean): string {
@@ -66,7 +68,7 @@ function formatShinsal(name: string, isJa: boolean): string {
   if (name.includes('도화살') || name.includes('桃花殺')) return '桃花殺';
   if (name.includes('역마살') || name.includes('驛馬殺')) return '駅馬殺';
   if (name.includes('화개살') || name.includes('華蓋殺')) return '華蓋殺';
-  return name;
+  return formatSajuTerm(name, 'jp');
 }
 
 export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion({
@@ -124,6 +126,24 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     };
   }, [category, planText, omen, saju, partnerSaju, partner]);
 
+  const {
+    advice: aiAdvice,
+    headline: aiHeadline,
+    isLoading: isAiLoading,
+    loadingMessage,
+    refetch: refetchAiAdvice,
+  } = useSajuAdvice({
+    saju,
+    selectedDate: tomorrowDate,
+    category,
+    userInput: planText,
+    partnerProfile: partner,
+    partnerSaju,
+    lang: isJa ? 'jp' : 'kr',
+    autoFetch: false,
+    fallbackText: strategy.strategyText,
+  });
+
   const toggleExpand = () => {
     void playHaptic('tap');
     if (!unlocked) {
@@ -141,21 +161,23 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     } catch {}
   };
 
-  const handleCalculate = () => {
-    if (isLoading) return;
+  const handleCalculate = async () => {
+    if (isLoading || isAiLoading) return;
     void playHaptic('tap');
     setIsLoading(true);
     setLoadingPhase(0);
 
     setTimeout(() => {
       setLoadingPhase(1);
-    }, 900);
+    }, 600);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      setHasCalculated(true);
-      void playHaptic('snap');
-    }, 1800);
+    try {
+      await refetchAiAdvice();
+    } catch {}
+
+    setIsLoading(false);
+    setHasCalculated(true);
+    void playHaptic('snap');
   };
 
   if (!unlocked) {
@@ -282,12 +304,11 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
             </View>
           )}
 
-          {/* 상대방 사주가 이미 등록되어 있을 때 연동 안내 칩 */}
           {category === 'love' && Boolean(partnerSaju) && (
             <View style={styles.partnerLinkedBox}>
               <Text style={styles.partnerLinkedText}>
                 {isJa
-                  ? `🔗 ${partner?.alias === '배우자' ? '配偶者' : (partner?.alias || partner?.relation || 'お相手')}(${partnerSaju?.dayMaster} 日干)との合沖精密照合中`
+                  ? `🔗 ${formatSajuTerm(partner?.alias || partner?.relation || 'お相手', 'jp')}(${partnerSaju?.dayMaster} 日干)との合沖精密照合中`
                   : `🔗 ${partner?.alias || partner?.relation || '상대방'}(${partnerSaju?.dayMaster} 일간)과의 합충 정밀 대조 중`}
               </Text>
             </View>
@@ -315,18 +336,18 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           {/* ⚡ 옥동자 맞춤 작전 해단받기 버튼 */}
           <Pressable
             onPress={handleCalculate}
-            disabled={isLoading}
+            disabled={isLoading || isAiLoading}
             accessibilityRole="button"
             accessibilityLabel={isJa ? 'サイバー神童の作戦解断を授かる' : '옥통자 맞춤 작전 해단받기'}
             style={({ pressed }) => [
               styles.calcActionBtn,
-              isLoading && styles.calcActionBtnBusy,
+              (isLoading || isAiLoading) && styles.calcActionBtnBusy,
               pressed && styles.pressed,
             ]}
           >
             <Text style={styles.calcActionBtnText}>
-              {isLoading
-                ? (isJa ? '🔮 サイバー神童が天機を観照中...' : '🔮 옥통자가 천기를 관조하는 중...')
+              {(isLoading || isAiLoading)
+                ? (isJa ? '🔮 天機を演算中...（神託を受信しています）' : '🔮 옥통자가 천기를 관조하는 중...')
                 : hasCalculated
                 ? (isJa ? '↺ 別の悩みで再度神託を受ける' : '↺ 다른 고민으로 다시 점지받기')
                 : (isJa ? '⚡ サイバー神童の作戦解断を授かる ↗' : '⚡ 옥통자 맞춤 작전 해단받기 ↗')}
@@ -334,30 +355,30 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           </Pressable>
 
           {/* 신명 연산 로딩 상태 */}
-          {isLoading && (
+          {(isLoading || isAiLoading) && (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="small" color="#ff2a4b" />
               <Text style={styles.loadingPulseText}>
-                {loadingPhase === 0
-                  ? (isJa ? '🔮 サイバー神童が天機を観照中...' : '🔮 옥통자가 천기를 관조하는 중...')
-                  : (isJa
-                    ? `⚡ 明日の日辰(${omen.ganji})と${saju?.dayMaster ?? '戊'}土日干の通変星・神殺の気を噛み合わせ中...`
-                    : `⚡ 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신·신살 기운을 맞물리는 중...`)}
+                {loadingMessage}
               </Text>
             </View>
           )}
 
           {/* 연산 완료 후 정통 명리 작전 해단 카드 */}
-          {hasCalculated && !isLoading && (
+          {hasCalculated && !isLoading && !isAiLoading && (
             <View style={styles.strategyBox}>
               <View style={styles.strategyHeader}>
-                <Text style={styles.strategyKicker}>{strategy.headline}</Text>
+                <Text style={styles.strategyKicker}>
+                  {formatSajuTerm(aiHeadline || strategy.headline, isJa ? 'jp' : 'kr')}
+                </Text>
               </View>
-              <Text style={styles.strategyBody}>{strategy.strategyText}</Text>
+              <Text style={styles.strategyBody}>
+                {formatSajuTerm(aiAdvice || strategy.strategyText, isJa ? 'jp' : 'kr')}
+              </Text>
             </View>
           )}
 
-          {!hasCalculated && !isLoading && (
+          {!hasCalculated && !isLoading && !isAiLoading && (
             <Text style={styles.preCalcHint}>
               {isJa
                 ? '分野と悩みをご確認の上、上の［作戦解断を授かる］を押すと、神託の天機演算が始まります。'

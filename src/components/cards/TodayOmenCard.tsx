@@ -41,6 +41,8 @@ import { playHaptic } from '../reels/haptics';
 import { TomorrowStrategyAccordion } from './TomorrowStrategyAccordion';
 import { useLocale } from '../../locales';
 import { LanguageSwitcher } from '../LanguageSwitcher';
+import { useSajuAdvice } from '../../hooks/useSajuAdvice';
+import { formatSajuTerm } from '../../utils/sajuTerms';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -215,6 +217,19 @@ export const TodayOmenCard = memo(function TodayOmenCard({
     if (cleaned) return cleaned;
     return dynamicOmen.god ? GOD_LINE[dynamicOmen.god] : FALLBACK_LINE;
   }, [data.fortuneText, dynamicOmen.god, isJa]);
+
+  const {
+    advice: aiFortuneText,
+    isLoading: isFortuneAiLoading,
+    loadingMessage: fortuneLoadingMessage,
+  } = useSajuAdvice({
+    saju,
+    selectedDate,
+    category: 'fortune',
+    lang: isJa ? 'jp' : 'kr',
+    autoFetch: fortuneModalOpen,
+    fallbackText: displayFortuneText,
+  });
 
   const handlePrevDay = () => {
     void playHaptic('tap');
@@ -534,7 +549,17 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                 contentContainerStyle={styles.modalScrollContent}
               >
                 <View style={styles.modalQuoteBox}>
-                  <Text style={styles.modalFortuneText}>{displayFortuneText}</Text>
+                  {isFortuneAiLoading ? (
+                    <View style={{ paddingVertical: 14, alignItems: 'center' }}>
+                      <Text style={[styles.modalFortuneText, { color: '#BD93F9', textAlign: 'center' }]}>
+                        {fortuneLoadingMessage}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.modalFortuneText}>
+                      {formatSajuTerm(aiFortuneText || displayFortuneText, isJa ? 'jp' : 'kr')}
+                    </Text>
+                  )}
                 </View>
 
                 {Boolean(data.luckyItem) && (
