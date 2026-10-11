@@ -59,7 +59,8 @@ import {
 } from './src/components/ProfileSettingModal';
 import type { ProfileFormValues } from './src/components/ProfileSettingModal';
 import { ReelsContainer } from './src/components/reels/ReelsContainer';
-import { SettingsMenuModal } from './src/components/SettingsMenuModal';
+import { SettingsModal } from './src/components/modals/SettingsModal';
+import { TalismanRitualModal } from './src/components/modals/TalismanRitualModal';
 import type { ReelsContext, ReelsLifePeek, ReelsMbtiPeek, ReelsPeoplePeek } from './src/types/reels';
 import { AGENT_STORE, AGENT_TYPES } from './src/prompts/agents';
 import type { AgentType } from './src/prompts/agents';
@@ -79,7 +80,17 @@ const IS_WEB = Platform.OS === 'web';
 
 // 모바일 브라우저는 주소창 때문에 100vh가 실제 보이는 영역보다 커서 하단 UI가 잘린다. dvh는 동적 뷰포트를 따른다.
 const WEB_VIEWPORT_STYLE: ViewStyle | undefined = IS_WEB
-  ? ({ height: '100dvh', minHeight: '100dvh', overflow: 'hidden' } as unknown as ViewStyle)
+  ? ({
+      width: '100%',
+      height: '100dvh',
+      minHeight: '100dvh',
+      maxHeight: '100dvh',
+      overflow: 'hidden',
+      backgroundColor: '#0a0507',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+    } as unknown as ViewStyle)
   : undefined;
 
 /** react-native-web의 Alert.alert는 아무 동작도 하지 않으므로 브라우저 대화상자로 대체한다. */
@@ -245,6 +256,7 @@ function AppContent() {
   const [personaVisible, setPersonaVisible] = useState(false);
   const [celebrityVisible, setCelebrityVisible] = useState(false);
   const [mbtiVisible, setMbtiVisible] = useState(false);
+  const [talismanVisible, setTalismanVisible] = useState(false);
   const [persona, setPersona] = useState<AgentType>(DEFAULT_PERSONA);
   const [soundOn, setSoundOn] = useState(false);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -686,10 +698,18 @@ function AppContent() {
     backupVisible ||
     personaVisible ||
     celebrityVisible ||
-    mbtiVisible;
+    mbtiVisible ||
+    talismanVisible;
 
   return (
-    <View style={[isDesktopWeb ? styles.desktopWrapper : styles.mobileWrapper, WEB_VIEWPORT_STYLE]}>
+    <View
+      style={[
+        styles.mainWrapper,
+        isDesktopWeb ? styles.desktopWrapper : styles.mobileWrapper,
+        WEB_VIEWPORT_STYLE,
+      ]}
+      {...({ className: 'w-full h-[100dvh] overflow-hidden bg-[#0a0507] flex justify-center items-center' } as any)}
+    >
       {/* PC 전용 앰비언트 백그라운드 & 장식 요소 */}
       {isDesktopWeb && (
         <View pointerEvents="none" style={styles.desktopAmbient}>
@@ -716,7 +736,7 @@ function AppContent() {
           </View>
         )}
 
-        {/* 메인 앱 콘텐츠 뷰 */}
+        {/* 메인 앱 단일 릴스(Full Reels-Only) 뷰: 하단 레거시 카드 및 섹션 완전 배제 */}
         <View style={styles.appContainer}>
           <ReelsContainer
             paused={anyModalOpen}
@@ -741,8 +761,8 @@ function AppContent() {
         )}
       </View>
 
-      {/* 모달 컴포넌트 목록 */}
-      <SettingsMenuModal
+      {/* 전역 모달 컴포넌트 목록 */}
+      <SettingsModal
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
         personaLabel={`${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`}
@@ -756,6 +776,11 @@ function AppContent() {
         onOpenBackup={() => openFromSettings(() => setBackupVisible(true))}
         onOpenPersona={() => openFromSettings(() => setPersonaVisible(true))}
         onToggleSound={handleToggleSound}
+      />
+
+      <TalismanRitualModal
+        visible={talismanVisible}
+        onClose={() => setTalismanVisible(false)}
       />
 
       <BackupModal
@@ -868,11 +893,19 @@ function AppContent() {
 }
 
 const styles = StyleSheet.create({
+  mainWrapper: {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    backgroundColor: '#0a0507',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   desktopWrapper: {
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#0b0f17',
+    backgroundColor: '#0a0507',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -882,7 +915,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#05070D',
+    backgroundColor: '#0a0507',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   desktopAmbient: {
     ...StyleSheet.absoluteFill,
@@ -924,7 +960,7 @@ const styles = StyleSheet.create({
     height: '92%',
     maxHeight: 880,
     minHeight: 620,
-    backgroundColor: '#05070D',
+    backgroundColor: '#0a0507',
     borderRadius: 44,
     borderWidth: 8,
     borderColor: '#222222',
@@ -947,16 +983,20 @@ const styles = StyleSheet.create({
   phoneFrameMobile: {
     flex: 1,
     width: '100%',
+    maxWidth: 420,
     height: '100%',
-    backgroundColor: '#05070D',
+    backgroundColor: '#0a0507',
     borderRadius: 0,
     borderWidth: 0,
+    overflow: 'hidden',
+    alignSelf: 'center',
   },
   appContainer: {
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#05070D',
+    backgroundColor: '#0a0507',
+    overflow: 'hidden',
   },
   islandWrapper: {
     position: 'absolute',

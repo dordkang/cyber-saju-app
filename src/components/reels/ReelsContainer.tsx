@@ -44,8 +44,28 @@ const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
 const GLASS = (
   IS_WEB ? { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' } : null
 ) as unknown as ViewStyle | null;
-const WEB_SNAP_ITEM = (IS_WEB ? { scrollSnapAlign: 'start', scrollSnapStop: 'always' } : null) as unknown as ViewStyle | null;
-const WEB_SNAP_LIST = (IS_WEB ? { scrollSnapType: 'y mandatory' } : null) as unknown as ViewStyle | null;
+const WEB_SNAP_ITEM = (
+  IS_WEB
+    ? {
+        scrollSnapAlign: 'start',
+        scrollSnapStop: 'always',
+        height: '100%',
+        maxHeight: '100%',
+        width: '100%',
+        overflow: 'hidden',
+      }
+    : null
+) as unknown as ViewStyle | null;
+const WEB_SNAP_LIST = (
+  IS_WEB
+    ? {
+        scrollSnapType: 'y mandatory',
+        overflowY: 'auto',
+        height: '100%',
+        width: '100%',
+      }
+    : null
+) as unknown as ViewStyle | null;
 
 const VIEWABILITY = { itemVisiblePercentThreshold: 70, minimumViewTime: 80 } as const;
 
@@ -176,7 +196,11 @@ const PeekCard = memo(function PeekCard({
   const subtitleLabel = cardJa?.subtitle ?? meta.subtitle;
 
   return (
-    <View style={[styles.page, WEB_SNAP_ITEM, { height }]} pointerEvents={active ? 'auto' : 'none'}>
+    <View
+      style={[styles.page, WEB_SNAP_ITEM, { height }]}
+      pointerEvents={active ? 'auto' : 'none'}
+      {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+    >
       <LinearGradient
         colors={[REEL_PALETTE.obsidian, `${accent}33`, REEL_PALETTE.obsidian]}
         locations={[0, 0.5, 1]}
@@ -353,7 +377,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
     const active = index === activeIndex && !paused;
     if (item.id === 'omen') {
       return (
-        <View style={WEB_SNAP_ITEM}>
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
           <TodayOmenCard
             data={context.omen}
             active={active}
@@ -371,7 +398,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
     if (item.id === 'money') {
       return (
-        <View style={WEB_SNAP_ITEM}>
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
           <TodayMoneyCard
             data={context.money}
             active={active}
@@ -384,7 +414,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
     if (item.id === 'mbti') {
       return (
-        <View style={WEB_SNAP_ITEM}>
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
           <TodayMbtiCard
             data={context.mbti}
             active={active}
@@ -398,7 +431,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
     if (item.id === 'circuit') {
       return (
-        <View style={WEB_SNAP_ITEM}>
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
           <TodayCircuitCard
             elementsRatio={context.elementsRatio}
             active={active}
@@ -411,7 +447,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
     if (item.id === 'chamber') {
       return (
-        <View style={WEB_SNAP_ITEM}>
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
           <ShamanChamberCard
             active={active}
             height={pageHeight}
@@ -520,7 +559,8 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             onViewableItemsChanged={onViewableItemsChanged}
             onMomentumScrollEnd={handleScrollEnd}
             key={pageHeight}
-            style={WEB_SNAP_LIST}
+            style={[styles.pagerList, WEB_SNAP_LIST]}
+            {...({ className: 'w-full h-full snap-y snap-mandatory overflow-y-auto' } as any)}
           />
         )}
       </View>
@@ -607,8 +647,9 @@ const styles = StyleSheet.create({
     backgroundColor: REEL_PALETTE.obsidian,
     overflow: 'hidden',
   },
-  pager: { flex: 1 },
-  page: { width: '100%', overflow: 'hidden', backgroundColor: REEL_PALETTE.obsidian },
+  pager: { flex: 1, width: '100%', height: '100%', overflow: 'hidden' },
+  pagerList: { flex: 1, width: '100%', height: '100%' },
+  page: { width: '100%', height: '100%', overflow: 'hidden', backgroundColor: REEL_PALETTE.obsidian },
   dim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0, 0, 0, 0.32)',
