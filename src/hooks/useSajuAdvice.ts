@@ -25,6 +25,7 @@ export interface UseSajuAdviceParams {
   lang?: 'kr' | 'jp' | 'ko' | 'ja';
   autoFetch?: boolean;
   fallbackText?: string;
+  voiceStyle?: string;
 }
 
 export interface UseSajuAdviceResult {
@@ -51,12 +52,19 @@ export function useSajuAdvice({
   lang = 'kr',
   autoFetch = true,
   fallbackText = '',
+  voiceStyle,
 }: UseSajuAdviceParams): UseSajuAdviceResult {
   const isJa = lang === 'jp' || lang === 'ja';
   const effectiveLang: 'kr' | 'jp' = isJa ? 'jp' : 'kr';
+
+  // 페르소나 말투 (voiceStyle) 판별: brother (심야 사형) vs shaman (옥동자)
+  const storedPersona = typeof localStorage !== 'undefined' ? localStorage.getItem('cyber_saju_persona') : null;
+  const rawVoice = voiceStyle || storedPersona || 'shaman';
+  const effectiveVoiceStyle = (rawVoice === 'COMRADE' || rawVoice === 'brother') ? 'brother' : 'shaman';
+
   const loadingMessage = isJa
-    ? '天機を演算中...（神託を受信しています）'
-    : '옥통자가 천기를 관조하는 중...';
+    ? (effectiveVoiceStyle === 'brother' ? '兄弟子が盤勢を読み解き中...' : '神童が天機を演算中...')
+    : (effectiveVoiceStyle === 'brother' ? '심야 사형이 술잔을 기울이며 판세를 짚는 중...' : '옥동자가 신명을 불러 모으는 중...');
 
   const [advice, setAdvice] = useState<string>(fallbackText);
   const [headline, setHeadline] = useState<string>('');
@@ -77,6 +85,7 @@ export function useSajuAdvice({
     userInput: userInput.trim(),
     partnerId: partnerProfile?.id ?? partnerProfile?.alias ?? '',
     lang: effectiveLang,
+    voiceStyle: effectiveVoiceStyle,
   });
 
   const fetchAdvice = useCallback(async () => {
@@ -125,6 +134,8 @@ export function useSajuAdvice({
         elementsRatio: saju?.elementsRatio ?? userProfile?.elementsRatio,
         eventCategory: category,
         userLore: userInput.trim(),
+        voiceStyle: effectiveVoiceStyle,
+        agentType: effectiveVoiceStyle === 'brother' ? 'COMRADE' : 'DOKSA',
         partnerInfo: partnerProfile
           ? {
               alias: partnerProfile.alias,
@@ -169,7 +180,7 @@ export function useSajuAdvice({
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, [cacheKey, dayMaster, effectiveLang, fallbackText, partnerProfile, partnerSaju, saju, selectedDate, userProfile, userInput, category]);
+  }, [cacheKey, dayMaster, effectiveLang, effectiveVoiceStyle, fallbackText, partnerProfile, partnerSaju, saju, selectedDate, userProfile, userInput, category]);
 
   useEffect(() => {
     if (!autoFetch) return;

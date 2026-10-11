@@ -66,6 +66,17 @@ const COLD_READING_RULE_JA =
   "[コールドリーディング規則] 相談者の背景情報が与えられた場合、「あなたが入力した」「おっしゃる通り」といった表現は厳禁。" +
   "四柱推命と気運を透視した結果として、最初からすべてを見抜いていたかのように現実と交差させて喝破せよ。";
 
+const PERSONA_VOICE_TONE: Record<"brother" | "shaman", { kr: string; jp: string }> = {
+  brother: {
+    kr: "[도사 어조 지침: 심야 사형] 소주잔 기울이며 인생 뼈 때리는 묵직하고 인간적인 베테랑 사형/선배의 말투 (~인마, ~생각해봐라, 잔 채워라).",
+    jp: "【道士口調指針: 深夜の兄弟子】酒を酌み交わしながら人生の核心を突く、無骨で情に厚いベテラン兄弟子の口調 (~ぜ、~だろ、飲めよ)。",
+  },
+  shaman: {
+    kr: "[도사 어조 지침: 옥동자] 서슬 퍼런 10살 박수동자/신명의 반말 단도직입 직설 (~거라, ~보거라).",
+    jp: "【道士口調指針: サイバー神童】冷徹で神秘的なサイバー神童の一刀両断の神託口調 (~せよ、~のだ)。",
+  },
+};
+
 const FALLBACK_FEEDBACK: Record<AgentType, string> = {
   DOKSA:
     "문턱을 넘어 들어서는 발소리부터 숨이 턱 끝까지 차오른 기색이 완연하구나. 남들 앞에서는 태연한 척 웃어도 속은 이미 시커먼 숯검정이 된 것을 내 어찌 모를까. 어디 한 곳 마음 편히 기댈 언덕도 없이, 밑 빠진 독에 제 살을 깎아 넣듯 홀로 버텨온 시간들이 얼마나 모질고 서러웠겠느냐.\n\n" +
@@ -723,17 +734,30 @@ export default {
       const hasJapanese = /[\u3040-\u30ff\u31f0-\u31ff]/.test(userText);
       const isJa = lang === "jp" || lang === "ja" || hasJapanese;
 
-      const agentType = normalizeAgent(parsed.agentType);
+      const rawVoice = pickString(parsed.voiceStyle, 20).toLowerCase();
+      const voiceStyle: "brother" | "shaman" =
+        rawVoice === "brother" || rawVoice === "comrade" || parsed.agentType === "COMRADE"
+          ? "brother"
+          : "shaman";
+
+      const agentType = parsed.agentType
+        ? normalizeAgent(parsed.agentType)
+        : (voiceStyle === "brother" ? "COMRADE" : "DOKSA");
+
+      const voiceDirective = isJa
+        ? PERSONA_VOICE_TONE[voiceStyle].jp
+        : PERSONA_VOICE_TONE[voiceStyle].kr;
+
       const defaultInstruction = isJa ? DEFAULT_SYSTEM_INSTRUCTION_JA : DEFAULT_SYSTEM_INSTRUCTION;
       const personaInstruction =
         pickString(parsed.systemInstruction, MAX_SYSTEM_INSTRUCTION_CHARS) || defaultInstruction;
       const responseRule = isJa ? RESPONSE_RULE_JA : RESPONSE_RULE;
       const coldReadingRule = isJa ? COLD_READING_RULE_JA : COLD_READING_RULE;
 
-      // 클라이언트 페르소나 지침을 최우선으로 두고, 서버 고정 응답 규칙을 뒤에 덧붙인다.
+      // 클라이언트 페르소나 지침을 최우선으로 두고, 도사 어조 지침과 서버 고정 응답 규칙을 뒤에 덧붙인다.
       const hasLore = pickUserLore(parsed.userLore).length > 0;
       const systemInstruction =
-        `${personaInstruction}\n\n${responseRule}` + (hasLore ? `\n\n${coldReadingRule}` : "");
+        `${personaInstruction}\n\n${voiceDirective}\n\n${responseRule}` + (hasLore ? `\n\n${coldReadingRule}` : "");
       const userPrompt = buildUserPrompt(parsed, isJa);
 
       let feedback = "";

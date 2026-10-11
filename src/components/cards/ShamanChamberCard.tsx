@@ -61,6 +61,43 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   const [questionText, setQuestionText] = useState<string>('');
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
 
+  // 1일 5회 한정 카운터 관리
+  const MAX_DAILY_QUESTIONS = 5;
+  const todayKeyStr = useMemo(() => {
+    try {
+      return new Date().toISOString().slice(0, 10);
+    } catch {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }, []);
+
+  const countStorageKey = `cyber_saju_chamber_count_${todayKeyStr}`;
+
+  const [usedCount, setUsedCount] = useState<number>(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const val = localStorage.getItem(`cyber_saju_chamber_count_${new Date().toISOString().slice(0, 10)}`);
+        return val ? Math.min(MAX_DAILY_QUESTIONS, Math.max(0, parseInt(val, 10) || 0)) : 0;
+      }
+    } catch {}
+    return 0;
+  });
+
+  const remainingQuestions = Math.max(0, MAX_DAILY_QUESTIONS - usedCount);
+  const isExhausted = remainingQuestions <= 0;
+
+  // 설정된 도사 말투(Persona) 감지
+  const currentPersona = useMemo(() => {
+    try {
+      return (typeof localStorage !== 'undefined' ? localStorage.getItem('cyber_saju_persona') : null) || 'DOKSA';
+    } catch {
+      return 'DOKSA';
+    }
+  }, []);
+  const isBrother = currentPersona === 'COMRADE' || currentPersona === 'brother';
+  const effectiveVoiceStyle = isBrother ? 'brother' : 'shaman';
+
   // 로컬스토리지에서 상대방 사주 정보(cyber_saju_partner) 읽기
   const partnerProfile = useMemo(() => {
     try {
@@ -94,6 +131,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     userInput: questionText,
     lang: isJa ? 'jp' : 'kr',
     autoFetch: false,
+    voiceStyle: effectiveVoiceStyle,
   });
 
   // 카테고리 칩 선택 핸들러
@@ -105,8 +143,15 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
 
   // 즉문즉답 전송 핸들러
   const handleSubmit = async () => {
-    if (!questionText.trim()) return;
+    if (!questionText.trim() || isExhausted || isAiLoading) return;
     void playHaptic('snap');
+    const nextCount = usedCount + 1;
+    setUsedCount(nextCount);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(countStorageKey, String(nextCount));
+      }
+    } catch {}
     setHasSubmitted(true);
     await fetchAiAdvice();
   };
@@ -122,11 +167,17 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   // 일간 기반 오라클 기본 답변 생성기 (네트워크 지연 시 즉각 백업)
   const fallbackOracle = useMemo(() => {
     const day = saju?.dayMaster ?? '甲';
+    if (isBrother) {
+      if (isJa) {
+        return `【深夜の兄弟子・痛烈な直言】\n「おい、お前の生まれ持った日干『${day}』の気運を見ろよ。盤勢はもうギリギリの瀬戸際だぜ。酒でも飲んで腹を割って聞け。小細工なんて捨てて、お前が真っ先に仕掛けて主導権を握るんだ。情に流されてグズグズしてたら全部かっさらわれるぞ。今夜は腹を決めて、明日から堂々と己の道を突き進め！」`;
+      }
+      return `【심야 사형의 뼈 때리는 직설】\n「야 인마, 네 타고난 일간 '${day}'의 기운을 보니까 판세가 이미 벼랑 끝 변곡점이다. 소주 한잔 마시고 내 말 똑똑히 새겨들어라. 잔머리 굴리지 말고 네가 먼저 칼자루 쥐고 밥상 엎어야 살아남는다. 미련 떨지 말고 가차 없이 쳐내라. 내일 날 밝으면 고개 바짝 들고 네 판 당당하게 깔아라!」`;
+    }
     if (isJa) {
       return `【サイバー神童・天機直説】\n「お前の生まれ持った日干『${day}』の気運を見るに、盤勢は既に臨界点に達している。小細工や迷いで逃げ道を塞ぐな。今はお前が主導権を握り、妥協を拒絶して自らの盤面を切り開くべき刻限だ。情に流されて優柔不断を晒せば、その隙を突かれて全てを奪われる。刃を研ぎ澄まし、即座に決断せよ。」`;
     }
     return `【옥동자 신명직설(神明直說)】\n「네 타고난 일간 '${day}'의 기운과 사주 원국을 해부해 보니, 판세는 이미 벼랑 끝 변곡점에 닿아 있다. 잔머리 굴리며 간 보지 마라. 지금은 남 눈치 보며 맞춰줄 때가 아니라, 네가 먼저 밥상을 엎고 칼자루를 쥐어야 살아남는 국면이다. 썩은 인연과 미련을 가차 없이 도려내고 단도직입으로 쐐기를 박아라!」`;
-  }, [saju?.dayMaster, isJa]);
+  }, [saju?.dayMaster, isJa, isBrother]);
 
   const displayAdvice = aiAdvice
     ? formatSajuTerm(aiAdvice, isJa ? 'jp' : 'kr')
@@ -165,6 +216,17 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
               ? '建前を捨て、最も切迫した悩みを吐き出せ。一刀両断で盤勢の脈を解断する。'
               : '체면을 벗고 가장 처절한 근심을 털어놓아라. 단도직입으로 판세의 맥을 짚는다.'}
           </Text>
+        </View>
+
+        {/* 1일 5회 한정 잔여 카운터 배지 */}
+        <View style={styles.limitBadgeRow}>
+          <View style={[styles.limitBadge, isExhausted && styles.limitBadgeExhausted]}>
+            <Text style={[styles.limitBadgeText, isExhausted && styles.limitBadgeTextExhausted]}>
+              {isJa
+                ? `🔥 1日5回限定の神託 (本日の残り: ${remainingQuestions}/5回)`
+                : `🔥 1일 5회 한정 천기누설 (오늘 남은 질문: ${remainingQuestions}/5회)`}
+            </Text>
+          </View>
         </View>
 
         {/* 2. 10대 천기 질문 칩 UI (2열 그리드) */}
@@ -246,12 +308,12 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
           {/* 전송 버튼 */}
           <Pressable
             onPress={handleSubmit}
-            disabled={isAiLoading || !questionText.trim()}
+            disabled={isAiLoading || !questionText.trim() || isExhausted}
             style={({ pressed }) => [
               styles.submitBtn,
               CRIMSON_SHADOW,
-              (!questionText.trim() || isAiLoading) && styles.submitBtnDisabled,
-              pressed && styles.pressed,
+              (!questionText.trim() || isAiLoading || isExhausted) && styles.submitBtnDisabled,
+              pressed && !isExhausted && styles.pressed,
             ]}
             accessibilityRole="button"
           >
@@ -262,11 +324,17 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
                   {isJa ? '神童が天機を演算中...' : '옥동자가 신명을 불러 모으는 중...'}
                 </Text>
               </View>
+            ) : isExhausted ? (
+              <Text style={[styles.submitBtnText, styles.submitBtnTextExhausted]}>
+                {isJa
+                  ? '本日の神託はすべて消費されました (深夜0時に回復)'
+                  : '오늘의 천기가 모두 소진되었습니다 (자정에 충전)'}
+              </Text>
             ) : (
               <Text style={styles.submitBtnText}>
                 {isJa
-                  ? '⚡ サイバー神童の即問即答'
-                  : '⚡ 옥동자 신명 즉문즉답'}
+                  ? (isBrother ? '⚡ 深夜の兄弟子の即問即答' : '⚡ サイバー神童の即問即答')
+                  : (isBrother ? '⚡ 심야 사형의 뼈 때리는 즉답' : '⚡ 옥동자 신명 즉문즉답')}
               </Text>
             )}
           </Pressable>
@@ -354,6 +422,32 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: '500',
     ...KEEP_ALL,
+  },
+  limitBadgeRow: {
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  limitBadge: {
+    backgroundColor: 'rgba(255, 42, 75, 0.15)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.45)',
+  },
+  limitBadgeExhausted: {
+    backgroundColor: 'rgba(107, 28, 43, 0.3)',
+    borderColor: 'rgba(150, 40, 60, 0.35)',
+  },
+  limitBadgeText: {
+    color: '#ff6b81',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  limitBadgeTextExhausted: {
+    color: '#a07882',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -467,6 +561,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.3,
+  },
+  submitBtnTextExhausted: {
+    color: '#ffccd4',
+    fontSize: 12,
+    fontWeight: '800',
   },
   answerCard: {
     backgroundColor: 'rgba(28, 4, 10, 0.95)',

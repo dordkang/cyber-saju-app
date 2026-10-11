@@ -81,7 +81,11 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
           <MenuRow
             icon="💾"
             title={isJa ? 'ローカルバックアップ・復元' : '1초 로컬 백업 · 복원'}
-            caption={isJa ? 'サーバーを介さず端末データを保存・復旧' : '서버 없이 이 기기 데이터를 꺼내고 되살리기'}
+            caption={
+              isJa
+                ? 'キャッシュ削除や機種変更に備え、命式データを安全に保管・復元します。'
+                : '스마트폰 변경이나 캐시 삭제에 대비해 내 사주 데이터를 안전하게 보관합니다.'
+            }
             onPress={onOpenBackup}
           />
           <MenuRow
@@ -94,11 +98,13 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
           <View style={styles.row}>
             <Text style={styles.rowIcon}>{soundOn ? '🔊' : '🔇'}</Text>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>{isJa ? '五行ヒーリングサウンド' : '오행 힐링 사운드'}</Text>
+              <Text style={styles.rowTitle}>
+                {isJa ? '神秘アンビエント瞑想音 (寺院・シンギングボウル)' : '신명 앰비언트 명상음 (사찰 싱잉볼)'}
+              </Text>
               <Text style={styles.rowCaption} numberOfLines={1}>
                 {isJa
-                  ? (soundOn ? '432Hzの背景音が再生中' : '432Hzの背景音OFF')
-                  : (soundOn ? '432Hz 배경음이 흐르는 중' : '432Hz 배경음 꺼짐')}
+                  ? (soundOn ? '寺院のシンギングボウル瞑想音が再生中' : 'アンビエント瞑想音OFF')
+                  : (soundOn ? '사찰 싱잉볼 명상음이 흐르는 중' : '명상 배경음 꺼짐')}
               </Text>
             </View>
             <Switch
@@ -106,7 +112,7 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
               onValueChange={onToggleSound}
               trackColor={{ false: '#2A3350', true: 'rgba(0, 255, 204, 0.55)' }}
               thumbColor={soundOn ? '#00FFCC' : '#8A99AD'}
-              accessibilityLabel={isJa ? '五行ヒーリングサウンド切り替え' : '오행 힐링 사운드 켜기 끄기'}
+              accessibilityLabel={isJa ? '神秘アンビエント瞑想音切り替え' : '신명 앰비언트 명상음 켜기 끄기'}
             />
           </View>
         </View>
