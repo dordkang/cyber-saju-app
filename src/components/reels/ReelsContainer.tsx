@@ -245,7 +245,6 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
   const skipHapticRef = useRef(true);
   const [pageHeight, setPageHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [resonance, setResonance] = useState(0);
 
   const getItemLayout = useCallback(
     (_: unknown, index: number) => ({ length: pageHeight, offset: pageHeight * index, index }),
@@ -417,7 +416,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             data={REEL_SECTIONS}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
-            extraData={`${activeIndex}:${paused}:${resonance}`}
+            extraData={`${activeIndex}:${paused}`}
             getItemLayout={getItemLayout}
             pagingEnabled
             snapToInterval={pageHeight}
@@ -471,15 +470,6 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         </View>
 
         <View style={[styles.rail, { marginBottom: Math.max(insets.bottom, 8) }]}>
-          <RailButton
-            icon="✦"
-            label={resonance > 0 ? String(resonance) : (isJa ? '共鳴' : '공명')}
-            onPress={() =>
-              railTap(() => {
-                setResonance((n) => n + 1);
-              })
-            }
-          />
           <RailButton
             icon="↗"
             label={isJa ? '共有' : '공유'}

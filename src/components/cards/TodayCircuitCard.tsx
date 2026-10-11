@@ -58,108 +58,217 @@ interface ElementCounseling {
   solPartner: string;
 }
 
-const ELEMENT_COUNSELING_MAP: Record<FiveElement, ElementCounseling> = {
-  Metal: {
-    element: 'Metal',
-    name: '금(金)',
-    hanja: '金',
-    shortConcept: '결단·수확',
-    icon: '🗡️',
-    color: '#E2E8F0',
-    glow: 'rgba(226, 232, 240, 0.75)',
-    dominantBadge: '압도적 엔진 · 냉철한 칼날 DNA',
-    dominantHeadline: '군더더기를 베어내는 서슬 퍼런 쇠(金)',
-    dominantCounseling:
-      '사주의 기운 중 쇠와 칼날(金)의 비중이 가장 높습니다. 복잡한 문제를 단숨에 정리하고 냉철하게 결단을 내리며 마진을 지켜내는 날카로운 통찰과 원칙주의가 당신의 천재성입니다. 가치 없는 것을 쳐내고 진짜 알짜배기만 남기는 개혁가의 숙명을 타고났습니다.',
-    deficientBadge: '취약점 경보 · 결단의 부재',
-    deficientHeadline: '거절하지 못하고 가지치기에 실패하는 위험',
-    deficientCounseling:
-      '사주에 쇠와 칼날(金)의 기운이 0%로 완전히 비어 있습니다. 판은 기가 막히게 벌려놓고 마지막에 냉정하게 거절하지 못해 손해를 보거나, 정에 이끌려 수금과 단가 협상에서 물러터지기 쉬운 아킬레스건이 있습니다. 가지치기를 못 해 벌려놓은 일에 스스로 질식할 위험을 주의해야 합니다.',
-    solObject: '은빛 메탈 체인, 묵직한 금속 볼펜, 흰색/은색 계열 소품 착용으로 흩어진 기운을 조여주기.',
-    solBusiness: '계약서 날인 전 반드시 24시간 냉각기 갖기, 거절하기 힘든 부탁은 "회사 내규상 어렵다"며 시스템 뒤로 숨기.',
-    solPartner: '나와 반대로 사주에 쇠(金) 기운이 단단한 냉철한 참모나 파트너에게 마지막 검수와 계약 마무리를 전담시키기.',
+export const CIRCUIT_COUNSELING_DICT: Record<
+  'ko' | 'ja',
+  Record<FiveElement, ElementCounseling>
+> = {
+  ko: {
+    Metal: {
+      element: 'Metal',
+      name: '금(金)',
+      hanja: '金',
+      shortConcept: '결단·수확',
+      icon: '🗡️',
+      color: '#E2E8F0',
+      glow: 'rgba(226, 232, 240, 0.75)',
+      dominantBadge: '압도적 엔진 · 냉철한 칼날 DNA',
+      dominantHeadline: '군더더기를 베어내는 서슬 퍼런 쇠(金)',
+      dominantCounseling:
+        '사주의 기운 중 쇠와 칼날(金)의 비중이 가장 높습니다. 복잡한 문제를 단숨에 정리하고 냉철하게 결단을 내리며 마진을 지켜내는 날카로운 통찰과 원칙주의가 당신의 천재성입니다. 가치 없는 것을 쳐내고 진짜 알짜배기만 남기는 개혁가의 숙명을 타고났습니다.',
+      deficientBadge: '취약점 경보 · 결단의 부재',
+      deficientHeadline: '거절하지 못하고 가지치기에 실패하는 위험',
+      deficientCounseling:
+        '사주에 쇠와 칼날(金)의 기운이 0%로 완전히 비어 있습니다. 판은 기가 막히게 벌려놓고 마지막에 냉정하게 거절하지 못해 손해를 보거나, 정에 이끌려 수금과 단가 협상에서 물러터지기 쉬운 아킬레스건이 있습니다. 가지치기를 못 해 벌려놓은 일에 스스로 질식할 위험을 주의해야 합니다.',
+      solObject: '은빛 메탈 체인, 묵직한 금속 볼펜, 흰색/은색 계열 소품 착용으로 흩어진 기운을 조여주기.',
+      solBusiness: '계약서 날인 전 반드시 24시간 냉각기 갖기, 거절하기 힘든 부탁은 "회사 내규상 어렵다"며 시스템 뒤로 숨기.',
+      solPartner: '나와 반대로 사주에 쇠(金) 기운이 단단한 냉철한 참모나 파트너에게 마지막 검수와 계약 마무리를 전담시키기.',
+    },
+    Wood: {
+      element: 'Wood',
+      name: '목(木)',
+      hanja: '木',
+      shortConcept: '기획·돌파',
+      icon: '🌲',
+      color: '#00FF9D',
+      glow: 'rgba(0, 255, 157, 0.75)',
+      dominantBadge: '압도적 엔진 · 개척자 DNA',
+      dominantHeadline: '폭발적인 기획력과 실행력의 나무(木)',
+      dominantCounseling:
+        '사주의 절반이 거대한 나무(木)로 이루어져 있습니다. 남들이 계산기 두드리며 망설일 때, 이미 현장에 나가 판을 깔고 공장을 돌리는 폭발적인 기획력과 실행력이 당신의 천재성입니다. 무에서 유를 만들어내는 개척자의 숙명을 타고났습니다.',
+      deficientBadge: '취약점 경보 · 시작의 두려움',
+      deficientHeadline: '첫 발을 떼지 못하고 망설이는 위험',
+      deficientCounseling:
+        '사주에 나무와 새싹(木)의 기운이 비어 있습니다. 머릿속으로는 완벽한 계획을 세워두고도 첫 발을 떼는 것을 망설이거나, 실패에 대한 두려움으로 시작 시기를 놓치기 쉬운 아킬레스건이 있습니다. 유연성과 생명력을 의식적으로 보충해야 합니다.',
+      solObject: '원목 소품, 녹색 계열 패션 포인트, 책상 위 싱싱한 생화나 관엽식물 두기.',
+      solBusiness: '완벽을 기다리지 말고 60% 완성도에서 일단 론칭하기, 첫 5분 즉각 실행 룰 적용하기.',
+      solPartner: '저돌적으로 일을 저지르고 판을 벌리는 목(木) 기운 강한 개척자형 동료와 협업하기.',
+    },
+    Fire: {
+      element: 'Fire',
+      name: '화(火)',
+      hanja: '火',
+      shortConcept: '열정·마케팅',
+      icon: '🔥',
+      color: '#FF3366',
+      glow: 'rgba(255, 51, 102, 0.75)',
+      dominantBadge: '압도적 엔진 · 열정의 비전가 DNA',
+      dominantHeadline: '세상을 물들이는 태양의 불꽃(火)',
+      dominantCounseling:
+        '사주의 기운 중 타오르는 불(火)의 비중이 가장 높습니다. 주변 사람들의 마음에 불을 지피고 단숨에 이목을 집중시키는 압도적인 카리스마와 표현력이 당신의 천재성입니다. 어둠 속에서도 스스로 빛을 밝혀 대중을 이끄는 선구자의 숙명을 타고났습니다.',
+      deficientBadge: '취약점 경보 · 표현의 위축',
+      deficientHeadline: '실력을 알아주지 않아 묻히는 위험',
+      deficientCounseling:
+        '사주에 불과 빛(火)의 기운이 비어 있습니다. 실력과 전문성은 충분하나 자신을 드러내고 마케팅하는 것을 쑥스러워하여 본인의 가치를 제대로 인정받지 못하는 아킬레스건이 있습니다. 가만히 있으면 아무도 알아주지 않는 현실의 벽에 부딪힐 수 있습니다.',
+      solObject: '붉은색/와인색 포인트 액세서리, 조도가 밝은 조명 스탠드 사용, 따뜻한 차 마시기.',
+      solBusiness: '매주 1회 내 성과와 비전을 적극적으로 알리는 피칭 루틴 만들기, 감정 표현을 20% 과장해 전달하기.',
+      solPartner: '대중 앞에서 능숙하게 무대를 장악하고 분위기를 띄우는 화(火) 기운 풍부한 스피커를 대변인으로 세우기.',
+    },
+    Earth: {
+      element: 'Earth',
+      name: '토(土)',
+      hanja: '土',
+      shortConcept: '안정·신뢰',
+      icon: '⛰️',
+      color: '#FFB800',
+      glow: 'rgba(255, 184, 0, 0.75)',
+      dominantBadge: '압도적 엔진 · 대지의 경영자 DNA',
+      dominantHeadline: '흔들리지 않는 거대한 태산(土)',
+      dominantCounseling:
+        '사주의 기운 중 묵직한 흙(土)의 비중이 가장 높습니다. 어떤 풍파와 위기 속에서도 중심을 잃지 않고 모든 자원과 사람을 품어내는 압도적인 포용력과 신뢰가 당신의 천재성입니다. 장기전에서 결국 최후의 승자가 되는 반석 같은 경영자의 숙명을 타고났습니다.',
+      deficientBadge: '취약점 경보 · 중심의 불안정',
+      deficientHeadline: '뿌리를 내리지 못하고 분산되는 위험',
+      deficientCounseling:
+        '사주에 흙과 대지(土)의 기운이 비어 있습니다. 재능과 아이디어는 넘치나 환경의 변화에 쉽게 흔들리고, 자산을 굳건히 축적하기보다는 여기저기 흩뿌려 실속이 부족해지기 쉬운 아킬레스건이 있습니다. 뿌리를 내리는 인내심이 필수적입니다.',
+      solObject: '황토색/베이지색 가죽 소품, 도자기 머그잔, 단단한 원석이나 스톤 오브제 소지.',
+      solBusiness: '잦은 방향 전환을 멈추고 3년 단위의 중기 로드맵 고수하기, 현금 자산을 묶어두는 강제 저축 시스템 만들기.',
+      solPartner: '묵직하게 버텨주며 흔들리는 멘탈을 잡아주는 흙(土) 기운 가득한 멘토를 곁에 두기.',
+    },
+    Water: {
+      element: 'Water',
+      name: '수(水)',
+      hanja: '水',
+      shortConcept: '유연·지략',
+      icon: '🌊',
+      color: '#00E5FF',
+      glow: 'rgba(0, 229, 255, 0.75)',
+      dominantBadge: '압도적 엔진 · 심연의 지략가 DNA',
+      dominantHeadline: '모든 틈을 파고드는 깊은 물(水)',
+      dominantCounseling:
+        '사주의 기운 중 유연하고 깊은 물(水)의 비중이 가장 높습니다. 장애물을 정면으로 들이받지 않고 우회하여 마침내 바다에 이르는 탁월한 유연성과 정보 수집력, 심리전의 지혜가 당신의 천재성입니다. 판의 흐름을 먼저 읽고 뒤에서 수를 놓는 책사의 숙명을 타고났습니다.',
+      deficientBadge: '취약점 경보 · 융통성의 고갈',
+      deficientHeadline: '정면충돌하여 상처 입는 위험',
+      deficientCounseling:
+        '사주에 물과 강(水)의 기운이 비어 있습니다. 직선적이고 타협을 모르는 고집으로 인해 상대의 숨은 의도를 읽지 못하거나, 막다른 길에서도 우회하지 못하고 정면충돌해 상처를 입는 아킬레스건이 있습니다. 유연한 처세와 여유가 절실합니다.',
+      solObject: '블랙/네이비 톤 의상, 물병을 항상 휴대하며 자주 수분 섭취하기, 수족관이나 분수대 근처 산책.',
+      solBusiness: '갈등 상황에서 즉각 반박하지 말고 "3일 뒤에 답변드리겠다"며 시간 벌기, 물러서는 것도 전략임을 기억하기.',
+      solPartner: '상황 판단이 빠르고 타인의 심리를 기가 막히게 읽어내는 수(水) 기운 넘치는 지략가와 동행하기.',
+    },
   },
-  Wood: {
-    element: 'Wood',
-    name: '목(木)',
-    hanja: '木',
-    shortConcept: '기획·돌파',
-    icon: '🌲',
-    color: '#00FF9D',
-    glow: 'rgba(0, 255, 157, 0.75)',
-    dominantBadge: '압도적 엔진 · 개척자 DNA',
-    dominantHeadline: '폭발적인 기획력과 실행력의 나무(木)',
-    dominantCounseling:
-      '사주의 절반이 거대한 나무(木)로 이루어져 있습니다. 남들이 계산기 두드리며 망설일 때, 이미 현장에 나가 판을 깔고 공장을 돌리는 폭발적인 기획력과 실행력이 당신의 천재성입니다. 무에서 유를 만들어내는 개척자의 숙명을 타고났습니다.',
-    deficientBadge: '취약점 경보 · 시작의 두려움',
-    deficientHeadline: '첫 발을 떼지 못하고 망설이는 위험',
-    deficientCounseling:
-      '사주에 나무와 새싹(木)의 기운이 비어 있습니다. 머릿속으로는 완벽한 계획을 세워두고도 첫 발을 떼는 것을 망설이거나, 실패에 대한 두려움으로 시작 시기를 놓치기 쉬운 아킬레스건이 있습니다. 유연성과 생명력을 의식적으로 보충해야 합니다.',
-    solObject: '원목 소품, 녹색 계열 패션 포인트, 책상 위 싱싱한 생화나 관엽식물 두기.',
-    solBusiness: '완벽을 기다리지 말고 60% 완성도에서 일단 론칭하기, 첫 5분 즉각 실행 룰 적용하기.',
-    solPartner: '저돌적으로 일을 저지르고 판을 벌리는 목(木) 기운 강한 개척자형 동료와 협업하기.',
-  },
-  Fire: {
-    element: 'Fire',
-    name: '화(火)',
-    hanja: '火',
-    shortConcept: '열정·마케팅',
-    icon: '🔥',
-    color: '#FF3366',
-    glow: 'rgba(255, 51, 102, 0.75)',
-    dominantBadge: '압도적 엔진 · 열정의 비전가 DNA',
-    dominantHeadline: '세상을 물들이는 태양의 불꽃(火)',
-    dominantCounseling:
-      '사주의 기운 중 타오르는 불(火)의 비중이 가장 높습니다. 주변 사람들의 마음에 불을 지피고 단숨에 이목을 집중시키는 압도적인 카리스마와 표현력이 당신의 천재성입니다. 어둠 속에서도 스스로 빛을 밝혀 대중을 이끄는 선구자의 숙명을 타고났습니다.',
-    deficientBadge: '취약점 경보 · 표현의 위축',
-    deficientHeadline: '실력을 알아주지 않아 묻히는 위험',
-    deficientCounseling:
-      '사주에 불과 빛(火)의 기운이 비어 있습니다. 실력과 전문성은 충분하나 자신을 드러내고 마케팅하는 것을 쑥스러워하여 본인의 가치를 제대로 인정받지 못하는 아킬레스건이 있습니다. 가만히 있으면 아무도 알아주지 않는 현실의 벽에 부딪힐 수 있습니다.',
-    solObject: '붉은색/와인색 포인트 액세서리, 조도가 밝은 조명 스탠드 사용, 따뜻한 차 마시기.',
-    solBusiness: '매주 1회 내 성과와 비전을 적극적으로 알리는 피칭 루틴 만들기, 감정 표현을 20% 과장해 전달하기.',
-    solPartner: '대중 앞에서 능숙하게 무대를 장악하고 분위기를 띄우는 화(火) 기운 풍부한 스피커를 대변인으로 세우기.',
-  },
-  Earth: {
-    element: 'Earth',
-    name: '토(土)',
-    hanja: '土',
-    shortConcept: '안정·신뢰',
-    icon: '⛰️',
-    color: '#FFB800',
-    glow: 'rgba(255, 184, 0, 0.75)',
-    dominantBadge: '압도적 엔진 · 대지의 경영자 DNA',
-    dominantHeadline: '흔들리지 않는 거대한 태산(土)',
-    dominantCounseling:
-      '사주의 기운 중 묵직한 흙(土)의 비중이 가장 높습니다. 어떤 풍파와 위기 속에서도 중심을 잃지 않고 모든 자원과 사람을 품어내는 압도적인 포용력과 신뢰가 당신의 천재성입니다. 장기전에서 결국 최후의 승자가 되는 반석 같은 경영자의 숙명을 타고났습니다.',
-    deficientBadge: '취약점 경보 · 중심의 불안정',
-    deficientHeadline: '뿌리를 내리지 못하고 분산되는 위험',
-    deficientCounseling:
-      '사주에 흙과 대지(土)의 기운이 비어 있습니다. 재능과 아이디어는 넘치나 환경의 변화에 쉽게 흔들리고, 자산을 굳건히 축적하기보다는 여기저기 흩뿌려 실속이 부족해지기 쉬운 아킬레스건이 있습니다. 뿌리를 내리는 인내심이 필수적입니다.',
-    solObject: '황토색/베이지색 가죽 소품, 도자기 머그잔, 단단한 원석이나 스톤 오브제 소지.',
-    solBusiness: '잦은 방향 전환을 멈추고 3년 단위의 중기 로드맵 고수하기, 현금 자산을 묶어두는 강제 저축 시스템 만들기.',
-    solPartner: '묵직하게 버텨주며 흔들리는 멘탈을 잡아주는 흙(土) 기운 가득한 멘토를 곁에 두기.',
-  },
-  Water: {
-    element: 'Water',
-    name: '수(水)',
-    hanja: '水',
-    shortConcept: '유연·지략',
-    icon: '🌊',
-    color: '#00E5FF',
-    glow: 'rgba(0, 229, 255, 0.75)',
-    dominantBadge: '압도적 엔진 · 심연의 지략가 DNA',
-    dominantHeadline: '모든 틈을 파고드는 깊은 물(水)',
-    dominantCounseling:
-      '사주의 기운 중 유연하고 깊은 물(水)의 비중이 가장 높습니다. 장애물을 정면으로 들이받지 않고 우회하여 마침내 바다에 이르는 탁월한 유연성과 정보 수집력, 심리전의 지혜가 당신의 천재성입니다. 판의 흐름을 먼저 읽고 뒤에서 수를 놓는 책사의 숙명을 타고났습니다.',
-    deficientBadge: '취약점 경보 · 융통성의 고갈',
-    deficientHeadline: '정면충돌하여 상처 입는 위험',
-    deficientCounseling:
-      '사주에 물과 강(水)의 기운이 비어 있습니다. 직선적이고 타협을 모르는 고집으로 인해 상대의 숨은 의도를 읽지 못하거나, 막다른 길에서도 우회하지 못하고 정면충돌해 상처를 입는 아킬레스건이 있습니다. 유연한 처세와 여유가 절실합니다.',
-    solObject: '블랙/네이비 톤 의상, 물병을 항상 휴대하며 자주 수분 섭취하기, 수족관이나 분수대 근처 산책.',
-    solBusiness: '갈등 상황에서 즉각 반박하지 말고 "3일 뒤에 답변드리겠다"며 시간 벌기, 물러서는 것도 전략임을 기억하기.',
-    solPartner: '상황 판단이 빠르고 타인의 심리를 기가 막히게 읽어내는 수(水) 기운 넘치는 지략가와 동행하기.',
+  ja: {
+    Metal: {
+      element: 'Metal',
+      name: '金(金)',
+      hanja: '金',
+      shortConcept: '決断・収穫',
+      icon: '🗡️',
+      color: '#E2E8F0',
+      glow: 'rgba(226, 232, 240, 0.75)',
+      dominantBadge: '圧倒的エンジン · 鋭利な刃のDNA',
+      dominantHeadline: '無駄を削ぎ落とす冷徹な金気(金)',
+      dominantCounseling:
+        '命式の五行において金(金属・鉱石)の比重が最も高い。複雑怪奇な難問を一瞬で整理し、冷徹に決断を下して利益を死守する鋭い洞察と原則主義こそがお前の天賦の才だ。無価値なものを容赦なく切り捨て、本質のみを残す改革者の宿命を背負っている。',
+      deficientBadge: '脆弱性警報 · 決断力の欠如',
+      deficientHeadline: '断り切れず整理に失敗する致命的リスク',
+      deficientCounseling:
+        '今日は人の思惑に翻弄され、愛想笑いの裏で神経をすり減らしたはずだ。だが怯むな。主導権を握るべき刻（とき）が来た。命式に金(刃・決断)の気が完全に欠落している。風呂敷を広げるだけ広げて最後に断れず損を被ったり、情に流されて単価交渉で譲歩しやすいアキレス腱を持つ。不要な関係を断ち切れず、自滅するリスクに警戒せよ。',
+      solObject: 'シルバーチェーンのネックレス、重厚な金属製ボールペン、白・銀色の小物を身につけ気の拡散を締める。',
+      solBusiness: '契約締結前に必ず24時間の冷却期間を設ける。断りづらい要請は「社内規程上不可能」とシステムの盾に隠れよ。',
+      solPartner: '突破力を持つビジネスパートナー。金気が強固で冷徹な参謀に最後の検収と契約締結を一任せよ。',
+    },
+    Wood: {
+      element: 'Wood',
+      name: '木(木)',
+      hanja: '木',
+      shortConcept: '企画・突破',
+      icon: '🌲',
+      color: '#00FF9D',
+      glow: 'rgba(0, 255, 157, 0.75)',
+      dominantBadge: '圧倒的エンジン · 開拓者DNA',
+      dominantHeadline: '爆発的な企画力と実行力の巨木(木)',
+      dominantCounseling:
+        '命式の半分が強大な木気(大木・樹木)で満ちている。他人が電卓を叩いて躊躇している間に、すでに現場へ飛び出し舞台を整えて事業を駆動させる圧倒的な企画力と実行力こそがお前の天賦の才だ。無から有を創り出す開拓者の宿命を背負っている。',
+      deficientBadge: '脆弱性警報 · 始動への恐れ',
+      deficientHeadline: '最初の一歩を踏み出せず躊躇するリスク',
+      deficientCounseling:
+        '命式に木(新芽・樹木)の気が不足している。頭の中では完璧な計画を描きながらも最初の一歩を踏み出すのを躊躇し、失敗を恐れて好機を逃しやすいアキレス腱を持つ。柔軟性と生命力を意識的に補う必要がある。',
+      solObject: 'ウッド素材の小物、グリーン系のファッションアイテム、デスクに瑞々しい観葉植物を置く。',
+      solBusiness: '完璧を待たず完成度60%の段階でまず着手・ローンチせよ。最初の5分で即行動するルールを徹底せよ。',
+      solPartner: '猪突猛進に事を仕掛け、大きく風呂敷を広げて切り拓く木気旺盛な開拓者型の同志と手を組め。',
+    },
+    Fire: {
+      element: 'Fire',
+      name: '火(火)',
+      hanja: '火',
+      shortConcept: '情熱・発信',
+      icon: '🔥',
+      color: '#FF3366',
+      glow: 'rgba(255, 51, 102, 0.75)',
+      dominantBadge: '圧倒的エンジン · 情熱の先駆者DNA',
+      dominantHeadline: '世界を染め上げる太陽の烈火(火)',
+      dominantCounseling:
+        '命式の五行において燃え盛る火(太陽・炎)の比重が最も高い。周囲の人々の心に火を灯し、一瞬で耳目を集める圧倒的なカリスマと表現力こそがお前の天賦の才だ。暗闇の中でも自ら光を放ち、大衆を率いる先駆者の宿命を背負っている。',
+      deficientBadge: '脆弱性警報 · 表現の萎縮',
+      deficientHeadline: '実力を知られぬまま埋もれるリスク',
+      deficientCounseling:
+        '命式に火(光・情熱)の気が不足している。確かな実力と専門性を持ちながらも、自己アピールや発信を躊躇し、自らの価値を正当に評価されにくいアキレス腱を持つ。黙っていては誰にも届かぬ現実の壁に直面しやすい。',
+      solObject: 'レッドやワインレッドのアクセント小物、高照度のデスクライト、温かい茶を飲む。',
+      solBusiness: '週に1度、自らの成果とビジョンを堂々と発信するルーティンを作り、感情表現を20%増しで伝える。',
+      solPartner: '大衆の前で堂々と場を支配し、会場を盛り上げる火気豊かなスピーカーを代弁者に立てよ。',
+    },
+    Earth: {
+      element: 'Earth',
+      name: '土(土)',
+      hanja: '土',
+      shortConcept: '安定・信頼',
+      icon: '⛰️',
+      color: '#FFB800',
+      glow: 'rgba(255, 184, 0, 0.75)',
+      dominantBadge: '圧倒적エンジン · 大地の経営者DNA',
+      dominantHeadline: '微動だにせぬ泰然自若の大山(土)',
+      dominantCounseling:
+        '命式の五行において重厚な土(大地・山岳)の比重が最も高い。どんな荒波や危機に直面しても軸をブラさず、すべての資源と人を包み込む圧倒的な包容力と信頼こそがお前の天賦の才だ。長期戦で最後に必ず勝者となる盤石な経営者の宿命を背負っている。',
+      deficientBadge: '脆弱性警報 · 重心の不安定',
+      deficientHeadline: '根を張れずエネルギーが分散するリスク',
+      deficientCounseling:
+        '命式に土(大地・安定)의 気が不足している。豊かな才能やアイデアに恵まれながらも環境の変化に揺らぎやすく、資産を堅固に築く前に分散させて実利を逃しやすいアキレス腱を持つ。深く根を張る忍耐力が不可欠である。',
+      solObject: 'アースカラー・ベージュの革製品、陶器のマグカップ、天然石やストーンオブジェの携帯。',
+      solBusiness: '頻繁な方針転換を控え、3年単位の中期ロードマップを死守せよ。キャッシュを拘束する強制的積立システムを構築せよ。',
+      solPartner: '重厚に持ちこたえ、揺らぐメンタルをどっしりと受け止めてくれる土気旺盛なメンターを傍らに置け。',
+    },
+    Water: {
+      element: 'Water',
+      name: '水(水)',
+      hanja: '水',
+      shortConcept: '柔軟・知略',
+      icon: '🌊',
+      color: '#00E5FF',
+      glow: 'rgba(0, 229, 255, 0.75)',
+      dominantBadge: '圧倒적エンジン · 深淵の知略家DNA',
+      dominantHeadline: 'あらゆる隙間を突き進む深淵の水(水)',
+      dominantCounseling:
+        '命式の五行において柔軟で深遠な水(大河・深海)の比重が最も高い。障害物に正面衝突せず迂回し、やがて大海へと至る卓越した柔軟性と情報収集力、心理戦の知恵こそがお前の天賦の才だ。大局の流れを先読みし、裏で布石を打つ名軍師の宿命を背負っている。',
+      deficientBadge: '脆弱性警報 · 融通性の枯渇',
+      deficientHeadline: '正面衝突して深手を負うリスク',
+      deficientCounseling:
+        '命式に水(河川・融通)の気が不足している。直線的で妥協を許さぬ頑固さゆえに相手の真意を読めず、袋小路でも迂回できず正面衝突して深手を負うアキレス腱がある。柔軟な処世術と心の余裕が切実に求められる。',
+      solObject: 'ダークネイビーのデニムジャケット、黒のタンブラーを常時携帯し水分補給、水辺の散策。',
+      solBusiness: '対立場面で即座に反論せず「3日後に回答する」と時間稼ぎをせよ。退くこともまた戦略であると刻め。',
+      solPartner: '情勢判断が迅速で、他人の深層心理を的確に読み取る水気豊かな知略家を右腕にせよ。',
+    },
   },
 };
+
+export const ELEMENT_COUNSELING_MAP = CIRCUIT_COUNSELING_DICT.ko;
 
 export interface TodayCircuitCardProps {
   elementsRatio?: Record<FiveElement, number> | null;
@@ -223,8 +332,9 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
     };
   }, [ratio]);
 
-  const dominantInfo = ELEMENT_COUNSELING_MAP[dominant];
-  const deficientInfo = ELEMENT_COUNSELING_MAP[deficient];
+  const counselingMap = isJa ? CIRCUIT_COUNSELING_DICT.ja : CIRCUIT_COUNSELING_DICT.ko;
+  const dominantInfo = counselingMap[dominant];
+  const deficientInfo = counselingMap[deficient];
 
   return (
     <View style={[styles.root, { height }]}>
@@ -278,7 +388,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
           </Text>
           <View style={styles.circuitList}>
             {ELEMENT_ORDER.map((el) => {
-              const info = ELEMENT_COUNSELING_MAP[el];
+              const info = counselingMap[el];
               const val = ratio[el] ?? 0;
               const isZero = val === 0;
 
@@ -300,7 +410,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
                     />
                   </View>
                   <Text style={[styles.circuitValueText, isZero && styles.circuitZeroText]}>
-                    {val.toFixed(1)}%{isZero ? ' 결핍' : ''}
+                    {val.toFixed(1)}%{isZero ? (isJa ? ' 欠乏' : ' 결핍') : ''}
                   </Text>
                 </View>
               );
@@ -316,7 +426,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               <View style={styles.headerLeftRow}>
                 <Text style={styles.cardHeaderIcon}>{dominantInfo.icon}</Text>
                 <Text style={styles.cardHeaderTitleDom}>
-                  타고난 최강의 무기 ({dominantInfo.hanja} {dominantRatio.toFixed(1)}%)
+                  {isJa ? '生まれ持った最強の武器' : '타고난 최강의 무기'} ({dominantInfo.hanja} {dominantRatio.toFixed(1)}%)
                 </Text>
               </View>
               <View style={styles.dominantBadge}>
@@ -335,7 +445,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               <View style={styles.headerLeftRow}>
                 <Text style={styles.cardHeaderIcon}>⚠️</Text>
                 <Text style={styles.cardHeaderTitleDef}>
-                  치명적인 아킬레스건 ({isZeroDeficient ? '완전 결핍' : '최대 취약'}: {deficientInfo.hanja}{' '}
+                  {isJa ? '致命的なアキレス腱' : '치명적인 아킬레스건'} ({isZeroDeficient ? (isJa ? '完全欠乏' : '완전 결핍') : (isJa ? '最大脆弱' : '최대 취약')}: {deficientInfo.hanja}{' '}
                   {deficientRatio.toFixed(1)}%)
                 </Text>
               </View>
@@ -409,15 +519,24 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               {/* 결핍 기운 안내 바 */}
               <View style={styles.modalBanner}>
                 <Text style={styles.modalBannerText}>
-                  사주에 비어 있는 <Text style={styles.bannerHighlight}>{deficientInfo.name}({deficientInfo.shortConcept})</Text> 기운을
-                  사물·행동·사람으로 채워 넣는 특급 처방입니다.
+                  {isJa ? (
+                    <>
+                      命式に不足している<Text style={styles.bannerHighlight}>{deficientInfo.name}({deficientInfo.shortConcept})</Text>の気を
+                      アイテム・行動・パートナーで補う特効処方です。
+                    </>
+                  ) : (
+                    <>
+                      사주에 비어 있는 <Text style={styles.bannerHighlight}>{deficientInfo.name}({deficientInfo.shortConcept})</Text> 기운을
+                      사물·행동·사람으로 채워 넣는 특급 처방입니다.
+                    </>
+                  )}
                 </Text>
               </View>
 
               {/* 1) 몸에 지닐 물건 */}
               <View style={styles.solutionBox}>
                 <View style={styles.solutionHeader}>
-                  <Text style={styles.solutionBadge}>1. 몸에 지닐 물건 (오브제)</Text>
+                  <Text style={styles.solutionBadge}>{isJa ? '1. 身につけるアイテム (空間・小物)' : '1. 몸에 지닐 물건 (오브제)'}</Text>
                 </View>
                 <Text style={styles.solutionText}>{deficientInfo.solObject}</Text>
               </View>
@@ -425,7 +544,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               {/* 2) 비즈니스 행동 수칙 */}
               <View style={styles.solutionBox}>
                 <View style={styles.solutionHeader}>
-                  <Text style={styles.solutionBadge}>2. 비즈니스 행동 수칙 (룰북)</Text>
+                  <Text style={styles.solutionBadge}>{isJa ? '2. ビジネス行動指針 (ルールブック)' : '2. 비즈니스 행동 수칙 (룰북)'}</Text>
                 </View>
                 <Text style={styles.solutionText}>{deficientInfo.solBusiness}</Text>
               </View>
@@ -433,7 +552,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               {/* 3) 인연 보완법 */}
               <View style={styles.solutionBox}>
                 <View style={styles.solutionHeader}>
-                  <Text style={styles.solutionBadge}>3. 인연 보완법 (파트너십)</Text>
+                  <Text style={styles.solutionBadge}>{isJa ? '3. パートナーシップ補完 (ご縁・同志)' : '3. 인연 보완법 (파트너십)'}</Text>
                 </View>
                 <Text style={styles.solutionText}>{deficientInfo.solPartner}</Text>
               </View>
