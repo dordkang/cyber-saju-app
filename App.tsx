@@ -379,8 +379,9 @@ function AppContent() {
       saju,
       partnerProfile: partner,
       partnerSaju,
+      userProfile: profile,
     }),
-    [reelsContent, customFortune, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn, partner, partnerSaju]
+    [reelsContent, customFortune, daeun, partnerInfo, money, batteryLevel, mbtiInfo, saju, persona, soundOn, partner, partnerSaju, profile]
   );
 
   const loadData = useCallback(async () => {

@@ -18,6 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TodayOmenCard } from '../cards/TodayOmenCard';
+import { DaewoonTimelineCard } from '../cards/DaewoonTimelineCard';
 import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import { TodayCircuitCard } from '../cards/TodayCircuitCard';
@@ -385,6 +386,24 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             partner={context.partnerProfile}
             partnerSaju={context.partnerSaju}
             onOpenPartner={actions.onOpenPartner}
+          />
+        </View>
+      );
+    }
+
+    if (item.id === 'life') {
+      return (
+        <View
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+        >
+          <DaewoonTimelineCard
+            active={active}
+            height={pageHeight}
+            userProfile={context.userProfile ?? context.saju}
+            saju={context.saju}
+            onOpenTimeline={actions.onOpenTimeline}
+            lang={isJa ? 'jp' : 'kr'}
           />
         </View>
       );

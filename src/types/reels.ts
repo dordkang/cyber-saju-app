@@ -195,6 +195,7 @@ export interface ReelsContext {
   saju?: SajuResult | null;
   partnerProfile?: PartnerProfile | null;
   partnerSaju?: SajuResult | null;
+  userProfile?: any;
 }
 
 export interface ReelsActionHandlers {
