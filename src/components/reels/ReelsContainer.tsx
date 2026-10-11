@@ -22,6 +22,7 @@ import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import { TodayCircuitCard } from '../cards/TodayCircuitCard';
 import { useLocale } from '../../locales';
+import { CARDS_JA } from '../../locales/cards_ja';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import {
   ELEMENT_AURA,
@@ -105,17 +106,25 @@ const PeopleTargetBlock = memo(function PeopleTargetBlock({
         style={({ pressed }) => [styles.targetHit, pressed && styles.pressed]}
       >
         <View style={styles.targetCopy}>
-          <Text style={styles.targetKicker}>{isJa ? 'スキャン対象' : '스캔 대상'}</Text>
-          <Text style={styles.targetLabel}>{people?.label ?? (isJa ? 'まだ対象が設定されていません' : '아직 대상을 정하지 않았어요')}</Text>
+          <Text style={styles.targetKicker}>
+            {isJa ? CARDS_JA.c03_radar.scanTarget : '스캔 대상'}
+          </Text>
+          <Text style={styles.targetLabel}>
+            {people?.label ?? (isJa ? CARDS_JA.c03_radar.spouse : '아직 대상을 정하지 않았어요')}
+          </Text>
         </View>
         <View style={styles.changeTag}>
-          <Text style={styles.changeTagText}>{people ? (isJa ? '変更 ✏️' : '변경 ✏️') : (isJa ? '+ 相手変更' : '+ 상대 변경')}</Text>
+          <Text style={styles.changeTagText}>
+            {isJa ? CARDS_JA.c03_radar.change : (people ? '변경 ✏️' : '+ 상대 변경')}
+          </Text>
         </View>
       </Pressable>
       <Text style={styles.radarLine}>
-        {people
-          ? (isJa ? `浮気·別心指数 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '待機'}` : `딴마음 지수 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '대기'}`)
-          : (isJa ? '対象を決めると本音レーダーが即座に起動します。' : '대상을 정하면 속마음 레이더가 바로 돌아갑니다.')}
+        {isJa
+          ? CARDS_JA.c03_radar.status
+          : (people
+              ? `딴마음 지수 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '대기'}`
+              : '대상을 정하면 속마음 레이더가 바로 돌아갑니다.')}
       </Text>
     </View>
   );
@@ -129,6 +138,7 @@ const PeekCard = memo(function PeekCard({
   cta,
   onPress,
   extra,
+  isJa = false,
 }: {
   meta: ReelSectionMeta;
   height: number;
@@ -137,6 +147,7 @@ const PeekCard = memo(function PeekCard({
   cta: string;
   onPress?: () => void;
   extra?: React.ReactNode;
+  isJa?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const accent = accentOf(meta);
@@ -146,6 +157,19 @@ const PeekCard = memo(function PeekCard({
     void playHaptic('tap');
     onPress?.();
   };
+
+  const cardJa = useMemo(() => {
+    if (!isJa) return null;
+    if (meta.id === 'life') return CARDS_JA.c02_daewoon;
+    if (meta.id === 'people') return CARDS_JA.c03_radar;
+    if (meta.id === 'celebrity') return CARDS_JA.c05_resonance;
+    if (meta.id === 'chamber') return CARDS_JA.c08_settings;
+    return null;
+  }, [isJa, meta.id]);
+
+  const chipLabel = cardJa?.tab ?? `${meta.no} · ${meta.kicker}`;
+  const titleLabel = cardJa?.title ?? meta.title;
+  const subtitleLabel = cardJa?.subtitle ?? meta.subtitle;
 
   return (
     <View style={[styles.page, WEB_SNAP_ITEM, { height }]} pointerEvents={active ? 'auto' : 'none'}>
@@ -165,11 +189,11 @@ const PeekCard = memo(function PeekCard({
         <View>
           <View style={[styles.chip, { borderColor: accent }]}>
             <Text style={[styles.chipText, { color: accent }]}>
-              {meta.no} · {meta.kicker}
+              {chipLabel}
             </Text>
           </View>
-          <Text style={styles.peekTitle}>{meta.title}</Text>
-          <Text style={styles.peekSubtitle}>{meta.subtitle}</Text>
+          <Text style={styles.peekTitle}>{titleLabel}</Text>
+          <Text style={styles.peekSubtitle}>{subtitleLabel}</Text>
         </View>
         <View style={[styles.glass, GLASS, { borderColor: `${accent}59` }]}>
           {!!body && <Text style={styles.peekBodyText}>{body}</Text>}
@@ -190,17 +214,39 @@ const PeekCard = memo(function PeekCard({
 
 function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = false): { body: string; cta: string } {
   switch (meta.id) {
-    case 'life':
-      return {
-        body: context.life
+    case 'life': {
+      let lifeBody = '';
+      if (isJa) {
+        if (context.life) {
+          const ageMatch = context.life.currentAgeLabel?.match(/\d+/) || [''];
+          const ageRangeMatch = context.life.ageLabel?.match(/(\d+)\D+(\d+)/);
+          const age = ageMatch[0] || '40';
+          const start = ageRangeMatch ? ageRangeMatch[1] : '39';
+          const end = ageRangeMatch ? ageRangeMatch[2] : '48';
+          const ganji = context.life.ganji || '';
+          const currentAgeStr = CARDS_JA.c02_daewoon.currentAge
+            .replace('{age}', age)
+            .replace('{start}', start)
+            .replace('{end}', end)
+            .replace('{ganji}', ganji);
+          lifeBody = `${currentAgeStr}\n${context.life.theme || CARDS_JA.c02_daewoon.analysis}`;
+        } else {
+          lifeBody = `${CARDS_JA.c02_daewoon.currentAge.replace('{age}', '40').replace('{start}', '39').replace('{end}', '48').replace('{ganji}', '丁未')}\n${CARDS_JA.c02_daewoon.analysis}`;
+        }
+      } else {
+        lifeBody = context.life
           ? `${context.life.currentAgeLabel ? `${context.life.currentAgeLabel} · ` : ''}${context.life.ageLabel} · ${context.life.ganji}\n${context.life.theme}`
-          : (isJa ? '生年月日と性別を入力すると、今どの波に乗っているかをお伝えします。' : '생년월일과 성별을 입력하면 지금 어느 파도 위에 있는지 알려 드려요.'),
-        cta: isJa ? '10年大運全体を見る' : '10년 대운 전체보기',
+          : '생년월일과 성별을 입력하면 지금 어느 파도 위에 있는지 알려 드려요.';
+      }
+      return {
+        body: lifeBody,
+        cta: isJa ? CARDS_JA.c02_daewoon.btn : '10년 대운 전체보기',
       };
+    }
     case 'people':
       return {
         body: '',
-        cta: context.people ? (isJa ? '精密分析レポート' : '정밀 분석 리포트') : (isJa ? '対象を設定してスキャン' : '대상 설정하고 스캔'),
+        cta: context.people ? (isJa ? CARDS_JA.c03_radar.btn : '정밀 분석 리포트') : (isJa ? '対象を設定してスキャン' : '대상 설정하고 스캔'),
       };
     case 'money':
       return {
@@ -211,8 +257,8 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = 
       };
     case 'celebrity':
       return {
-        body: isJa ? '日干と五行が重なる人物をローカル名簿から選出します。' : '일간과 최다 오행이 겹치는 사람을 로컬 명단에서 고릅니다. 서버로 나가지 않아요.',
-        cta: isJa ? '有名人マッチングを開く' : '유명인 매칭 열기',
+        body: isJa ? CARDS_JA.c05_resonance.descBox : '일간과 최다 오행이 겹치는 사람을 로컬 명단에서 고릅니다. 서버로 나가지 않아요.',
+        cta: isJa ? CARDS_JA.c05_resonance.btn : '유명인 매칭 열기',
       };
     case 'mbti':
       return {
@@ -228,10 +274,12 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = 
       };
     case 'chamber':
       return {
-        body: context.personaLabel
-          ? `${isJa ? '現在の口調' : '지금 말투'} · ${context.personaLabel}\n${isJa ? 'プロフィール再設定、ローカルバックアップ、環境音は設定で調整します。' : '프로필 재설정, 로컬 백업, 배경음은 설정에서 다룹니다.'}`
-          : (isJa ? '道士の口調と端末設定はここで変更します。' : '도사 말투와 기기 설정은 여기서 바꿉니다.'),
-        cta: isJa ? '設定を開く' : '설정 열기',
+        body: isJa
+          ? `${CARDS_JA.c08_settings.currentVoiceTitle}\n${CARDS_JA.c08_settings.currentVoiceDesc}`
+          : (context.personaLabel
+              ? `지금 말투 · ${context.personaLabel}\n프로필 재설정, 로컬 백업, 배경음은 설정에서 다룹니다.`
+              : '도사 말투와 기기 설정은 여기서 바꿉니다.'),
+        cta: isJa ? CARDS_JA.c08_settings.openSettingsBtn : '설정 열기',
       };
     default:
       return { body: meta.subtitle, cta: isJa ? '次へ' : '계속' };
@@ -401,6 +449,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         cta={peek.cta}
         onPress={onPress}
         extra={extra}
+        isJa={isJa}
       />
     );
   };

@@ -7,6 +7,7 @@ import { ja } from './ja';
 export * from './types';
 export { ko } from './ko';
 export { ja } from './ja';
+export { CARDS_JA } from './cards_ja';
 
 export const DICTIONARY: Record<Locale, LocaleDictionary> = {
   ko,

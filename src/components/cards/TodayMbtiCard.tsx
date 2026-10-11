@@ -20,7 +20,7 @@ import { getTomorrowOmen } from '../../engine/tomorrowStrategy';
 import type { CoreCategory } from '../../engine/tomorrowStrategy';
 import { calculateSaju } from '../../engine/calculator';
 import { formatGanji } from '../../engine/reelsContent';
-import { useLocale } from '../../locales';
+import { useLocale, CARDS_JA } from '../../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -303,26 +303,36 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
 
   // 선천 정보
   const innateInfo = useMemo(() => {
-    if (isJa && (t.section02.mbtiInnate as any)[innateMbti]) {
-      return (t.section02.mbtiInnate as any)[innateMbti];
+    if (isJa) {
+      if (innateMbti === 'ENFJ') {
+        return { summary: CARDS_JA.c06_mbti.innateDesc, element: CARDS_JA.c06_mbti.innateAura };
+      }
+      if ((t.section02.mbtiInnate as any)[innateMbti]) {
+        return (t.section02.mbtiInnate as any)[innateMbti];
+      }
     }
     return INNATE_DESCRIPTIONS[innateMbti] ?? {
       summary: isJa
-        ? '四柱原局の五行バランスに基づく生まれ持った本質です。'
+        ? CARDS_JA.c06_mbti.innateDesc
         : '사주 원국의 오행 밸런스에 기반한 타고난 본연의 기질입니다.',
-      element: isJa ? '四柱原局五行の本質' : '사주 원국 오행 본성',
+      element: isJa ? CARDS_JA.c06_mbti.innateAura : '사주 원국 오행 본성',
     };
   }, [innateMbti, isJa, t]);
 
   // 가면 정보
   const actualInfo = useMemo(() => {
     if (actualMbti) {
-      if (isJa && (t.section02.mbtiMask as any)[actualMbti]) {
-        return (t.section02.mbtiMask as any)[actualMbti];
+      if (isJa) {
+        if (actualMbti === 'INFJ') {
+          return { summary: CARDS_JA.c06_mbti.personaDesc, mask: CARDS_JA.c06_mbti.personaAura };
+        }
+        if ((t.section02.mbtiMask as any)[actualMbti]) {
+          return (t.section02.mbtiMask as any)[actualMbti];
+        }
       }
       return ACTUAL_DESCRIPTIONS[actualMbti] ?? {
-        summary: isJa ? '社会生活のために意識的に演じる性向です。' : '사회생활을 위해 의식적으로 연기하는 성향입니다.',
-        mask: isJa ? '社会的ペルソナ' : '사회적 페르소나',
+        summary: isJa ? CARDS_JA.c06_mbti.personaDesc : '사회생활을 위해 의식적으로 연기하는 성향입니다.',
+        mask: isJa ? CARDS_JA.c06_mbti.personaAura : '사회적 페르소나',
       };
     }
     return {
@@ -411,7 +421,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         <View style={styles.headerRow}>
           <View style={styles.chip}>
             <Text style={styles.chipText}>
-              {isJa ? '06 · ペルソナ戦術室' : '06 · 페르소나 전술실'}
+              {isJa ? CARDS_JA.c06_mbti.tab : '06 · 페르소나 전술실'}
             </Text>
           </View>
         </View>
@@ -461,7 +471,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           <View style={[styles.compareCard, styles.compareCardInnate, CYAN_NEON_GLOW]}>
             <View style={styles.cardBadgeCyan}>
               <Text style={styles.cardBadgeCyanText}>
-                {isJa ? '🔮 四柱原局に基づく本質' : '🔮 사주 원국 기반 본성'}
+                {isJa ? `🔮 ${CARDS_JA.c06_mbti.innateTitle}` : '🔮 사주 원국 기반 본성'}
               </Text>
             </View>
             <Text style={styles.mbtiTypeCyan}>{innateMbti}</Text>
@@ -474,7 +484,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           <View style={[styles.compareCard, styles.compareCardActual, CRIMSON_NEON_GLOW]}>
             <View style={styles.cardBadgeCrimson}>
               <Text style={styles.cardBadgeCrimsonText}>
-                {isJa ? '🎭 社会生活用ペルソナ' : '🎭 사회생활용 가면'}
+                {isJa ? `🎭 ${CARDS_JA.c06_mbti.personaTitle}` : '🎭 사회생활용 가면'}
               </Text>
             </View>
             <Text style={[styles.mbtiTypeCrimson, !actualMbti && styles.mbtiTypeEmpty]}>
@@ -490,12 +500,11 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         <View style={[styles.gaugeMiniCard, LUXURY_GLASS]}>
           <View style={styles.gaugeHeaderRow}>
             <Text style={styles.gaugeLabel}>
-              {isJa ? '同調一致率: ' : '동조 일치율: '}
-              <Text style={styles.gaugeValueCyan}>{syncRate}%</Text>
+              {isJa ? CARDS_JA.c06_mbti.matchRate.replace('{rate}', String(syncRate)) : `동조 일치율: ${syncRate}%`}
             </Text>
             <View style={styles.leakageTag}>
               <Text style={styles.leakageTagText}>
-                {isJa ? `⚡ エネルギー漏洩率 ${leakage}%` : `⚡ 에너지 누수율 ${leakage}%`}
+                {isJa ? `⚡ ${CARDS_JA.c06_mbti.leakRate.replace('{rate}', String(leakage))}` : `⚡ 에너지 누수율 ${leakage}%`}
               </Text>
             </View>
           </View>
@@ -532,15 +541,19 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
                 <View style={styles.cardHeaderTitleRow}>
                   <Text style={styles.cardIconNight}>🌙</Text>
                   <Text style={styles.cardTitleNight}>
-                    {isJa ? '今夜の仮面疲労度・力学診断' : '오늘 밤 가면 피로도 역학 진단'}
+                    {isJa ? CARDS_JA.c06_mbti.auditTitle : '오늘 밤 가면 피로도 역학 진단'}
                   </Text>
                 </View>
                 <View style={styles.tagNight}>
-                  <Text style={styles.tagNightText}>TODAY AUDIT</Text>
+                  <Text style={styles.tagNightText}>{isJa ? CARDS_JA.c06_mbti.auditBadge : 'TODAY AUDIT'}</Text>
                 </View>
               </View>
               <Text style={styles.cardSubTagNight}>
-                [{todayGanjiText}] {isJa ? '日辰' : '일진'} × [{dailyLog?.event_category || (isJa ? '職場・人間関係' : '직장/관계')}] {isJa ? '衝突分析' : '충돌 분석'}
+                {isJa
+                  ? (dailyLog?.event_category
+                      ? CARDS_JA.c06_mbti.auditSub.replace('{ganji}', todayGanjiText).replace('치정/바람', dailyLog.event_category)
+                      : CARDS_JA.c06_mbti.auditSub.replace('{ganji}', todayGanjiText))
+                  : `[${todayGanjiText}] 일진 × [${dailyLog?.event_category || '직장/관계'}] 충돌 분석`}
               </Text>
               <View style={styles.auditBodyBox}>
                 <Text style={styles.auditBodyText}>{auditProse}</Text>
@@ -553,15 +566,19 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
                 <View style={styles.cardHeaderTitleRow}>
                   <Text style={styles.cardIconFire}>⚔️</Text>
                   <Text style={styles.cardTitleFire}>
-                    {isJa ? '明日のペルソナ切り替え処方' : '내일의 페르소나 스위칭 처방'}
+                    {isJa ? CARDS_JA.c06_mbti.tacticTitle : '내일의 페르소나 스위칭 처방'}
                   </Text>
                 </View>
                 <View style={styles.tagFire}>
-                  <Text style={styles.tagFireText}>TOMORROW TACTIC</Text>
+                  <Text style={styles.tagFireText}>{isJa ? CARDS_JA.c06_mbti.tacticBadge : 'TOMORROW TACTIC'}</Text>
                 </View>
               </View>
               <Text style={styles.cardSubTagFire}>
-                [{tomorrowOmen.ganji}] {isJa ? '気運' : '기운'} × [{isJa ? (tomorrowCategory === 'wealth' ? '金運' : tomorrowCategory === 'love' ? '恋愛' : tomorrowCategory === 'career' ? '仕事' : tomorrowCategory === 'health' ? '健康' : 'ビジネス') : (CATEGORY_NAMES[tomorrowCategory]?.label || '비즈니스')}] {isJa ? '突破戦術' : '돌파 전술'}
+                {isJa
+                  ? (tomorrowOmen?.ganji
+                      ? `[${tomorrowOmen.ganji}] 気運 × [${tomorrowCategory === 'wealth' ? '金運' : tomorrowCategory === 'love' ? '恋愛' : tomorrowCategory === 'career' ? '仕事' : tomorrowCategory === 'health' ? '健康' : 'ビジネス'}] 突破戦術`
+                      : CARDS_JA.c06_mbti.tacticSub)
+                  : `[${tomorrowOmen.ganji}] 기운 × [${CATEGORY_NAMES[tomorrowCategory]?.label || '비즈니스'}] 돌파 전술`}
               </Text>
               <View style={styles.tacticBodyBox}>
                 <Text style={styles.tacticBodyText}>{tacticProse}</Text>
@@ -590,9 +607,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           />
           <Text style={styles.ctaButtonText}>
             {isJa
-              ? (actualMbti
-                  ? '🎭 社会的仮面(MBTI)を変更する ➔'
-                  : '🎭 社会的仮面(MBTI)を設定する ➔')
+              ? `${CARDS_JA.c06_mbti.changeMbtiBtn} ➔`
               : (actualMbti
                   ? '🎭 내 현실 MBTI(사회생활 가면) 변경하기 ➔'
                   : '🎭 내 현실 MBTI(사회생활 가면) 설정하기 ➔')}

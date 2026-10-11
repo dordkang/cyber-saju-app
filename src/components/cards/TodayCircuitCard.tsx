@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playHaptic } from '../reels/haptics';
 import type { FiveElement, SajuResult } from '../../engine/types';
-import { useLocale } from '../../locales';
+import { useLocale, CARDS_JA } from '../../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -281,7 +281,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
   elementsRatio,
   active: _active,
   height,
-  saju: _saju,
+  saju,
 }: TodayCircuitCardProps) {
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
@@ -364,7 +364,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
         <View style={styles.headerRow}>
           <View style={styles.chip}>
             <Text style={styles.chipText}>
-              {isJa ? '07 · 五行カウンセリング' : '07 · 오행 카운셀링'}
+              {isJa ? CARDS_JA.c07_counseling.tab : '07 · 오행 카운셀링'}
             </Text>
           </View>
         </View>
@@ -372,11 +372,11 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
         {/* 메인 타이틀 & 서브타이틀 */}
         <View style={styles.titleWrap}>
           <Text style={styles.mainTitle}>
-            {isJa ? '先天五行DNA ＆ 欠乏突破処方' : '선천 오행 DNA & 결핍 돌파 솔루션'}
+            {isJa ? CARDS_JA.c07_counseling.title : '선천 오행 DNA & 결핍 돌파 솔루션'}
           </Text>
           <Text style={styles.subTitle}>
             {isJa
-              ? '生まれ持った最強の武器と最大の弱点を突き、現実の補強策を処方します。'
+              ? CARDS_JA.c07_counseling.subtitle
               : '타고난 최강의 무기와 가장 치명적인 아킬레스건을 짚고, 현실의 보완책을 처방합니다.'}
           </Text>
         </View>
@@ -384,7 +384,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
         {/* 1. 상단: 오행 기운 회로 게이지 */}
         <View style={[styles.circuitCard, LUXURY_GLASS]}>
           <Text style={styles.circuitHeaderTitle}>
-            {isJa ? '[先天五行原局エネルギー分布]' : '[선천 오행 원국 에너지 분포]'}
+            {isJa ? CARDS_JA.c07_counseling.chartTitle : '[선천 오행 원국 에너지 분포]'}
           </Text>
           <View style={styles.circuitList}>
             {ELEMENT_ORDER.map((el) => {
@@ -410,7 +410,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
                     />
                   </View>
                   <Text style={[styles.circuitValueText, isZero && styles.circuitZeroText]}>
-                    {val.toFixed(1)}%{isZero ? (isJa ? ' 欠乏' : ' 결핍') : ''}
+                    {val.toFixed(1)}%{isZero ? (isJa ? ` ${CARDS_JA.c07_counseling.deficientLabel}` : ' 결핍') : ''}
                   </Text>
                 </View>
               );
@@ -426,16 +426,26 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               <View style={styles.headerLeftRow}>
                 <Text style={styles.cardHeaderIcon}>{dominantInfo.icon}</Text>
                 <Text style={styles.cardHeaderTitleDom}>
-                  {isJa ? '生まれ持った最強の武器' : '타고난 최강의 무기'} ({dominantInfo.hanja} {dominantRatio.toFixed(1)}%)
+                  {isJa
+                    ? (saju
+                        ? `生まれ持った最強の武器 (${dominantInfo.hanja} ${dominantRatio.toFixed(1)}%)`
+                        : CARDS_JA.c07_counseling.weaponTitle)
+                    : `타고난 최강의 무기 (${dominantInfo.hanja} ${dominantRatio.toFixed(1)}%)`}
                 </Text>
               </View>
               <View style={styles.dominantBadge}>
-                <Text style={styles.dominantBadgeText}>{dominantInfo.dominantBadge}</Text>
+                <Text style={styles.dominantBadgeText}>
+                  {isJa && !saju ? CARDS_JA.c07_counseling.weaponBadge : dominantInfo.dominantBadge}
+                </Text>
               </View>
             </View>
-            <Text style={styles.diagnosticHeadline}>{dominantInfo.dominantHeadline}</Text>
+            <Text style={styles.diagnosticHeadline}>
+              {isJa && !saju ? CARDS_JA.c07_counseling.weaponSub : dominantInfo.dominantHeadline}
+            </Text>
             <View style={styles.counselingBodyBoxDom}>
-              <Text style={styles.counselingBodyText}>{dominantInfo.dominantCounseling}</Text>
+              <Text style={styles.counselingBodyText}>
+                {isJa && !saju ? CARDS_JA.c07_counseling.weaponDesc : dominantInfo.dominantCounseling}
+              </Text>
             </View>
           </View>
 
@@ -445,17 +455,26 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
               <View style={styles.headerLeftRow}>
                 <Text style={styles.cardHeaderIcon}>⚠️</Text>
                 <Text style={styles.cardHeaderTitleDef}>
-                  {isJa ? '致命的なアキレス腱' : '치명적인 아킬레스건'} ({isZeroDeficient ? (isJa ? '完全欠乏' : '완전 결핍') : (isJa ? '最大脆弱' : '최대 취약')}: {deficientInfo.hanja}{' '}
-                  {deficientRatio.toFixed(1)}%)
+                  {isJa
+                    ? (saju
+                        ? `致命的なアキレス腱 (${isZeroDeficient ? '完全欠乏' : '最大脆弱'}: ${deficientInfo.hanja} ${deficientRatio.toFixed(1)}%)`
+                        : CARDS_JA.c07_counseling.achillesTitle)
+                    : `치명적인 아킬레스건 (${isZeroDeficient ? '완전 결핍' : '최대 취약'}: ${deficientInfo.hanja} ${deficientRatio.toFixed(1)}%)`}
                 </Text>
               </View>
               <View style={styles.deficientBadge}>
-                <Text style={styles.deficientBadgeText}>{deficientInfo.deficientBadge}</Text>
+                <Text style={styles.deficientBadgeText}>
+                  {isJa && !saju ? CARDS_JA.c07_counseling.achillesBadge : deficientInfo.deficientBadge}
+                </Text>
               </View>
             </View>
-            <Text style={styles.diagnosticHeadlineDef}>{deficientInfo.deficientHeadline}</Text>
+            <Text style={styles.diagnosticHeadlineDef}>
+              {isJa && !saju ? CARDS_JA.c07_counseling.achillesSub : deficientInfo.deficientHeadline}
+            </Text>
             <View style={styles.counselingBodyBoxDef}>
-              <Text style={styles.counselingBodyTextDef}>{deficientInfo.deficientCounseling}</Text>
+              <Text style={styles.counselingBodyTextDef}>
+                {isJa && !saju ? CARDS_JA.c07_counseling.achillesDesc : deficientInfo.deficientCounseling}
+              </Text>
             </View>
           </View>
         </View>
@@ -475,9 +494,11 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.ctaButtonText}>
-            {deficientInfo.icon} {isJa
-              ? `不足している${deficientInfo.hanja}(${deficientInfo.shortConcept})の気を補う3大実戦秘策を見る ➔`
-              : `부족한 ${deficientInfo.hanja}(${deficientInfo.shortConcept}) 기운 채우는 3대 실전 비책 보기 ➔`}
+            {isJa
+              ? (deficientInfo.element === 'Metal' && !saju
+                  ? CARDS_JA.c07_counseling.solutionBtn
+                  : `${deficientInfo.icon} 不足している${deficientInfo.hanja}（${deficientInfo.shortConcept}）の気を補う3大実戦秘策を見る ➔`)
+              : `${deficientInfo.icon} 부족한 ${deficientInfo.hanja}(${deficientInfo.shortConcept}) 기운 채우는 3대 실전 비책 보기 ➔`}
           </Text>
         </Pressable>
       </ScrollView>
