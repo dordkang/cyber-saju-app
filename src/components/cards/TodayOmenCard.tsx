@@ -272,7 +272,6 @@ export const TodayOmenCard = memo(function TodayOmenCard({
     return () => loop.stop();
   }, [active, pulse]);
 
-
   return (
     <View style={[styles.page, { height }]} pointerEvents={active ? 'auto' : 'none'}>
       {/* 1. 배경: 딥 블랙 & 다크 버건디/와인 그라데이션 */}
@@ -289,68 +288,62 @@ export const TodayOmenCard = memo(function TodayOmenCard({
         contentContainerStyle={[
           styles.scrollBody,
           {
-            paddingTop: insets.top + 14,
+            paddingTop: Math.max(insets.top, 44) + 48,
             paddingBottom: Math.max(insets.bottom, 16) + 72,
           },
         ]}
       >
-        {/* 상단 헤더 및 기준 일자 선택기 (Date Selector) 복원 */}
-        <View>
-          <View style={styles.chipRow}>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>
-                {META?.no} · {isJa ? '今日の予兆' : META?.kicker}
-              </Text>
-            </View>
+        {/* 상단 날짜 선택 컨트롤 바 (단독 배치 및 하단 여백 확보) */}
+        <View style={styles.dateControlRow}>
+          <View style={styles.dateControlBar}>
+            <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '前日' : '이전 날'}>
+              <Text style={styles.dateNavText}>◀</Text>
+            </Pressable>
 
-            {/* 날짜 선택 컨트롤 바 */}
-            <View style={styles.dateControlBar}>
-              <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '前日' : '이전 날'}>
-                <Text style={styles.dateNavText}>◀</Text>
-              </Pressable>
-
-              <Pressable
-                onPress={() => {
-                  void playHaptic('tap');
-                  if (IS_WEB && dateInputRef.current) {
-                    try {
-                      dateInputRef.current.showPicker?.() || dateInputRef.current.click?.();
-                    } catch {
-                      dateInputRef.current.click?.();
-                    }
+            <Pressable
+              onPress={() => {
+                void playHaptic('tap');
+                if (IS_WEB && dateInputRef.current) {
+                  try {
+                    dateInputRef.current.showPicker?.() || dateInputRef.current.click?.();
+                  } catch {
+                    dateInputRef.current.click?.();
                   }
-                }}
-                style={styles.dateCenterBtn}
-                accessibilityLabel={isJa ? '日付変更' : '날짜 변경'}
-              >
-                <Text style={styles.dateCenterText}>📅 {formatTodayLabel(selectedDate, isJa)}</Text>
-                {IS_WEB && (
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
-                    onChange={handleDateChange}
-                    style={{
-                      position: 'absolute',
-                      opacity: 0,
-                      width: 1,
-                      height: 1,
-                      pointerEvents: 'none',
-                    }}
-                  />
-                )}
-              </Pressable>
+                }
+              }}
+              style={styles.dateCenterBtn}
+              accessibilityLabel={isJa ? '日付変更' : '날짜 변경'}
+            >
+              <Text style={styles.dateCenterText}>📅 {formatTodayLabel(selectedDate, isJa)}</Text>
+              {IS_WEB && (
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
+                  onChange={handleDateChange}
+                  style={{
+                    position: 'absolute',
+                    opacity: 0,
+                    width: 1,
+                    height: 1,
+                    pointerEvents: 'none',
+                  }}
+                />
+              )}
+            </Pressable>
 
-              <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel={isJa ? '今日に戻る' : '오늘로 복귀'}>
-                <Text style={styles.dateTodayText}>{isJa ? '今日' : '오늘'}</Text>
-              </Pressable>
+            <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel={isJa ? '今日に戻る' : '오늘로 복귀'}>
+              <Text style={styles.dateTodayText}>{isJa ? '今日' : '오늘'}</Text>
+            </Pressable>
 
-              <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '翌日' : '다음 날'}>
-                <Text style={styles.dateNavText}>▶</Text>
-              </Pressable>
-            </View>
+            <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '翌日' : '다음 날'}>
+              <Text style={styles.dateNavText}>▶</Text>
+            </Pressable>
           </View>
+        </View>
 
+        {/* 메인 타이틀 & 일간 */}
+        <View style={styles.titleWrap}>
           <Text style={[styles.title, compact && styles.titleCompact]}>
             {isJa ? '天が送る\n今日の予兆' : META?.title}
           </Text>
@@ -609,20 +602,27 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingRight: 86,
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    maxWidth: 520,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
   scrollBody: {
-    paddingHorizontal: 22,
-    paddingRight: 86,
-    maxWidth: 520,
+    paddingHorizontal: 16,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
-    gap: 12,
+    gap: 14,
+  },
+  dateControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  titleWrap: {
+    marginBottom: 4,
   },
   ctaWrapperInline: {
     marginTop: 8,
@@ -715,19 +715,20 @@ const styles = StyleSheet.create({
     ...KEEP_ALL,
   },
   title: {
-    marginTop: 8,
     color: '#F4F7FB',
     fontSize: 30,
     lineHeight: 38,
     fontWeight: '900',
+    letterSpacing: -0.5,
     ...KEEP_ALL,
   },
-  titleCompact: { fontSize: 24, lineHeight: 30 },
+  titleCompact: { fontSize: 26, lineHeight: 32 },
   profile: {
-    marginTop: 8,
-    color: '#a8868e',
-    fontSize: 13,
-    fontWeight: '700',
+    marginTop: 6,
+    color: '#FDA4AF',
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.2,
     ...KEEP_ALL,
   },
   sigilWrap: {
@@ -833,17 +834,17 @@ const styles = StyleSheet.create({
   },
   ganji: {
     color: '#FFFFFF',
-    fontSize: 42,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: 2,
-    lineHeight: 50,
+    lineHeight: 46,
     ...(IS_WEB
       ? ({
           textShadow: '0 0 16px rgba(255, 255, 255, 0.25)',
         } as unknown as TextStyle)
       : null),
   },
-  ganjiCompact: { fontSize: 32, lineHeight: 38 },
+  ganjiCompact: { fontSize: 30, lineHeight: 36 },
   reading: {
     color: '#c9a4aa',
     fontSize: 13,
@@ -882,15 +883,16 @@ const styles = StyleSheet.create({
   },
   keyword: {
     color: '#F4F7FB',
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 21,
+    fontWeight: '800',
+    letterSpacing: -0.2,
     ...KEEP_ALL,
   },
   fortune: {
     marginTop: 6,
-    color: '#E0CDD1',
-    fontSize: 14,
-    lineHeight: 22,
+    color: '#F1F5F9',
+    fontSize: 15,
+    lineHeight: 23,
     ...KEEP_ALL,
   },
   itemRow: {
@@ -921,8 +923,8 @@ const styles = StyleSheet.create({
   },
   ctaWrapper: {
     position: 'absolute',
-    left: 22,
-    right: 86,
+    left: 16,
+    right: 16,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#ff1f3d',

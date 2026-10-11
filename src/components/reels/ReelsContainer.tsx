@@ -24,7 +24,6 @@ import { TodayCircuitCard } from '../cards/TodayCircuitCard';
 import { ShamanChamberCard } from '../cards/ShamanChamberCard';
 import { useLocale } from '../../locales';
 import { CARDS_JA } from '../../locales/cards_ja';
-import { LanguageSwitcher } from '../LanguageSwitcher';
 import {
   ELEMENT_AURA,
   REEL_ACCENT_HEX,
@@ -188,7 +187,7 @@ const PeekCard = memo(function PeekCard({
       <View
         style={[
           styles.peekBody,
-          { paddingTop: insets.top + 18, paddingBottom: Math.max(insets.bottom, 16) + 8 },
+          { paddingTop: Math.max(insets.top, 44) + 48, paddingBottom: Math.max(insets.bottom, 16) + 8 },
         ]}
       >
         <View>
@@ -476,6 +475,21 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
   };
 
   const aura = ELEMENT_AURA[context.omen.element];
+  const currentMeta = REEL_SECTIONS[activeIndex] || REEL_SECTIONS[0];
+  const activeChipLabel = useMemo(() => {
+    if (!isJa) return `${currentMeta.no} · ${currentMeta.kicker}`;
+    switch (currentMeta.id) {
+      case 'omen': return '01 · 今日の予兆';
+      case 'life': return CARDS_JA.c02_daewoon.tab;
+      case 'people': return CARDS_JA.c03_radar.tab;
+      case 'money': return '04 · 金運の流れ';
+      case 'celebrity': return CARDS_JA.c05_resonance.tab;
+      case 'mbti': return '06 · ペルソナ戦術室';
+      case 'circuit': return '07 · 五行カウンセリング';
+      case 'chamber': return '08 · 密室相談所';
+      default: return `${currentMeta.no} · ${currentMeta.kicker}`;
+    }
+  }, [isJa, currentMeta]);
 
   return (
     <View style={styles.root}>
@@ -513,40 +527,51 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
       {paused && <View pointerEvents="none" style={styles.dim} />}
 
-      {/* 상단 통합 헤더 액션 바 [ 🇰🇷 KR | 🇯🇵 JP ] [ 🔊 / 🔇 ] [ ⚙️ ] */}
+      {/* 아이폰 다이내믹 아일랜드(카메라) 간섭 방지 헤더 재배치: 좌/우 완전 양분 레이아웃 */}
       <View
         pointerEvents="box-none"
         style={[
           styles.topHeaderBar,
           {
-            top: insets.top + 8,
-            right: 16,
+            paddingTop: Math.max(insets.top, 44),
           },
         ]}
       >
-        <LanguageSwitcher compact />
-        <Pressable
-          onPress={() => railTap(() => actions.onToggleSound?.())}
-          style={({ pressed }) => [
-            styles.headerIconBtn,
-            pressed && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={context.soundOn ? (isJa ? '音声 OFF' : '소리 끄기') : (isJa ? '音声 ON' : '소리 켜기')}
-        >
-          <Text style={styles.headerIconText}>{context.soundOn ? '🔊' : '🔇'}</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => railTap(() => actions.onSettingsPress?.())}
-          style={({ pressed }) => [
-            styles.headerIconBtn,
-            pressed && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={isJa ? '設定' : '설정'}
-        >
-          <Text style={styles.headerIconText}>⚙️</Text>
-        </Pressable>
+        {/* [좌측 영역]: [ 01 · 今日の予兆 ] 섹션 칩 뱃지만 단독 배치 */}
+        <View style={[styles.headerSectionChip, { borderColor: accentOf(currentMeta) }]}>
+          <Text style={[styles.headerSectionChipText, { color: accentOf(currentMeta) }]}>
+            {activeChipLabel}
+          </Text>
+        </View>
+
+        {/* [중앙 영역]: 100% 공백 유지 (카메라 펀치홀 / 다이내믹 아일랜드 통과 구역) */}
+        <View style={styles.headerCenterSpace} />
+
+        {/* [우측 영역]: [ 🔊 / 🔇 ] 음소거 토글 아이콘 + [ ⚙️ ] 설정 톱니바퀴 아이콘 (간격 gap-3) */}
+        <View style={styles.headerRightGroup}>
+          <Pressable
+            onPress={() => railTap(() => actions.onToggleSound?.())}
+            style={({ pressed }) => [
+              styles.headerIconBtn,
+              pressed && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={context.soundOn ? (isJa ? '音声 OFF' : '소리 끄기') : (isJa ? '音声 ON' : '소리 켜기')}
+          >
+            <Text style={styles.headerIconText}>{context.soundOn ? '🔊' : '🔇'}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => railTap(() => actions.onSettingsPress?.())}
+            style={({ pressed }) => [
+              styles.headerIconBtn,
+              pressed && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={isJa ? '設定' : '설정'}
+          >
+            <Text style={styles.headerIconText}>⚙️</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* 카드 스크롤 인디케이터 (본문 터치/가림 없는 초슬림 점선) */}
@@ -554,7 +579,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         pointerEvents="none"
         style={[
           styles.indicatorDots,
-          { top: insets.top + 50 },
+          { top: Math.max(insets.top, 44) + 48 },
         ]}
         accessibilityLabel={`${activeIndex + 1}번째 카드`}
       >
@@ -590,10 +615,9 @@ const styles = StyleSheet.create({
   },
   peekBody: {
     flex: 1,
-    paddingHorizontal: 22,
-    paddingRight: 86,
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    maxWidth: 520,
+    maxWidth: 420,
     alignSelf: 'center',
     width: '100%',
   },
@@ -655,15 +679,47 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
   topHeaderBar: {
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: '100%',
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
     zIndex: 99,
   },
+  headerSectionChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: 'rgba(11, 14, 20, 0.75)',
+    ...(IS_WEB
+      ? ({
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  headerSectionChipText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    ...KEEP_ALL,
+  },
+  headerCenterSpace: {
+    flex: 1,
+  },
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   headerIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(11, 14, 20, 0.75)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.18)',

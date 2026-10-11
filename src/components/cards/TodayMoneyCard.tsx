@@ -173,7 +173,7 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
         contentContainerStyle={[
           styles.scrollBody,
           {
-            paddingTop: insets.top + 12,
+            paddingTop: Math.max(insets.top, 44) + 48,
             paddingBottom: Math.max(insets.bottom, 16) + 68,
           },
         ]}
@@ -537,6 +537,9 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     paddingHorizontal: 16,
+    maxWidth: 420,
+    alignSelf: 'center',
+    width: '100%',
   },
   ambientGlowAmber: {
     position: 'absolute',

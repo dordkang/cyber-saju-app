@@ -145,7 +145,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
         contentContainerStyle={[
           styles.scrollBody,
           {
-            paddingTop: insets.top + 16,
+            paddingTop: Math.max(insets.top, 44) + 48,
             paddingBottom: Math.max(insets.bottom, 16) + 40,
           },
         ]}
@@ -316,6 +316,9 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     paddingHorizontal: 16,
+    maxWidth: 420,
+    alignSelf: 'center',
+    width: '100%',
     gap: 14,
   },
   header: {
