@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocale } from '../../locales';
 import { playHaptic } from '../reels/haptics';
 import { TALISMAN_CARDS, TalismanCardItem } from '../../data/shamanChamberData';
+import { isDailyActionDone, setDailyActionDone } from '../../utils/dailyLock';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -31,30 +32,24 @@ interface TalismanRitualModalProps {
   onComplete?: () => void;
 }
 
-const SLOT_TITLES = [
+const STEP_BADGES = [
   {
     step: 1,
-    kr: '1. 현재 막힌 혈 (현재의 병목)',
-    jp: '1. 現在の滞り (現在のボトルネック)',
-    kickerKr: '현재 막힌 혈',
-    kickerJp: '現在の滞り',
-    color: '#FF2A4B',
+    kr: 'STEP 01: 현재 막힌 혈',
+    jp: 'STEP 01: 現在の滞り',
+    color: '#FF0055',
   },
   {
     step: 2,
-    kr: '2. 도사리는 살(煞) (잠복 리스크·인물)',
-    jp: '2. 潜むリスク・人物 (潜伏する煞)',
-    kickerKr: '도사리는 살(煞)',
-    kickerJp: '潜むリスク・人物',
+    kr: 'STEP 02: 도사리는 살',
+    jp: 'STEP 02: 潜むリスク',
     color: '#BD93F9',
   },
   {
     step: 3,
-    kr: '3. 기운 수혈 비책 (오행 주입)',
-    jp: '3. 五行注入の秘策 (気の水血)',
-    kickerKr: '기운 수혈 비책',
-    kickerJp: '五行注入の秘策',
-    color: '#00F5D4',
+    kr: 'STEP 03: 기운 수혈 비책',
+    jp: 'STEP 03: 注入秘策',
+    color: '#00FFCC',
   },
 ];
 
@@ -65,14 +60,17 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
 }: TalismanRitualModalProps) {
   const { isJa } = useLocale();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [alreadyDone, setAlreadyDone] = useState<boolean>(false);
 
   useEffect(() => {
     if (visible) {
       setSelectedIds([]);
+      setAlreadyDone(isDailyActionDone('talisman_ritual'));
     }
   }, [visible]);
 
   const handlePickCard = (cardId: string) => {
+    if (alreadyDone) return;
     if (selectedIds.includes(cardId)) return;
     if (selectedIds.length >= 3) return;
 
@@ -87,8 +85,17 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
   };
 
   const handleReset = () => {
+    if (alreadyDone) return;
     void playHaptic('tap');
     setSelectedIds([]);
+  };
+
+  const handleFinish = () => {
+    void playHaptic('snap');
+    setDailyActionDone('talisman_ritual');
+    setAlreadyDone(true);
+    onComplete?.();
+    onClose();
   };
 
   const isFinished = selectedIds.length === 3;
@@ -137,19 +144,39 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
               {isJa ? '五行神託 · 気の注入リチュアル' : '선천 오행 · 기운 수혈 리추얼'}
             </Text>
 
-            {/* 상단 가이드 */}
-            <View style={styles.guideBox}>
-              <Text style={styles.guideText}>
-                {isJa
-                  ? '目を閉じ深呼吸をして、直感が引き寄せる秘策の札を3枚選べ。'
-                  : '눈을 감고 호흡을 고른 뒤, 손끝을 강하게 당기는 비책 카드 3장을 골라라.'}
-              </Text>
-              <Text style={styles.progressText}>
-                {isJa
-                  ? `選択進行: ${selectedIds.length} / 3枚`
-                  : `선택 진행: ${selectedIds.length} / 3장`}
-              </Text>
-            </View>
+            {/* 1일 1회 희소성 잠금 배너 */}
+            {alreadyDone ? (
+              <View style={[styles.lockedBanner, GOLD_GLOW]}>
+                <View style={styles.lockedBadge}>
+                  <Text style={styles.lockedBadgeText}>
+                    {isJa ? '本日の注入完了' : '오늘 수혈 완료'}
+                  </Text>
+                </View>
+                <Text style={styles.lockedTitle}>
+                  {isJa
+                    ? '本日の気の注入は既に完了しました'
+                    : '오늘의 기운 수혈을 이미 마쳤습니다'}
+                </Text>
+                <Text style={styles.lockedSub}>
+                  {isJa
+                    ? '気は午前0時（子時）に再び満ちあふれます。授かった秘策を胸に刻み、明日を切り開いてください。'
+                    : '기운은 자정에 다시 차오릅니다. 이미 뼈에 새겨진 비책을 가슴에 품고 담대히 나아가세요.'}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.guideBox}>
+                <Text style={styles.guideText}>
+                  {isJa
+                    ? '目を閉じ深呼吸をして、直感が引き寄せる秘策の札を3枚選べ。'
+                    : '눈을 감고 호흡을 고른 뒤, 손끝을 강하게 당기는 비책 카드 3장을 골라라.'}
+                </Text>
+                <Text style={styles.progressText}>
+                  {isJa
+                    ? `選択進行: ${selectedIds.length} / 3枚`
+                    : `선택 진행: ${selectedIds.length} / 3장`}
+                </Text>
+              </View>
+            )}
 
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -157,31 +184,37 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
             >
               {/* 5장의 부적 카드 덱 */}
               <View style={styles.cardDeckGrid}>
-                {TALISMAN_CARDS.map((card, idx) => {
+                {TALISMAN_CARDS.map((card) => {
                   const pickIndex = selectedIds.indexOf(card.id);
                   const isPicked = pickIndex !== -1;
+                  const cardColor = card.color;
 
                   return (
                     <Pressable
                       key={card.id}
                       onPress={() => handlePickCard(card.id)}
-                      disabled={isPicked}
+                      disabled={isPicked || alreadyDone}
                       style={({ pressed }) => [
                         styles.deckCard,
-                        isPicked && styles.deckCardPicked,
+                        { borderColor: isPicked ? cardColor : 'rgba(255, 42, 75, 0.3)' },
+                        isPicked && [
+                          styles.deckCardPicked,
+                          IS_WEB ? ({ boxShadow: `0 0 16px ${cardColor}66` } as unknown as ViewStyle) : null,
+                        ],
+                        alreadyDone && styles.deckCardDisabled,
                         pressed && styles.deckCardPressed,
                       ]}
                     >
                       <LinearGradient
                         colors={
                           isPicked
-                            ? ['#2a0c14', '#150508']
-                            : ['#1d111e', '#0e0811']
+                            ? ['#2a0c16', '#140409']
+                            : ['#190b14', '#0d0408']
                         }
                         style={styles.cardInner}
                       >
                         {isPicked ? (
-                          <View style={styles.pickedBadge}>
+                          <View style={[styles.pickedBadge, { backgroundColor: cardColor }]}>
                             <Text style={styles.pickedBadgeText}>
                               {pickIndex + 1}
                             </Text>
@@ -191,26 +224,25 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
                         <Text
                           style={[
                             styles.talismanHanja,
-                            { color: isPicked ? card.color : '#8a6d75' },
+                            { color: isPicked ? cardColor : '#8a6d75' },
                           ]}
                         >
-                          {card.hanja}
+                          {card.hanja || card.element}
                         </Text>
                         <Text
                           style={[
                             styles.talismanName,
-                            { color: isPicked ? '#ffffff' : '#a8949b' },
+                            { color: isPicked ? '#ffffff' : '#c9adb6' },
                           ]}
                           numberOfLines={1}
                         >
                           {isJa ? card.name.jp : card.name.kr}
                         </Text>
-
-                        {!isPicked && (
-                          <Text style={styles.runeHint}>
-                            {isJa ? '秘策の札' : '비책 부적'}
+                        <View style={[styles.archetypeBadge, { borderColor: `${cardColor}66` }]}>
+                          <Text style={[styles.archetypeText, { color: cardColor }]}>
+                            {isJa ? card.archetype.jp : card.archetype.kr}
                           </Text>
-                        )}
+                        </View>
                       </LinearGradient>
                     </Pressable>
                   );
@@ -219,7 +251,7 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
 
               {/* 3단계 수혈 슬롯 결과 */}
               <View style={styles.slotsContainer}>
-                {SLOT_TITLES.map((slot, index) => {
+                {STEP_BADGES.map((slot, index) => {
                   const cardId = selectedIds[index];
                   const card = TALISMAN_CARDS.find((c) => c.id === cardId);
 
@@ -230,7 +262,8 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
                         styles.slotCard,
                         card && {
                           borderColor: slot.color,
-                          backgroundColor: 'rgba(28, 6, 12, 0.75)',
+                          backgroundColor: 'rgba(28, 6, 12, 0.85)',
+                          ...(IS_WEB ? ({ boxShadow: `0 0 12px ${slot.color}33` } as unknown as ViewStyle) : null),
                         },
                       ]}
                     >
@@ -238,7 +271,7 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
                         <View
                           style={[
                             styles.slotStepBadge,
-                            { borderColor: slot.color },
+                            { borderColor: slot.color, backgroundColor: `${slot.color}1a` },
                           ]}
                         >
                           <Text
@@ -247,7 +280,7 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
                               { color: slot.color },
                             ]}
                           >
-                            {isJa ? slot.kickerJp : slot.kickerKr}
+                            {isJa ? slot.jp : slot.kr}
                           </Text>
                         </View>
                         <Text style={styles.slotStepNum}>STEP 0{slot.step}</Text>
@@ -264,20 +297,22 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
                             >
                               {isJa ? card.name.jp : card.name.kr}
                             </Text>
-                            <Text style={styles.slotRevealedElement}>
-                              [{card.hanja}]
+                            <Text style={styles.slotRevealedArchetype}>
+                              [{isJa ? card.archetype.jp : card.archetype.kr}]
                             </Text>
                           </View>
                           <Text style={styles.slotRevealedDesc}>
-                            {isJa ? card.desc.jp : card.desc.kr}
+                            {isJa ? card.meaning.jp : card.meaning.kr}
                           </Text>
                         </View>
                       ) : (
                         <View style={styles.slotEmpty}>
                           <Text style={styles.slotEmptyText}>
-                            {isJa
-                              ? `上から${index + 1}枚目の札をタップして開示`
-                              : `위에서 ${index + 1}번째 비책 카드를 탭하여 봉인 해제`}
+                            {alreadyDone
+                              ? (isJa ? '本日の注入が完了しています' : '오늘의 기운 수혈이 완료되었습니다')
+                              : (isJa
+                                  ? `上から${index + 1}枚目の札をタップして開示`
+                                  : `위에서 ${index + 1}번째 비책 카드를 탭하여 봉인 해제`)}
                           </Text>
                         </View>
                       )}
@@ -287,7 +322,7 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
               </View>
 
               {/* 3장 선택 완료 시 황금빛 이펙트 배너 */}
-              {isFinished && (
+              {isFinished && !alreadyDone && (
                 <View style={[styles.finishedBanner, GOLD_GLOW]}>
                   <Text style={styles.finishedIcon}>⚡</Text>
                   <Text style={styles.finishedTitle}>
@@ -305,28 +340,40 @@ export const TalismanRitualModal = memo(function TalismanRitualModal({
 
               {/* 하단 버튼 액션 */}
               <View style={styles.bottomActions}>
-                {isFinished ? (
+                {alreadyDone ? (
                   <Pressable
-                    onPress={() => {
-                      void playHaptic('snap');
-                      onClose();
-                    }}
+                    onPress={onClose}
                     style={({ pressed }) => [
                       styles.confirmBtn,
                       pressed && styles.pressed,
                     ]}
                   >
                     <Text style={styles.confirmBtnText}>
+                      {isJa ? '閉じる (本日の受領完了)' : '닫기 (오늘 수혈 완료됨)'}
+                    </Text>
+                  </Pressable>
+                ) : isFinished ? (
+                  <Pressable
+                    onPress={handleFinish}
+                    style={({ pressed }) => [
+                      styles.confirmBtn,
+                      GOLD_GLOW,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.confirmBtnText}>
                       {isJa
-                        ? '秘策を吸収して閉じる (完了)'
-                        : '비책 흡수 완료 (기운 담고 닫기)'}
+                        ? '秘策を吸収して完了 (気の注入)'
+                        : '비책 흡수 완료 (기운 100% 수혈)'}
                     </Text>
                   </Pressable>
                 ) : (
                   <Pressable
                     onPress={handleReset}
+                    disabled={selectedIds.length === 0}
                     style={({ pressed }) => [
                       styles.resetBtn,
+                      selectedIds.length === 0 && { opacity: 0.5 },
                       pressed && styles.pressed,
                     ]}
                   >
@@ -349,18 +396,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.88)',
     paddingHorizontal: 16,
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   sheet: {
     width: '100%',
-    maxWidth: 460,
-    maxHeight: '92%',
+    maxWidth: 480,
+    maxHeight: '94%',
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 42, 75, 0.4)',
+    borderColor: 'rgba(255, 42, 75, 0.45)',
   },
   sheetGradient: {
     padding: 20,
@@ -401,11 +448,47 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...KEEP_ALL,
   },
+  lockedBanner: {
+    backgroundColor: 'rgba(255, 183, 3, 0.12)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#ffb700',
+    alignItems: 'center',
+    gap: 4,
+  },
+  lockedBadge: {
+    backgroundColor: '#ffb700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 2,
+  },
+  lockedBadgeText: {
+    color: '#0a0104',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  lockedTitle: {
+    color: '#ffb700',
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+    ...KEEP_ALL,
+  },
+  lockedSub: {
+    color: '#fbe0a1',
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+    ...KEEP_ALL,
+  },
   guideBox: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -431,20 +514,21 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   deckCard: {
     width: '30%',
-    minWidth: 90,
-    aspectRatio: 0.85,
+    minWidth: 92,
+    aspectRatio: 0.82,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 42, 75, 0.3)',
+    borderWidth: 1.5,
     overflow: 'hidden',
   },
   deckCardPicked: {
-    borderColor: '#00F5D4',
-    opacity: 0.9,
+    opacity: 0.95,
+  },
+  deckCardDisabled: {
+    opacity: 0.45,
   },
   deckCardPressed: {
     transform: [{ scale: 0.96 }],
@@ -455,6 +539,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 6,
     position: 'relative',
+    gap: 2,
   },
   pickedBadge: {
     position: 'absolute',
@@ -463,29 +548,33 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#00F5D4',
     justifyContent: 'center',
     alignItems: 'center',
   },
   pickedBadgeText: {
     color: '#060102',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
   },
   talismanHanja: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
-    marginBottom: 2,
   },
   talismanName: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
   },
-  runeHint: {
+  archetypeBadge: {
     marginTop: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  archetypeText: {
     fontSize: 9,
-    color: '#6e565c',
+    fontWeight: '700',
   },
   slotsContainer: {
     gap: 10,
@@ -505,21 +594,21 @@ const styles = StyleSheet.create({
   },
   slotStepBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
   },
   slotStepText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   slotStepNum: {
-    color: '#6e565c',
+    color: '#8a6d75',
     fontSize: 10,
     fontWeight: '700',
   },
   slotRevealed: {
-    marginTop: 4,
+    marginTop: 2,
   },
   slotCardTitleRow: {
     flexDirection: 'row',
@@ -529,15 +618,15 @@ const styles = StyleSheet.create({
   },
   slotRevealedName: {
     fontSize: 14,
+    fontWeight: '900',
+  },
+  slotRevealedArchetype: {
+    color: '#ffb700',
+    fontSize: 12,
     fontWeight: '800',
   },
-  slotRevealedElement: {
-    color: '#ffb703',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   slotRevealedDesc: {
-    color: '#e0d2d6',
+    color: '#f0e0e4',
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -555,7 +644,7 @@ const styles = StyleSheet.create({
   finishedBanner: {
     backgroundColor: 'rgba(255, 183, 3, 0.15)',
     borderWidth: 1.5,
-    borderColor: '#ffb703',
+    borderColor: '#ffb700',
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
@@ -566,7 +655,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   finishedTitle: {
-    color: '#ffb703',
+    color: '#ffb700',
     fontSize: 15,
     fontWeight: '900',
     textAlign: 'center',

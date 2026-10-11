@@ -48,7 +48,7 @@ const RESPONSE_RULE =
 
 const RESPONSE_RULE_JA =
   "[神託の絶対規則: サイバー神童 四柱推命ネイティブ直生成]\n" +
-  "1. 挨拶やお世辞、韓国語からの翻訳調は一切排除し、格調高く洗練された日本語（言霊）で直接執筆せよ。\n" +
+  "1. 挨拶やお世辞、韓国語からの翻訳調は一切排除し、格調高く洗練された日本語（言霊）で直接執筆せよ。韓国語の単語や混入は全面的に遮断すること。\n" +
   "2. 相談者の命式（天干・地支・通変星・五行バランス）と今日・明日の日辰を解剖し、現実に即した具体的で生々しい決断と処方箋を下せ。\n" +
   "3. 括弧書き()による行動描写、表情・しぐさのト書きは一切禁止。\n" +
   "4. 相談者の入力した悩みをそのまま引用・オウム返し(Echoing)することは厳禁。言葉の裏にある焦燥、疲労、孤独を喝破して再解釈せよ。\n" +
@@ -547,13 +547,41 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false): 
   if (eventGuideline) {
     sections.push(`[사건 영역 특화 지침: ${eventCategory}]\n${eventGuideline}`);
   }
-  if ((EVENT_ALIASES[eventCategory] ?? eventCategory) === LOVE_CATEGORY) {
-    const partner = pickPartnerInfo(body.partnerInfo);
-    const userBranch = isRecord(body.pillars) && isRecord(body.pillars.day) ? pickString(body.pillars.day.branch, 1) : "";
+  const partner = pickPartnerInfo(body.partnerInfo || body.partnerProfile);
+  const isLoveQuestion =
+    (EVENT_ALIASES[eventCategory] ?? eventCategory) === LOVE_CATEGORY ||
+    eventCategory === "love" ||
+    eventCategory === "애정/딴마음" ||
+    /本心|浮気|상대|그 사람|딴마음|애인|배우자|짝사랑/.test(diaryContent + " " + shortMemo + " " + userLore);
+
+  const userBranch = isRecord(body.pillars) && isRecord(body.pillars.day) ? pickString(body.pillars.day.branch, 1) : "";
+
+  if (isLoveQuestion) {
+    if (partner) {
+      const userSajuDesc = `일간: ${dayMaster || '미상'}, 일지: ${userBranch || '미상'}, 오행분포: ${elementText || '미상'}`;
+      const partnerSajuDesc = `호칭: ${partner.alias}, 생년월일: ${partner.birthDate || '미상'}, 관계: ${partner.relation || '상대'}, 일간: ${partner.dayMaster || '미상'}`;
+      sections.push(
+        isJa
+          ? `[相手の命式照合および本心・浮気心分析]\n` +
+            `相談者の命式([${userSajuDesc}])と登録された相手の命式([${partnerSajuDesc}])を精密に対照し、相手の日支合・沖および桃花殺を分析し、隠された本心と対処法を単刀直入・一刀両断で神託せよ。`
+          : `[상대방 명식 대조 및 본심 분석]\n` +
+            `상담자의 사주([${userSajuDesc}])와 등록된 상대방의 사주([${partnerSajuDesc}])를 정밀 대조하여, 상대방의 일지 합·충 및 도화살을 분석하고 숨겨둔 본심과 대처법을 단도직입적으로 점지하라.`
+      );
+      sections.push(buildPartnerSection(partner, dayMaster, userBranch));
+    } else {
+      sections.push(
+        isJa
+          ? `[恋愛・本心解断 指針]\n相手の情報が未登録のため、相談者の日干(${dayMaster})と日支、五行の偏りから相手の心理パターンと対処法を鋭く喝破せよ。`
+          : `[치정/바람 심층 지침: 타로 무의식 투사]\n${NO_PARTNER_LOVE_NOTE}`
+      );
+    }
+  } else {
     sections.push(
-      partner
-        ? buildPartnerSection(partner, dayMaster, userBranch)
-        : `[치정/바람 심층 지침: 타로 무의식 투사]\n${NO_PARTNER_LOVE_NOTE}`
+      isJa
+        ? `[現実的処方 指針]\n` +
+          `相談者の命式元局(日干: ${dayMaster || '未詳'}, 通変星, 欠乏五行: ${elementText || '未詳'})と当日の日辰(${dailyGanji || '当日'})を結合し、現実的で生々しい処方と決断を即座に直説せよ。`
+        : `[현실 처방 지침]\n` +
+          `상담자의 사주 원국(일간: ${dayMaster || '미상'}, 십신, 결핍 오행: ${elementText || '미상'})과 당일 일진(${dailyGanji || '금일'})을 결합해 현실적 처방을 즉시 직설할 것.`
     );
   }
   if (userLore) {
@@ -691,7 +719,9 @@ export default {
       }
 
       const lang = pickString(parsed.lang || parsed.locale, 10).toLowerCase();
-      const isJa = lang === "jp" || lang === "ja";
+      const userText = `${pickString(parsed.diaryContent, 1000)} ${pickString(parsed.shortMemo, 200)} ${pickString(parsed.userLore, 500)}`;
+      const hasJapanese = /[\u3040-\u30ff\u31f0-\u31ff]/.test(userText);
+      const isJa = lang === "jp" || lang === "ja" || hasJapanese;
 
       const agentType = normalizeAgent(parsed.agentType);
       const defaultInstruction = isJa ? DEFAULT_SYSTEM_INSTRUCTION_JA : DEFAULT_SYSTEM_INSTRUCTION;

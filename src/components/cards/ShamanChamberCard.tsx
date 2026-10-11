@@ -61,6 +61,25 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   const [questionText, setQuestionText] = useState<string>('');
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false);
 
+  // 로컬스토리지에서 상대방 사주 정보(cyber_saju_partner) 읽기
+  const partnerProfile = useMemo(() => {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored =
+          localStorage.getItem('cyber_saju_partner') ||
+          localStorage.getItem('cybersaju.partner_profile');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const isLoveQuestion =
+    selectedQuestionId === 4 ||
+    /本心|浮気|상대|그 사람|딴마음|애인|배우자|짝사랑/.test(questionText);
+
   // 실시간 AI 훅 연동
   const {
     advice: aiAdvice,
@@ -70,7 +89,8 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   } = useSajuAdvice({
     saju,
     userProfile,
-    category: 'chamber_oracle',
+    partnerProfile: partnerProfile || undefined,
+    category: isLoveQuestion ? 'love' : 'chamber_oracle',
     userInput: questionText,
     lang: isJa ? 'jp' : 'kr',
     autoFetch: false,
@@ -142,8 +162,8 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
           </Text>
           <Text style={styles.subtitle}>
             {isJa
-              ? '建前を捨て、最も切迫した悩みを吐き出せ。400字の一刀両断で盤勢を解断する。'
-              : '체면을 벗고 가장 처절한 근심을 털어놓아라. 400자 단도직입으로 판세를 짚는다.'}
+              ? '建前を捨て、最も切迫した悩みを吐き出せ。一刀両断で盤勢の脈を解断する。'
+              : '체면을 벗고 가장 처절한 근심을 털어놓아라. 단도직입으로 판세의 맥을 짚는다.'}
           </Text>
         </View>
 
@@ -179,7 +199,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
                       isSelected && styles.chipCategorySelected,
                     ]}
                   >
-                    {q.category}
+                    {isJa ? q.category.jp : q.category.kr}
                   </Text>
                 </View>
                 <Text
@@ -245,8 +265,8 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
             ) : (
               <Text style={styles.submitBtnText}>
                 {isJa
-                  ? '⚡ サイバー神童の即問即答 (400字神託)'
-                  : '⚡ 옥동자 신명 즉문즉답 (400자 팩폭)'}
+                  ? '⚡ サイバー神童の即問即答'
+                  : '⚡ 옥동자 신명 즉문즉답'}
               </Text>
             )}
           </Pressable>
