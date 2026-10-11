@@ -417,14 +417,6 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           },
         ]}
       >
-        {/* 상단 칩: 06 · 페르소나 전술실 */}
-        <View style={styles.headerRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>
-              {isJa ? CARDS_JA.c06_mbti.tab : '06 · 페르소나 전술실'}
-            </Text>
-          </View>
-        </View>
 
         {/* 1. 메인 타이틀 & 서브타이틀 */}
         <View style={styles.titleWrap}>

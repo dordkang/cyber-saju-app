@@ -203,11 +203,6 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
       >
         {/* 1. 상단 헤더 */}
         <View style={styles.header}>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>
-              {isJa ? '08 · 密室相談' : '08 · 밀실 상담'}
-            </Text>
-          </View>
           <Text style={styles.title}>
             {isJa ? 'サイバー神童 1:1 天機密室' : '옥동자 1:1 천기 밀실'}
           </Text>

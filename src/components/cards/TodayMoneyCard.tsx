@@ -178,12 +178,8 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
           },
         ]}
       >
-        {/* 상단 섹션 칩 & 날짜 컨트롤러 */}
-        <View style={styles.headerRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{t.section04.tab}</Text>
-          </View>
-
+        {/* 상단 날짜 컨트롤러 */}
+        <View style={[styles.headerRow, { justifyContent: 'flex-end' }]}>
           <View style={styles.dateControlBar}>
             <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '前日' : '이전 날'}>
               <Text style={styles.dateNavText}>◀</Text>

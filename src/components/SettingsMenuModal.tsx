@@ -99,12 +99,12 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
             <Text style={styles.rowIcon}>{soundOn ? '🔊' : '🔇'}</Text>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>
-                {isJa ? '神秘アンビエント瞑想音 (寺院・シンギングボウル)' : '신명 앰비언트 명상음 (사찰 싱잉볼)'}
+                {isJa ? '神秘アンビエント瞑想音 (東洋五音階オルゴール)' : '신명 앰비언트 명상음 (동양 오음계 오르골)'}
               </Text>
               <Text style={styles.rowCaption} numberOfLines={1}>
                 {isJa
-                  ? (soundOn ? '寺院のシンギングボウル瞑想音が再生中' : 'アンビエント瞑想音OFF')
-                  : (soundOn ? '사찰 싱잉볼 명상음이 흐르는 중' : '명상 배경음 꺼짐')}
+                  ? (soundOn ? '東洋五音階オルゴール瞑想音が再生中' : 'アンビエント瞑想音OFF')
+                  : (soundOn ? '동양 오음계 오르골 명상음이 흐르는 중' : '명상 배경음 꺼짐')}
               </Text>
             </View>
             <Switch

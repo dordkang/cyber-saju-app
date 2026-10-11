@@ -365,14 +365,6 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
           },
         ]}
       >
-        {/* 상단 칩: 07 · 오행 카운셀링 */}
-        <View style={styles.headerRow}>
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>
-              {isJa ? CARDS_JA.c07_counseling.tab : '07 · 오행 카운셀링'}
-            </Text>
-          </View>
-        </View>
 
         {/* 메인 타이틀 & 서브타이틀 */}
         <View style={styles.titleWrap}>

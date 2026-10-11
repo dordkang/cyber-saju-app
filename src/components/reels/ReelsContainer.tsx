@@ -191,7 +191,6 @@ const PeekCard = memo(function PeekCard({
     return null;
   }, [isJa, meta.id]);
 
-  const chipLabel = cardJa?.tab ?? `${meta.no} · ${meta.kicker}`;
   const titleLabel = cardJa?.title ?? meta.title;
   const subtitleLabel = cardJa?.subtitle ?? meta.subtitle;
 
@@ -215,11 +214,6 @@ const PeekCard = memo(function PeekCard({
         ]}
       >
         <View>
-          <View style={[styles.chip, { borderColor: accent }]}>
-            <Text style={[styles.chipText, { color: accent }]}>
-              {chipLabel}
-            </Text>
-          </View>
           <Text style={styles.peekTitle}>{titleLabel}</Text>
           <Text style={styles.peekSubtitle}>{subtitleLabel}</Text>
         </View>
