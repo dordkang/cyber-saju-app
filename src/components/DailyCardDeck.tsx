@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { EmotionElement, EnergyLevel, EventCategory } from '../database/db';
+import { useLocale } from '../locales';
 
 export interface DailyCardData {
   emotionElement: EmotionElement;
@@ -147,14 +148,15 @@ interface EmotionCard {
   hanja: string;
   emoji: string;
   keyword: string;
+  keywordJa: string;
 }
 
 const EMOTION_CARDS: readonly EmotionCard[] = [
-  { key: '목', hanja: '木', emoji: '🌲', keyword: '의욕 · 조급함' },
-  { key: '화', hanja: '火', emoji: '🔥', keyword: '열정 · 번아웃' },
-  { key: '토', hanja: '土', emoji: '🏔️', keyword: '답답 · 정체' },
-  { key: '금', hanja: '金', emoji: '⚔️', keyword: '결단 · 마찰' },
-  { key: '수', hanja: '水', emoji: '🌊', keyword: '불안 · 고독' },
+  { key: '목', hanja: '木', emoji: '🌲', keyword: '의욕 · 조급함', keywordJa: '意欲・焦燥' },
+  { key: '화', hanja: '火', emoji: '🔥', keyword: '열정 · 번아웃', keywordJa: '情熱・消耗' },
+  { key: '토', hanja: '土', emoji: '🏔️', keyword: '답답 · 정체', keywordJa: '鬱憤・停滞' },
+  { key: '금', hanja: '金', emoji: '⚔️', keyword: '결단 · 마찰', keywordJa: '決断・摩擦' },
+  { key: '수', hanja: '水', emoji: '🌊', keyword: '불안 · 고독', keywordJa: '不安・孤独' },
 ];
 
 type EventId = 'money' | 'work' | 'relation' | 'health' | 'choice';
@@ -162,17 +164,18 @@ type EventId = 'money' | 'work' | 'relation' | 'health' | 'choice';
 interface EventCard {
   id: EventId;
   label: string;
+  labelJa: string;
   emoji: string;
   /** DB와 AI 게이트웨이가 이미 쓰는 사건 영역 키. 기존 기록·지침과 호환되도록 유지한다. */
   category: EventCategory;
 }
 
 const EVENT_CARDS: readonly EventCard[] = [
-  { id: 'money', label: '돈', emoji: '💰', category: '돈/대박' },
-  { id: 'work', label: '직장', emoji: '⚔️', category: '생존/직장' },
-  { id: 'relation', label: '관계', emoji: '💔', category: '치정/바람' },
-  { id: 'health', label: '건강', emoji: '🩹', category: '건강/액땜' },
-  { id: 'choice', label: '선택', emoji: '🧭', category: '선택' },
+  { id: 'money', label: '돈', labelJa: 'お金', emoji: '💰', category: '돈/대박' },
+  { id: 'work', label: '직장', labelJa: '仕事', emoji: '⚔️', category: '생존/직장' },
+  { id: 'relation', label: '관계', labelJa: '人間関係', emoji: '💔', category: '치정/바람' },
+  { id: 'health', label: '건강', labelJa: '健康', emoji: '🩹', category: '건강/액땜' },
+  { id: 'choice', label: '선택', labelJa: '選択', emoji: '🧭', category: '선택' },
 ];
 
 const ENERGY_CHIPS: readonly EnergyLevel[] = [25, 50, 75, 100];
@@ -376,6 +379,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
   onEventCategorySelect,
   lackingElement,
 }) => {
+  const { isJa } = useLocale();
   const [emotion, setEmotion] = useState<EmotionElement | null>(null);
   const [eventId, setEventId] = useState<EventId | null>(null);
   const [energy, setEnergy] = useState<EnergyLevel | null>(null);
@@ -496,7 +500,9 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.stepTitle}>1단계 · 지금 내 감정의 오행</Text>
+      <Text style={styles.stepTitle}>
+        {isJa ? 'STEP 1 · 現在の感情五行' : '1단계 · 지금 내 감정의 오행'}
+      </Text>
       <View style={styles.row}>
         {EMOTION_CARDS.map((card) => {
           const selected = emotion === card.key;
@@ -506,7 +512,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               onPress={() => handleEmotion(card.key)}
               disabled={charged}
               accessibilityRole="button"
-              accessibilityLabel={`${card.key}(${card.hanja}) ${card.keyword}`}
+              accessibilityLabel={`${card.key}(${card.hanja}) ${isJa ? card.keywordJa : card.keyword}`}
               accessibilityState={{ selected, disabled: charged }}
               style={({ pressed }) => [
                 styles.emotionCard,
@@ -518,13 +524,15 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               <Text style={styles.emotionEmoji}>{card.emoji}</Text>
               <Text style={[styles.hanja, selected && styles.hanjaSelected]}>{card.hanja}</Text>
               <Text style={[styles.emotionLabel, selected && styles.emotionLabelSelected]}>{card.key}</Text>
-              <Text style={styles.keyword}>{card.keyword}</Text>
+              <Text style={styles.keyword}>{isJa ? card.keywordJa : card.keyword}</Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text style={styles.stepTitle}>2단계 · 오늘 나를 흔든 사건</Text>
+      <Text style={styles.stepTitle}>
+        {isJa ? 'STEP 2 · 今日心を揺さぶった出来事' : '2단계 · 오늘 나를 흔든 사건'}
+      </Text>
       <View style={styles.row}>
         {EVENT_CARDS.map((card) => {
           const selected = eventId === card.id;
@@ -534,7 +542,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               onPress={() => handleEvent(card)}
               disabled={charged}
               accessibilityRole="button"
-              accessibilityLabel={card.label}
+              accessibilityLabel={isJa ? card.labelJa : card.label}
               accessibilityState={{ selected, disabled: charged }}
               style={({ pressed }) => [
                 styles.eventCard,
@@ -544,13 +552,17 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               ]}
             >
               <Text style={styles.eventEmoji}>{card.emoji}</Text>
-              <Text style={[styles.eventText, selected && styles.eventTextSelected]}>{card.label}</Text>
+              <Text style={[styles.eventText, selected && styles.eventTextSelected]}>
+                {isJa ? card.labelJa : card.label}
+              </Text>
             </Pressable>
           );
         })}
       </View>
 
-      <Text style={styles.stepTitle}>3단계 · 에너지 잔량을 탭하면 즉시 충전</Text>
+      <Text style={styles.stepTitle}>
+        {isJa ? 'STEP 3 · 残量タップで即時充電' : '3단계 · 에너지 잔량을 탭하면 즉시 충전'}
+      </Text>
       <View style={styles.row}>
         {ENERGY_CHIPS.map((level) => {
           const selected = energy === level;
@@ -561,7 +573,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               onPress={() => handleEnergy(level)}
               disabled={locked}
               accessibilityRole="button"
-              accessibilityLabel={`에너지 잔량 ${level}퍼센트`}
+              accessibilityLabel={isJa ? `エネルギー残量 ${level}%` : `에너지 잔량 ${level}퍼센트`}
               accessibilityState={{ selected, disabled: locked }}
               style={({ pressed }) => [
                 styles.energyChip,
@@ -576,7 +588,11 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
           );
         })}
       </View>
-      {!ready && <Text style={styles.hint}>1단계와 2단계를 먼저 골라 주세요.</Text>}
+      {!ready && (
+        <Text style={styles.hint}>
+          {isJa ? 'STEP 1とSTEP 2を先に選択してください。' : '1단계와 2단계를 먼저 골라 주세요.'}
+        </Text>
+      )}
 
       <View style={styles.batteryRow}>
         <View style={styles.batteryBody}>
@@ -593,22 +609,30 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
             <View pointerEvents="none" style={[styles.tick, { left: '50%' }]} />
             <View pointerEvents="none" style={[styles.tick, { left: '75%' }]} />
             <Text pointerEvents="none" style={[styles.batteryPercent, !charged && styles.batteryPercentIdle]}>
-              {charged ? `${percent}%` : '대기 중'}
+              {charged ? `${percent}%` : (isJa ? '待機中' : '대기 중')}
             </Text>
           </Animated.View>
         </View>
         <Animated.View style={[styles.batteryNub, { backgroundColor: charged ? fillColor : COLORS.borderStrong }]} />
       </View>
       <Text style={styles.batteryCaption}>
-        {charged ? `잔량 ${energy}% → 100% 충전 완료` : '잔량을 탭하면 배터리가 차오릅니다'}
+        {charged
+          ? (isJa ? `残量 ${energy}% → 100% 充電完了` : `잔량 ${energy}% → 100% 충전 완료`)
+          : (isJa ? '残量をタップすると充電されます' : '잔량을 탭하면 배터리가 차오릅니다')}
       </Text>
 
-      <Text style={styles.stepTitle}>오늘 하루 한 줄 기록 (선택)</Text>
+      <Text style={styles.stepTitle}>
+        {isJa ? '今日のひと言メモ (任意)' : '오늘 하루 한 줄 기록 (선택)'}
+      </Text>
       <View style={styles.inputContainer}>
         <TextInput
           value={shortMemo}
           onChangeText={setShortMemo}
-          placeholder="오늘 어떤 일이 있었나요? (예: 오랜 거래처와 담판을 지었다)"
+          placeholder={
+            isJa
+              ? '今日はどんなことがありましたか？ (例: 長年の取引先と談判した)'
+              : '오늘 어떤 일이 있었나요? (예: 오랜 거래처와 담판을 지었다)'
+          }
           placeholderTextColor="#8a6d75"
           style={styles.memoInput}
           maxLength={100}
@@ -617,7 +641,9 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
 
       {prescription && (
         <View style={styles.prescription}>
-          <Text style={styles.prescriptionTitle}>🧙 도사의 2줄 처방</Text>
+          <Text style={styles.prescriptionTitle}>
+            {isJa ? '🧙 道士の2行処方' : '🧙 도사의 2줄 처방'}
+          </Text>
           <Text style={styles.prescriptionLine1}>{prescription.diagnosis}</Text>
           <Text style={styles.prescriptionLine2}>{prescription.action}</Text>
 
@@ -628,7 +654,11 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
             accessibilityState={{ disabled: saving }}
             style={({ pressed }) => [styles.finishButton, saving && styles.finishButtonBusy, pressed && styles.pressed]}
           >
-            <Text style={styles.finishButtonText}>{saving ? '기록 중…' : '⚡ 내일 기운으로 리셋 완료'}</Text>
+            <Text style={styles.finishButtonText}>
+              {saving
+                ? (isJa ? '記録中…' : '기록 중…')
+                : (isJa ? '⚡ 明日の気運へリセット完了' : '⚡ 내일 기운으로 리셋 완료')}
+            </Text>
           </Pressable>
           <Pressable
             onPress={handleRestart}
@@ -636,7 +666,9 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
             accessibilityRole="button"
             style={({ pressed }) => [styles.restartButton, pressed && styles.pressed]}
           >
-            <Text style={styles.restartButtonText}>↺ 다시 고르기</Text>
+            <Text style={styles.restartButtonText}>
+              {isJa ? '↺ 選び直す' : '↺ 다시 고르기'}
+            </Text>
           </Pressable>
         </View>
       )}

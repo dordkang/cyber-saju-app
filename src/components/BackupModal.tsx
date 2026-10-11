@@ -8,6 +8,7 @@ import {
   View,
   Alert,
 } from 'react-native';
+import { useLocale } from '../locales';
 
 interface BackupModalProps {
   visible: boolean;
@@ -24,35 +25,52 @@ export const BackupModal: React.FC<BackupModalProps> = ({
   onImport,
   onRefresh,
 }) => {
+  const { isJa } = useLocale();
   const [jsonText, setJsonText] = useState('');
 
   const handleExport = async () => {
     const exported = await onExport();
     setJsonText(exported);
-    Alert.alert('백업 완료', '아래 글상자에 전체 백업 데이터가 만들어졌습니다. 복사해서 안전한 곳에 보관해 주세요.');
+    Alert.alert(
+      isJa ? 'バックアップ完了' : '백업 완료',
+      isJa
+        ? '下のテキストボックスにバックアップデータが生成されました。コピーして安全な場所に保管してください。'
+        : '아래 글상자에 전체 백업 데이터가 만들어졌습니다. 복사해서 안전한 곳에 보관해 주세요.'
+    );
   };
 
   const handleImport = async () => {
     if (!jsonText.trim()) {
-      Alert.alert('오류', '복원할 백업 데이터를 붙여넣어 주세요.');
+      Alert.alert(
+        isJa ? 'エラー' : '오류',
+        isJa ? '復元するバックアップデータを貼り付けてください。' : '복원할 백업 데이터를 붙여넣어 주세요.'
+      );
       return;
     }
     Alert.alert(
-      '데이터 덮어쓰기 복원',
-      '이 기기에 저장된 기존 데이터가 백업본으로 완전히 대체됩니다. 계속 진행하시겠습니까?',
+      isJa ? 'データ上書き復元' : '데이터 덮어쓰기 복원',
+      isJa
+        ? 'この端末に保存された既存データが上書きされます。続行しますか？'
+        : '이 기기에 저장된 기존 데이터가 백업본으로 완전히 대체됩니다. 계속 진행하시겠습니까?',
       [
-        { text: '취소', style: 'cancel' },
+        { text: isJa ? 'キャンセル' : '취소', style: 'cancel' },
         {
-          text: '복원 실행',
+          text: isJa ? '復元実行' : '복원 실행',
           style: 'destructive',
           onPress: async () => {
             const success = await onImport(jsonText);
             if (success) {
               onRefresh();
-              Alert.alert('복원 성공', '로컬 데이터 복원이 완료되었습니다.');
+              Alert.alert(
+                isJa ? '復元成功' : '복원 성공',
+                isJa ? 'ローカルデータの復元が完了しました。' : '로컬 데이터 복원이 완료되었습니다.'
+              );
               onClose();
             } else {
-              Alert.alert('복원 실패', '올바른 백업 데이터가 아닙니다. 내용을 다시 확인해 주세요.');
+              Alert.alert(
+                isJa ? '復元失敗' : '복원 실패',
+                isJa ? '無効なバックアップデータです。内容をご確認ください。' : '올바른 백업 데이터가 아닙니다. 내용을 다시 확인해 주세요.'
+              );
             }
           },
         },
@@ -64,23 +82,35 @@ export const BackupModal: React.FC<BackupModalProps> = ({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
-          <Text style={styles.title}>[로컬 DB 백업 & 복원 // 서버비 0원]</Text>
+          <Text style={styles.title}>
+            {isJa ? '[ローカルDB バックアップ＆復元 // サーバー不要]' : '[로컬 DB 백업 & 복원 // 서버비 0원]'}
+          </Text>
           <Text style={styles.desc}>
-            사용자의 사주 프로필과 일기 전체 데이터를 외부 서버 없이 기기 간에 자유롭게 이동할 수 있습니다.
+            {isJa
+              ? '命式プロフィールと日々の全データを外部サーバーを介さず端末間で安全に移動できます。'
+              : '사용자의 사주 프로필과 일기 전체 데이터를 외부 서버 없이 기기 간에 자유롭게 이동할 수 있습니다.'}
           </Text>
 
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.actionBtnPrimary} onPress={handleExport}>
-              <Text style={styles.actionBtnText}>1. 백업 데이터 꺼내기</Text>
+              <Text style={styles.actionBtnText}>
+                {isJa ? '1. バックアップ書出' : '1. 백업 데이터 꺼내기'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtnWarning} onPress={handleImport}>
-              <Text style={styles.actionBtnWarningText}>2. 백업 데이터로 복원하기</Text>
+              <Text style={styles.actionBtnWarningText}>
+                {isJa ? '2. データ復元' : '2. 백업 데이터로 복원하기'}
+              </Text>
             </TouchableOpacity>
           </View>
 
           <TextInput
             style={styles.input}
-            placeholder="여기에 백업 데이터가 표시됩니다. 복원하려면 보관해 둔 백업 데이터를 붙여넣으세요."
+            placeholder={
+              isJa
+                ? 'ここにバックアップデータが表示されます。復元する場合は保管したデータを貼り付けてください。'
+                : '여기에 백업 데이터가 표시됩니다. 복원하려면 보관해 둔 백업 데이터를 붙여넣으세요.'
+            }
             placeholderTextColor="#475569"
             multiline
             numberOfLines={8}
@@ -89,7 +119,7 @@ export const BackupModal: React.FC<BackupModalProps> = ({
           />
 
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-            <Text style={styles.closeBtnText}>창 닫기</Text>
+            <Text style={styles.closeBtnText}>{isJa ? '閉じる' : '창 닫기'}</Text>
           </TouchableOpacity>
         </View>
       </View>

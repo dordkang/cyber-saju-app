@@ -45,6 +45,8 @@ function MenuRow({ icon, title, caption, onPress }: RowProps) {
   );
 }
 
+import { useLocale } from '../locales';
+
 export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
   visible,
   onClose,
@@ -55,29 +57,48 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
   onOpenPersona,
   onToggleSound,
 }) => {
+  const { isJa } = useLocale();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable style={styles.dismiss} onPress={onClose} accessibilityLabel="닫기" />
+        <Pressable style={styles.dismiss} onPress={onClose} accessibilityLabel={isJa ? '閉じる' : '닫기'} />
         <View style={[styles.sheet, SHEET_BLUR]}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>⚙️ 설정</Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="닫기">
+            <Text style={styles.title}>{isJa ? '⚙️ 設定' : '⚙️ 설정'}</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={isJa ? '閉じる' : '닫기'}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
 
-          <MenuRow icon="🧭" title="사주 프로필 재설정" caption="생년월일시 · 성별 · 양력/음력 다시 입력" onPress={onOpenProfile} />
-          <MenuRow icon="💾" title="1초 로컬 백업 · 복원" caption="서버 없이 이 기기 데이터를 꺼내고 되살리기" onPress={onOpenBackup} />
-          <MenuRow icon="🎙️" title="도사 말투 바꾸기" caption={`지금은 ${personaLabel}`} onPress={onOpenPersona} />
+          <MenuRow
+            icon="🧭"
+            title={isJa ? '命式プロフィールの再設定' : '사주 프로필 재설정'}
+            caption={isJa ? '生年月日・出生時刻・性別・暦を再入力' : '생년월일시 · 성별 · 양력/음력 다시 입력'}
+            onPress={onOpenProfile}
+          />
+          <MenuRow
+            icon="💾"
+            title={isJa ? 'ローカルバックアップ・復元' : '1초 로컬 백업 · 복원'}
+            caption={isJa ? 'サーバーを介さず端末データを保存・復旧' : '서버 없이 이 기기 데이터를 꺼내고 되살리기'}
+            onPress={onOpenBackup}
+          />
+          <MenuRow
+            icon="🎙️"
+            title={isJa ? '道士の口調変更' : '도사 말투 바꾸기'}
+            caption={isJa ? `現在は ${personaLabel}` : `지금은 ${personaLabel}`}
+            onPress={onOpenPersona}
+          />
 
           <View style={styles.row}>
             <Text style={styles.rowIcon}>{soundOn ? '🔊' : '🔇'}</Text>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>오행 힐링 사운드</Text>
+              <Text style={styles.rowTitle}>{isJa ? '五行ヒーリングサウンド' : '오행 힐링 사운드'}</Text>
               <Text style={styles.rowCaption} numberOfLines={1}>
-                {soundOn ? '432Hz 배경음이 흐르는 중' : '432Hz 배경음 꺼짐'}
+                {isJa
+                  ? (soundOn ? '432Hzの背景音が再生中' : '432Hzの背景音OFF')
+                  : (soundOn ? '432Hz 배경음이 흐르는 중' : '432Hz 배경음 꺼짐')}
               </Text>
             </View>
             <Switch
@@ -85,7 +106,7 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
               onValueChange={onToggleSound}
               trackColor={{ false: '#2A3350', true: 'rgba(0, 255, 204, 0.55)' }}
               thumbColor={soundOn ? '#00FFCC' : '#8A99AD'}
-              accessibilityLabel="오행 힐링 사운드 켜기 끄기"
+              accessibilityLabel={isJa ? '五行ヒーリングサウンド切り替え' : '오행 힐링 사운드 켜기 끄기'}
             />
           </View>
         </View>

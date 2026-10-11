@@ -236,7 +236,7 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
   onOpenMbti,
 }: TodayMbtiCardProps) {
   const insets = useSafeAreaInsets();
-  const { isJa } = useLocale();
+  const { isJa, t } = useLocale();
 
   // 오늘 날짜 키 (YYYY-MM-DD)
   const todayStr = useMemo(() => {
@@ -271,11 +271,11 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
       const now = new Date();
       const calculated = calculateSaju(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12, 0, true);
       const pillar = calculated.pillars.day;
-      return formatGanji(pillar.stem, pillar.branch);
+      return formatGanji(pillar.stem, pillar.branch, isJa);
     } catch {
-      return '오늘 일진';
+      return isJa ? '本日の日辰' : '오늘 일진';
     }
-  }, []);
+  }, [isJa]);
 
   // 내일 일진 및 신살 오행
   const tomorrowOmen = useMemo(() => {
@@ -302,21 +302,36 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
   const leakage = data?.leakage ?? (actualMbti ? 25 : 0);
 
   // 선천 정보
-  const innateInfo = INNATE_DESCRIPTIONS[innateMbti] ?? {
-    summary: '사주 원국의 오행 밸런스에 기반한 타고난 본연의 기질입니다.',
-    element: '사주 원국 오행 본성',
-  };
+  const innateInfo = useMemo(() => {
+    if (isJa && (t.section02.mbtiInnate as any)[innateMbti]) {
+      return (t.section02.mbtiInnate as any)[innateMbti];
+    }
+    return INNATE_DESCRIPTIONS[innateMbti] ?? {
+      summary: isJa
+        ? '四柱原局の五行バランスに基づく生まれ持った本質です。'
+        : '사주 원국의 오행 밸런스에 기반한 타고난 본연의 기질입니다.',
+      element: isJa ? '四柱原局五行の本質' : '사주 원국 오행 본성',
+    };
+  }, [innateMbti, isJa, t]);
 
   // 가면 정보
-  const actualInfo = actualMbti
-    ? ACTUAL_DESCRIPTIONS[actualMbti] ?? {
-        summary: '사회생활을 위해 의식적으로 연기하는 성향입니다.',
-        mask: '사회적 페르소나',
+  const actualInfo = useMemo(() => {
+    if (actualMbti) {
+      if (isJa && (t.section02.mbtiMask as any)[actualMbti]) {
+        return (t.section02.mbtiMask as any)[actualMbti];
       }
-    : {
-        summary: '아직 사회생활용 가면을 설정하지 않았습니다. 하단 버튼을 눌러 가면을 지정해 보세요.',
-        mask: '현실 가면 미설정',
+      return ACTUAL_DESCRIPTIONS[actualMbti] ?? {
+        summary: isJa ? '社会生活のために意識的に演じる性向です。' : '사회생활을 위해 의식적으로 연기하는 성향입니다.',
+        mask: isJa ? '社会的ペルソナ' : '사회적 페르소나',
       };
+    }
+    return {
+      summary: isJa
+        ? '社会的仮面がまだ設定されていません。下部のボタンをタップして仮面を指定してください。'
+        : '아직 사회생활용 가면을 설정하지 않았습니다. 하단 버튼을 눌러 가면을 지정해 보세요.',
+      mask: isJa ? '社会的仮面未設定' : '현실 가면 미설정',
+    };
+  }, [actualMbti, isJa, t]);
 
   // 정산 완료 여부 확인
   const hasSettled = useMemo(() => {
@@ -332,24 +347,41 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
 
   // ① 🌙 [오늘 밤 가면 피로도 역학 진단 (Today Audit)] 동적 서사
   const auditProse = useMemo(() => {
-    const eventName = dailyLog?.event_category || '직장/인간관계';
-    const emotion = dailyLog?.emotion_element ? `${dailyLog.emotion_element} 기운의 ` : '';
+    const eventName = dailyLog?.event_category || (isJa ? '職場・人間関係' : '직장/인간관계');
+    const emotion = dailyLog?.emotion_element ? (isJa ? `${dailyLog.emotion_element}の気の` : `${dailyLog.emotion_element} 기운의 `) : '';
+    if (isJa) {
+      return `今日吹き荒れる${todayGanjiText}の潮流の中、[${eventName}]の摩擦に揉まれながらも、本性(${innateMbti})の激情を抑え${actualMbti || '仮面'}の忍耐を使ったため、内面の過熱が極限に達しています。言いたい言葉を呑み込み1日のエネルギーの${leakage}%が漏洩しました。今夜は一人静かな空間で${emotion}熱気を冷ましてください。`;
+    }
     return `오늘 거센 ${todayGanjiText}의 흐름 속에서 [${eventName}] 문제로 치였음에도, 본성(${innateMbti})의 화끈한 표현을 누르고 ${actualMbti || '가면'}의 인내하는 태도를 쓰느라 마음속 과열이 극에 달했습니다. 속에 담아둔 말을 억지로 삼키느라 하루 에너지의 ${leakage}%가 누수되었으니, 오늘 밤은 철저히 혼자만의 방에서 ${emotion}열기를 식히십시오.`;
-  }, [dailyLog, todayGanjiText, innateMbti, actualMbti, leakage]);
+  }, [dailyLog, todayGanjiText, innateMbti, actualMbti, leakage, isJa]);
 
   // ② ⚔️ [내일의 페르소나 스위칭 처방 (Tomorrow Tactic)] 동적 서사
   const tacticProse = useMemo(() => {
     const catInfo = CATEGORY_NAMES[tomorrowCategory] || CATEGORY_NAMES.business;
-    let focusAdvice = '상대방의 페이스에 휘말리지 말고 테이블을 먼저 주도해야 승기를 잡습니다.';
+    let focusAdvice = isJa
+      ? '相手のペースに巻き込まれず、交渉テーブルを先手で主導せよ。'
+      : '상대방의 페이스에 휘말리지 말고 테이블을 먼저 주도해야 승기를 잡습니다.';
     if (tomorrowCategory === 'wealth') {
-      focusAdvice = '체면치레용 지출 가면을 과감히 벗어던지고, 사주 본연의 냉철한 계산법으로 지갑을 방어하십시오.';
+      focusAdvice = isJa
+        ? '体裁を取り繕う支出の仮面を脱ぎ、四柱本来の冷静な計算で財布を防衛せよ。'
+        : '체면치레용 지출 가면을 과감히 벗어던지고, 사주 본연의 냉철한 계산법으로 지갑을 방어하십시오.';
     } else if (tomorrowCategory === 'love') {
-      focusAdvice = '눈치 보며 참는 소극성을 내려놓고, 본연의 솔직담백한 직진 표현으로 상대의 마음을 여십시오.';
+      focusAdvice = isJa
+        ? '空気を読み遠慮する態度を捨て、率直かつストレートな言葉で相手の心を動かせ。'
+        : '눈치 보며 참는 소극성을 내려놓고, 본연의 솔직담백한 직진 표현으로 상대의 마음을 여십시오.';
     } else if (tomorrowCategory === 'career') {
-      focusAdvice = '평소의 신중한 침묵을 깨고, 본래의 추진력과 비전을 확신 있게 브리핑하여 주도권을 쥐십시오.';
+      focusAdvice = isJa
+        ? '普段の慎重な沈黙を破り、本来の推進力とビジョンを自信満々に示して主導権を握れ。'
+        : '평소의 신중한 침묵을 깨고, 본래의 추진력과 비전을 확신 있게 브리핑하여 주도권을 쥐십시오.';
+    }
+    const catLabel = isJa
+      ? (tomorrowCategory === 'wealth' ? '金運' : tomorrowCategory === 'love' ? '恋愛' : tomorrowCategory === 'career' ? '仕事' : tomorrowCategory === 'health' ? '健康' : 'ビジネス')
+      : catInfo.label;
+    if (isJa) {
+      return `明日は${tomorrowOmen.ganji} (${tomorrowOmen.elementTitle})の気運とともに重要な[${catLabel}]の局面が控えています。明日ばかりは慎重な${actualMbti || '仮面'}を脱ぎ捨て、四柱本来のコアである${innateMbti}の度胸と突破力を全面に押し出してください。${focusAdvice}`;
     }
     return `내일은 ${tomorrowOmen.ganji} (${tomorrowOmen.elementTitle})의 기운과 함께 중요한 [${catInfo.label}] 일정이 대기하고 있습니다. 내일만큼은 조심스러운 ${actualMbti || '가면'}을 집에 벗어두고, 사주 본연의 코어인 ${innateMbti}의 배짱과 돌파력을 전면에 꺼내 입으십시오. ${focusAdvice}`;
-  }, [tomorrowCategory, tomorrowOmen, actualMbti, innateMbti]);
+  }, [tomorrowCategory, tomorrowOmen, actualMbti, innateMbti, isJa]);
 
   return (
     <View style={[styles.root, { height }]}>
@@ -400,15 +432,27 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         <View style={[styles.infoBox, LUXURY_GLASS]}>
           <View style={styles.infoHeaderRow}>
             <Text style={styles.infoIcon}>💡</Text>
-            <Text style={styles.infoTitle}>왜 사주와 MBTI를 비교하나요?</Text>
+            <Text style={styles.infoTitle}>
+              {isJa ? 'なぜ四柱推命とMBTIを比較するのか？' : '왜 사주와 MBTI를 비교하나요?'}
+            </Text>
           </View>
-          <Text style={styles.infoBody}>
-            사주팔자의 오행(목화토금수)으로 산출된{' '}
-            <Text style={styles.infoHighlightCyan}>[타고난 선천 기질]</Text>과, 사회생활을
-            버텨내기 위해 내가 쓰고 있는{' '}
-            <Text style={styles.infoHighlightCrimson}>[현실 가면(MBTI)]</Text>이 다를수록
-            정신적 피로와 에너지 방전(누수)이 심해집니다.
-          </Text>
+          {isJa ? (
+            <Text style={styles.infoBody}>
+              四柱推命の五行（木火土金水）から導き出された{' '}
+              <Text style={styles.infoHighlightCyan}>[生まれ持った本質]</Text>と、社会生活を
+              乗り切るために身につけている{' '}
+              <Text style={styles.infoHighlightCrimson}>[社会的仮面(MBTI)]</Text>の乖離が大きいほど、
+              精神的疲労とエネルギー消耗(漏洩)が加速します。
+            </Text>
+          ) : (
+            <Text style={styles.infoBody}>
+              사주팔자의 오행(목화토금수)으로 산출된{' '}
+              <Text style={styles.infoHighlightCyan}>[타고난 선천 기질]</Text>과, 사회생활을
+              버텨내기 위해 내가 쓰고 있는{' '}
+              <Text style={styles.infoHighlightCrimson}>[현실 가면(MBTI)]</Text>이 다를수록
+              정신적 피로와 에너지 방전(누수)이 심해집니다.
+            </Text>
+          )}
         </View>
 
         {/* 3. 중앙 좌우 대비 카드 (선천 코어 vs 현실 가면) */}
@@ -416,7 +460,9 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           {/* [좌측 카드: 🔮 사주 선천 코어] */}
           <View style={[styles.compareCard, styles.compareCardInnate, CYAN_NEON_GLOW]}>
             <View style={styles.cardBadgeCyan}>
-              <Text style={styles.cardBadgeCyanText}>🔮 사주 원국 기반 본성</Text>
+              <Text style={styles.cardBadgeCyanText}>
+                {isJa ? '🔮 四柱原局に基づく本質' : '🔮 사주 원국 기반 본성'}
+              </Text>
             </View>
             <Text style={styles.mbtiTypeCyan}>{innateMbti}</Text>
             <Text style={styles.mbtiSubLabelCyan}>{innateInfo.element}</Text>
@@ -427,10 +473,12 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           {/* [우측 카드: 🎭 현실 페르소나] */}
           <View style={[styles.compareCard, styles.compareCardActual, CRIMSON_NEON_GLOW]}>
             <View style={styles.cardBadgeCrimson}>
-              <Text style={styles.cardBadgeCrimsonText}>🎭 사회생활용 가면</Text>
+              <Text style={styles.cardBadgeCrimsonText}>
+                {isJa ? '🎭 社会生活用ペルソナ' : '🎭 사회생활용 가면'}
+              </Text>
             </View>
             <Text style={[styles.mbtiTypeCrimson, !actualMbti && styles.mbtiTypeEmpty]}>
-              {actualMbti || '미설정'}
+              {actualMbti || (isJa ? '未設定' : '미설정')}
             </Text>
             <Text style={styles.mbtiSubLabelCrimson}>{actualInfo.mask}</Text>
             <View style={styles.cardDivider} />
@@ -441,9 +489,14 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
         {/* 에너지 누수율 게이지 바 */}
         <View style={[styles.gaugeMiniCard, LUXURY_GLASS]}>
           <View style={styles.gaugeHeaderRow}>
-            <Text style={styles.gaugeLabel}>동조 일치율: <Text style={styles.gaugeValueCyan}>{syncRate}%</Text></Text>
+            <Text style={styles.gaugeLabel}>
+              {isJa ? '同調一致率: ' : '동조 일치율: '}
+              <Text style={styles.gaugeValueCyan}>{syncRate}%</Text>
+            </Text>
             <View style={styles.leakageTag}>
-              <Text style={styles.leakageTagText}>⚡ 에너지 누수율 {leakage}%</Text>
+              <Text style={styles.leakageTagText}>
+                {isJa ? `⚡ エネルギー漏洩率 ${leakage}%` : `⚡ 에너지 누수율 ${leakage}%`}
+              </Text>
             </View>
           </View>
           <View style={styles.gaugeTrack}>
@@ -460,9 +513,13 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
           <View style={[styles.unsettledSyncBox, LUXURY_GLASS]}>
             <Text style={styles.unsettledIcon}>⚡</Text>
             <View style={styles.unsettledTextBox}>
-              <Text style={styles.unsettledTitle}>섹션 01 데이터 동기화 대기 중</Text>
+              <Text style={styles.unsettledTitle}>
+                {isJa ? 'セクション01のデータ同期待ち' : '섹션 01 데이터 동기화 대기 중'}
+              </Text>
               <Text style={styles.unsettledBody}>
-                섹션 01에서 오늘 오행 정산과 내일 작전을 완료하면, 실시간 맞춤 페르소나 전술이 여기에 동기화됩니다.
+                {isJa
+                  ? 'セクション01で本日の五行決算と明日の作戦を完了すると、リアルタイムのペルソナ戦術がここに同期されます。'
+                  : '섹션 01에서 오늘 오행 정산과 내일 작전을 완료하면, 실시간 맞춤 페르소나 전술이 여기에 동기화됩니다.'}
               </Text>
             </View>
           </View>
@@ -474,14 +531,16 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
               <View style={styles.cardHeaderWithTag}>
                 <View style={styles.cardHeaderTitleRow}>
                   <Text style={styles.cardIconNight}>🌙</Text>
-                  <Text style={styles.cardTitleNight}>오늘 밤 가면 피로도 역학 진단</Text>
+                  <Text style={styles.cardTitleNight}>
+                    {isJa ? '今夜の仮面疲労度・力学診断' : '오늘 밤 가면 피로도 역학 진단'}
+                  </Text>
                 </View>
                 <View style={styles.tagNight}>
                   <Text style={styles.tagNightText}>TODAY AUDIT</Text>
                 </View>
               </View>
               <Text style={styles.cardSubTagNight}>
-                [{todayGanjiText}] 일진 × [{dailyLog?.event_category || '직장/관계'}] 충돌 분석
+                [{todayGanjiText}] {isJa ? '日辰' : '일진'} × [{dailyLog?.event_category || (isJa ? '職場・人間関係' : '직장/관계')}] {isJa ? '衝突分析' : '충돌 분석'}
               </Text>
               <View style={styles.auditBodyBox}>
                 <Text style={styles.auditBodyText}>{auditProse}</Text>
@@ -493,14 +552,16 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
               <View style={styles.cardHeaderWithTag}>
                 <View style={styles.cardHeaderTitleRow}>
                   <Text style={styles.cardIconFire}>⚔️</Text>
-                  <Text style={styles.cardTitleFire}>내일의 페르소나 스위칭 처방</Text>
+                  <Text style={styles.cardTitleFire}>
+                    {isJa ? '明日のペルソナ切り替え処方' : '내일의 페르소나 스위칭 처방'}
+                  </Text>
                 </View>
                 <View style={styles.tagFire}>
                   <Text style={styles.tagFireText}>TOMORROW TACTIC</Text>
                 </View>
               </View>
               <Text style={styles.cardSubTagFire}>
-                [{tomorrowOmen.ganji}] 기운 × [{CATEGORY_NAMES[tomorrowCategory]?.label || '비즈니스'}] 돌파 전술
+                [{tomorrowOmen.ganji}] {isJa ? '気運' : '기운'} × [{isJa ? (tomorrowCategory === 'wealth' ? '金運' : tomorrowCategory === 'love' ? '恋愛' : tomorrowCategory === 'career' ? '仕事' : tomorrowCategory === 'health' ? '健康' : 'ビジネス') : (CATEGORY_NAMES[tomorrowCategory]?.label || '비즈니스')}] {isJa ? '突破戦術' : '돌파 전술'}
               </Text>
               <View style={styles.tacticBodyBox}>
                 <Text style={styles.tacticBodyText}>{tacticProse}</Text>
@@ -528,9 +589,13 @@ export const TodayMbtiCard = memo(function TodayMbtiCard({
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.ctaButtonText}>
-            {actualMbti
-              ? '🎭 내 현실 MBTI(사회생활 가면) 변경하기 ➔'
-              : '🎭 내 현실 MBTI(사회생활 가면) 설정하기 ➔'}
+            {isJa
+              ? (actualMbti
+                  ? '🎭 社会的仮面(MBTI)を変更する ➔'
+                  : '🎭 社会的仮面(MBTI)を設定する ➔')
+              : (actualMbti
+                  ? '🎭 내 현실 MBTI(사회생활 가면) 변경하기 ➔'
+                  : '🎭 내 현실 MBTI(사회생활 가면) 설정하기 ➔')}
           </Text>
         </Pressable>
       </ScrollView>

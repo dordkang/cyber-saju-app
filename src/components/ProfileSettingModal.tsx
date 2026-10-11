@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { USER_LORE_MAX_LENGTH } from '../database/db';
 import type { CalendarType, Gender } from '../database/db';
+import { useLocale } from '../locales';
 
 export const BIRTH_TIME_UNKNOWN = '모름';
 
@@ -131,6 +132,7 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
   onSaved,
 }) => {
   const onboardingMode = isOnboarding || onboarding;
+  const { isJa, t } = useLocale();
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
   const [timeUnknown, setTimeUnknown] = useState(false);
@@ -215,10 +217,16 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
       >
         <View style={styles.modalBox}>
           <Text style={styles.title}>
-            {onboardingMode ? '🔮 운명 데이터 동기화 (1/2)' : '[운명 정보 설정]'}
+            {isJa
+              ? t.common.settings.title
+              : onboardingMode
+              ? '🔮 운명 데이터 동기화 (1/2)'
+              : '[운명 정보 설정]'}
           </Text>
           <Text style={styles.subtitle}>
-            {onboardingMode
+            {isJa
+              ? '入力された情報はブラウザのローカルストレージにのみ保存されます。'
+              : onboardingMode
               ? '처음 오셨군요. 정확한 점사를 위해 운명 정보를 입력해 주세요.'
               : '입력한 정보는 이 브라우저의 로컬 저장소에만 저장됩니다.'}
           </Text>
@@ -229,25 +237,25 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.label}>생년월일</Text>
+            <Text style={styles.label}>{t.common.settings.birth}</Text>
             <TextInput
               style={styles.input}
               value={birthDate}
               onChangeText={(text) => setBirthDate(formatDateInput(text))}
-              placeholder="예) 1990-01-31"
+              placeholder={isJa ? '例) 1990-01-31' : '예) 1990-01-31'}
               placeholderTextColor="#475569"
               keyboardType="number-pad"
               maxLength={10}
               autoCorrect={false}
             />
 
-            <Text style={styles.label}>태어난 시간</Text>
+            <Text style={styles.label}>{t.common.settings.time}</Text>
             <View style={styles.timeRow}>
               <TextInput
                 style={[styles.input, styles.timeInput, timeUnknown && styles.inputDisabled]}
                 value={timeUnknown ? '' : birthTime}
                 onChangeText={(text) => setBirthTime(formatTimeInput(text))}
-                placeholder={timeUnknown ? '시간 모름' : 'HH:mm'}
+                placeholder={timeUnknown ? (isJa ? '時間不明' : '시간 모름') : 'HH:mm'}
                 placeholderTextColor="#475569"
                 keyboardType="number-pad"
                 maxLength={5}
@@ -263,26 +271,32 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
                 <Text style={[styles.checkMark, timeUnknown && styles.chipTextSelected]}>
                   {timeUnknown ? '☑' : '☐'}
                 </Text>
-                <Text style={[styles.chipText, timeUnknown && styles.chipTextSelected]}>모름</Text>
+                <Text style={[styles.chipText, timeUnknown && styles.chipTextSelected]}>
+                  {isJa ? '不明' : '모름'}
+                </Text>
               </Pressable>
             </View>
             {timeUnknown && (
-              <Text style={styles.hint}>시간을 모르면 정오(12:00) 기준으로 계산하며, 시주는 참고용입니다.</Text>
+              <Text style={styles.hint}>
+                {isJa
+                  ? '出生時刻が不明な場合は正午(12:00)基準で計算され、時柱は参考値となります。'
+                  : '시간을 모르면 정오(12:00) 기준으로 계산하며, 시주는 참고용입니다.'}
+              </Text>
             )}
 
             <View style={styles.toggleRow}>
               <View style={styles.toggleGroup}>
-                <Text style={styles.label}>성별</Text>
+                <Text style={styles.label}>{t.common.settings.gender}</Text>
                 <View style={styles.segment}>
                   {(
                     [
-                      ['male', '남성'],
-                      ['female', '여성'],
+                      ['male', isJa ? t.common.settings.male : '남성'],
+                      ['female', isJa ? t.common.settings.female : '여성'],
                     ] as const
                   ).map(([key, text]) => (
                     <Pressable
                       key={key}
-                      onPress={() => setGender(key)}
+                      onPress={() => setGender(key as Gender)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: gender === key }}
                       style={[styles.segmentItem, gender === key && styles.chipSelected]}
@@ -296,17 +310,17 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
               </View>
 
               <View style={styles.toggleGroup}>
-                <Text style={styles.label}>달력</Text>
+                <Text style={styles.label}>{isJa ? '暦' : '달력'}</Text>
                 <View style={styles.segment}>
                   {(
                     [
-                      ['solar', '양력'],
-                      ['lunar', '음력'],
+                      ['solar', isJa ? '太陽暦' : '양력'],
+                      ['lunar', isJa ? '太陰暦' : '음력'],
                     ] as const
                   ).map(([key, text]) => (
                     <Pressable
                       key={key}
-                      onPress={() => setCalendarType(key)}
+                      onPress={() => setCalendarType(key as CalendarType)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: calendarType === key }}
                       style={[styles.segmentItem, calendarType === key && styles.chipSelected]}
@@ -323,21 +337,29 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
             </View>
 
             <View style={styles.loreHeaderRow}>
-              <Text style={[styles.label, styles.loreLabel]}>🔮 나의 현재 현실 상황 & 은밀한 고민</Text>
+              <Text style={[styles.label, styles.loreLabel]}>
+                {isJa ? '🔮 現在の状況 ＆ 悩み事' : '🔮 나의 현재 현실 상황 & 은밀한 고민'}
+              </Text>
               <Pressable
                 onPress={handleLoadTemplate}
                 accessibilityRole="button"
-                accessibilityLabel="옥동자 맞춤 템플릿 불러오기"
+                accessibilityLabel={isJa ? '標準テンプレート読込' : '옥동자 맞춤 템플릿 불러오기'}
                 style={({ pressed }) => [styles.templateBtn, pressed && styles.pressed]}
               >
-                <Text style={styles.templateBtnText}>📋 옥동자 맞춤 템플릿 불러오기</Text>
+                <Text style={styles.templateBtnText}>
+                  {isJa ? '📋 標準テンプレート読込' : '📋 옥동자 맞춤 템플릿 불러오기'}
+                </Text>
               </Pressable>
             </View>
             <TextInput
               style={[styles.input, styles.loreInput]}
               value={userLore}
               onChangeText={setUserLore}
-              placeholder="직업, 현재 처한 상황, 가장 답답한 돈/사람/진로 고민을 편하게 적어주세요. (상단 템플릿 버튼을 누르면 쉬운 가이드가 제공됩니다)"
+              placeholder={
+                isJa
+                  ? '職業、現状、金運・人間関係・キャリアの悩みなどを自由にご記入ください。'
+                  : '직업, 현재 처한 상황, 가장 답답한 돈/사람/진로 고민을 편하게 적어주세요. (상단 템플릿 버튼을 누르면 쉬운 가이드가 제공됩니다)'
+              }
               placeholderTextColor="#475569"
               multiline
               maxLength={USER_LORE_MAX_LENGTH}
@@ -355,7 +377,7 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
               accessibilityRole="button"
               style={({ pressed }) => [styles.closeBtn, pressed && styles.pressed]}
             >
-              <Text style={styles.closeBtnText}>{onboardingMode ? '나중에' : '닫기'}</Text>
+              <Text style={styles.closeBtnText}>{isJa ? '閉じる' : onboardingMode ? '나중에' : '닫기'}</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
@@ -371,7 +393,11 @@ export const ProfileSettingModal: React.FC<ProfileSettingModalProps> = ({
                 <ActivityIndicator color="#090D16" />
               ) : (
                 <Text style={styles.saveBtnText}>
-                  {onboardingMode ? '내 운명 분석 및 일생 대운 확인 ➔' : '⚡ 운명 정보 저장'}
+                  {isJa
+                    ? t.common.settings.save
+                    : onboardingMode
+                    ? '내 운명 분석 및 일생 대운 확인 ➔'
+                    : '⚡ 운명 정보 저장'}
                 </Text>
               )}
             </Pressable>

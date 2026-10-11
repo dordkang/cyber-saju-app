@@ -15,6 +15,7 @@ import {
 import { PARTNER_RELATIONS, savePartnerProfile } from '../database/db';
 import type { CalendarType, Gender, PartnerProfile, PartnerRelation } from '../database/db';
 import { BIRTH_TIME_UNKNOWN, validateProfileForm } from './ProfileSettingModal';
+import { useLocale } from '../locales';
 
 export type PartnerFormValues = Omit<PartnerProfile, 'id' | 'createdAt'>;
 
@@ -30,6 +31,14 @@ interface PartnerInputModalProps {
 }
 
 const DEFAULT_RELATION: PartnerRelation = '애인';
+
+const RELATION_JA_MAP: Record<PartnerRelation, string> = {
+  '애인': '恋人',
+  '썸': '気になる人',
+  '배우자': '配偶者',
+  '전연인': '元恋人',
+  '비즈니스': 'ビジネス',
+};
 
 function isPartnerRelation(value: unknown): value is PartnerRelation {
   return typeof value === 'string' && (PARTNER_RELATIONS as readonly string[]).includes(value);
@@ -55,6 +64,7 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
   onSaved,
   onSkip,
 }) => {
+  const { t, isJa } = useLocale();
   const [relation, setRelation] = useState<PartnerRelation>(DEFAULT_RELATION);
   const [gender, setGender] = useState<Gender | null>(null);
   const [birthDate, setBirthDate] = useState('');
@@ -85,7 +95,10 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
     const finalTime = timeUnknown ? BIRTH_TIME_UNKNOWN : birthTime.trim();
     const error = validateProfileForm(birthDate, finalTime, gender, calendarType);
     if (error || !gender) {
-      Alert.alert('입력 확인', error ?? '성별을 선택해 주세요.');
+      Alert.alert(
+        isJa ? '入力確認' : '입력 확인',
+        error ?? (isJa ? '性別を選択してください。' : '성별을 선택해 주세요.')
+      );
       return;
     }
 
@@ -104,7 +117,10 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
       await onSaved(values);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      Alert.alert('저장 오류', `상대방 정보 저장 실패: ${message}`);
+      Alert.alert(
+        isJa ? '保存エラー' : '저장 오류',
+        isJa ? `相手情報の保存に失敗しました: ${message}` : `상대방 정보 저장 실패: ${message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -123,9 +139,13 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.modalBox}>
-          <Text style={styles.title}>🔮 그 사람의 무의식 주파수 동기화</Text>
+          <Text style={styles.title}>
+            {isJa ? '🔮 相手の無意識周波数同期' : '🔮 그 사람의 무의식 주파수 동기화'}
+          </Text>
           <Text style={styles.subtitle}>
-            상대의 생년월일을 교차해 속마음과 바람기 주파수를 투시합니다.{'\n'}입력한 정보는 이 기기에만 저장됩니다.
+            {isJa
+              ? `相手の生年月日を交差し、本音と浮気周波数を透視します。\n入力された情報は端末内にのみ保存されます。`
+              : `상대의 생년월일을 교차해 속마음과 바람기 주파수를 투시합니다.\n입력한 정보는 이 기기에만 저장됩니다.`}
           </Text>
 
           <ScrollView
@@ -134,10 +154,11 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.label}>관계 호칭</Text>
+            <Text style={styles.label}>{isJa ? '関係' : '관계 호칭'}</Text>
             <View style={styles.chipWrap}>
               {PARTNER_RELATIONS.map((item) => {
                 const selected = relation === item;
+                const label = isJa ? (RELATION_JA_MAP[item] ?? item) : item;
                 return (
                   <Pressable
                     key={item}
@@ -146,18 +167,18 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
                     accessibilityState={{ selected }}
                     style={[styles.relationChip, selected && styles.chipSelectedPurple]}
                   >
-                    <Text style={[styles.chipText, selected && styles.chipTextPurple]}>{item}</Text>
+                    <Text style={[styles.chipText, selected && styles.chipTextPurple]}>{label}</Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={styles.label}>성별</Text>
+            <Text style={styles.label}>{t.common.settings.gender}</Text>
             <View style={styles.segment}>
               {(
                 [
-                  ['male', '남성'],
-                  ['female', '여성'],
+                  ['male', t.common.settings.male],
+                  ['female', t.common.settings.female],
                 ] as const
               ).map(([key, text]) => (
                 <Pressable
@@ -172,25 +193,25 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
               ))}
             </View>
 
-            <Text style={styles.label}>생년월일</Text>
+            <Text style={styles.label}>{t.common.settings.birth}</Text>
             <TextInput
               style={styles.input}
               value={birthDate}
               onChangeText={(text) => setBirthDate(formatDateInput(text))}
-              placeholder="예) 1990-01-31"
+              placeholder={isJa ? '例) 1990-01-31' : '예) 1990-01-31'}
               placeholderTextColor="#475569"
               keyboardType="number-pad"
               maxLength={10}
               autoCorrect={false}
             />
 
-            <Text style={styles.label}>태어난 시간</Text>
+            <Text style={styles.label}>{t.common.settings.time}</Text>
             <View style={styles.timeRow}>
               <TextInput
                 style={[styles.input, styles.timeInput, timeUnknown && styles.inputDisabled]}
                 value={timeUnknown ? '' : birthTime}
                 onChangeText={(text) => setBirthTime(formatTimeInput(text))}
-                placeholder={timeUnknown ? '시간 모름' : 'HH:mm'}
+                placeholder={timeUnknown ? (isJa ? '時間不明' : '시간 모름') : 'HH:mm'}
                 placeholderTextColor="#475569"
                 keyboardType="number-pad"
                 maxLength={5}
@@ -206,19 +227,25 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
                 <Text style={[styles.checkMark, timeUnknown && styles.chipTextSelected]}>
                   {timeUnknown ? '☑' : '☐'}
                 </Text>
-                <Text style={[styles.chipText, timeUnknown && styles.chipTextSelected]}>시간 모름</Text>
+                <Text style={[styles.chipText, timeUnknown && styles.chipTextSelected]}>
+                  {isJa ? '時間不明' : '시간 모름'}
+                </Text>
               </Pressable>
             </View>
             {timeUnknown && (
-              <Text style={styles.hint}>시간을 모르면 정오(12:00) 기준으로 계산합니다. 일간·일지 분석에는 영향이 거의 없습니다.</Text>
+              <Text style={styles.hint}>
+                {isJa
+                  ? '出生時刻が不明な場合は正午(12:00)基準で推命します。日干・日支の分析への影響は僅少です。'
+                  : '시간을 모르면 정오(12:00) 기준으로 계산합니다. 일간·일지 분석에는 영향이 거의 없습니다.'}
+              </Text>
             )}
 
-            <Text style={styles.label}>달력</Text>
+            <Text style={styles.label}>{isJa ? '暦種' : '달력'}</Text>
             <View style={styles.segment}>
               {(
                 [
-                  ['solar', '양력'],
-                  ['lunar', '음력'],
+                  ['solar', t.common.header.solarDate],
+                  ['lunar', t.common.header.lunarDate],
                 ] as const
               ).map(([key, text]) => (
                 <Pressable
@@ -249,7 +276,9 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
             {saving ? (
               <ActivityIndicator color="#090D16" />
             ) : (
-              <Text style={styles.saveBtnText}>⚡ 운명 동기화 및 저장</Text>
+              <Text style={styles.saveBtnText}>
+                {isJa ? '⚡ 運命同期および保存' : '⚡ 운명 동기화 및 저장'}
+              </Text>
             )}
           </Pressable>
 
@@ -259,7 +288,9 @@ export const PartnerInputModal: React.FC<PartnerInputModalProps> = ({
             accessibilityRole="button"
             style={({ pressed }) => [styles.skipBtn, pressed && styles.pressed]}
           >
-            <Text style={styles.skipBtnText}>생년월일 모름 - 타로 무의식 투사로 계속</Text>
+            <Text style={styles.skipBtnText}>
+              {isJa ? '生年月日不明 - タロット無意識投射で続行' : '생년월일 모름 - 타로 무의식 투사로 계속'}
+            </Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>

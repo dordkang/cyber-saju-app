@@ -41,6 +41,7 @@ import {
   YearFortuneResult,
 } from '../engine/timelineEngine';
 import { updateUserOnboardingData } from '../database/db';
+import { useLocale } from '../locales';
 
 const COLOR = {
   bg: '#090D16',
@@ -63,6 +64,14 @@ const INTEREST_EMOJI: Record<InterestKey, string> = {
   love: '💔',
   children: '👶',
   health: '🩹',
+};
+
+const INTEREST_LABEL_JA: Record<InterestKey, string> = {
+  wealth: '金運',
+  business: '事業',
+  love: '恋愛',
+  children: '子宝',
+  health: '健康',
 };
 
 const RISK_META: Record<RiskLevel, { label: string; color: string }> = {
@@ -311,6 +320,7 @@ export interface LifeTimelineModalProps {
 }
 
 const ONBOARDING_TOAST_TEXT = '운명 동기화 완료! 오늘의 일진 주파수를 확인합니다.';
+const ONBOARDING_TOAST_TEXT_JA = '運命同期完了！ 今日の日辰周波数を確認します。';
 const ONBOARDING_TOAST_FADE_MS = 240;
 const ONBOARDING_TOAST_HOLD_MS = 1300;
 
@@ -328,6 +338,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   onRequestProfile,
   isOnboarding = false,
 }) => {
+  const { isJa } = useLocale();
   const [toastVisible, setToastVisible] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
   const [interests, setInterests] = useState<InterestKey[]>([...DEFAULT_INTERESTS]);
@@ -471,7 +482,10 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       onClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      Alert.alert('동기화 실패', `운명 궤적을 저장하지 못했습니다.\n${message}`);
+      Alert.alert(
+        isJa ? '同期失敗' : '동기화 실패',
+        isJa ? `運命軌跡を保存できませんでした。\n${message}` : `운명 궤적을 저장하지 못했습니다.\n${message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -483,7 +497,11 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const renderPeriod = (period: DaeunPeriod) => {
     const isOpen = expanded.includes(period.index);
     const accent = period.isCurrent ? COLOR.cyan : period.isPast ? COLOR.purple : COLOR.dim;
-    const badge = period.isCurrent ? '현재 활성 운' : period.isPast ? '지나온 궤적' : '다가올 대운';
+    const badge = period.isCurrent
+      ? (isJa ? '現在活性中の運' : '현재 활성 운')
+      : period.isPast
+      ? (isJa ? '過去の軌跡' : '지나온 궤적')
+      : (isJa ? 'これから訪れる大運' : '다가올 대운');
 
     return (
       <TouchableOpacity
@@ -723,14 +741,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       <View style={styles.screen}>
         <View style={styles.header}>
           <Text style={styles.headerTitle} numberOfLines={2}>
-            🪐 일생 대운 흐름 · 운명 시간여행
+            {isJa ? '🪐 生涯大運の流れ · 運命タイムトラベル' : '🪐 일생 대운 흐름 · 운명 시간여행'}
           </Text>
           <TouchableOpacity
             onPress={onClose}
             style={styles.closeBtn}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="닫기"
+            accessibilityLabel={isJa ? '閉じる' : '닫기'}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={styles.closeBtnText}>✕</Text>
@@ -740,10 +758,16 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         {isOnboarding && (
           <View style={styles.welcomeWrap}>
             <View style={styles.welcomeBadge} accessibilityRole="header">
-              <Text style={styles.welcomeText}>🎁 선물: 당신의 일생 대운 궤적이 도출되었습니다</Text>
+              <Text style={styles.welcomeText}>
+                {isJa
+                  ? '🎁 プレゼント: あなたの生涯大運軌跡が算出されました'
+                  : '🎁 선물: 당신의 일생 대운 궤적이 도출되었습니다'}
+              </Text>
             </View>
             <Text style={styles.welcomeSub}>
-              지난 삶과 얼마나 닮았는지 슬라이더로 알려 주고 [확정]을 눌러 주세요 (2/2)
+              {isJa
+                ? '過去の人生とどれくらい一致しているかスライダーで指定し、[確定]を押してください (2/2)'
+                : '지난 삶과 얼마나 닮았는지 슬라이더로 알려 주고 [확정]을 눌러 주세요 (2/2)'}
             </Text>
           </View>
         )}
@@ -756,10 +780,13 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           keyboardShouldPersistTaps="handled"
         >
           {/* 섹션 1: 핵심 관심사 */}
-          <Text style={styles.sectionTitle}>[01 · 핵심 관심사 · 복수 선택]</Text>
+          <Text style={styles.sectionTitle}>
+            {isJa ? '[01 · 核心関心事 · 複数選択]' : '[01 · 핵심 관심사 · 복수 선택]'}
+          </Text>
           <View style={styles.chipRow}>
             {INTEREST_KEYS.map((key) => {
               const selected = interests.includes(key);
+              const label = isJa ? (INTEREST_LABEL_JA[key] ?? INTEREST_LABEL[key]) : INTEREST_LABEL[key];
               return (
                 <TouchableOpacity
                   key={key}
@@ -770,24 +797,34 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                   style={[styles.chip, selected && styles.chipSelected]}
                 >
                   <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                    {INTEREST_EMOJI[key]} {INTEREST_LABEL[key]}
+                    {INTEREST_EMOJI[key]} {label}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-          {interests.length <= 1 && <Text style={styles.hint}>관심사는 최소 1개가 선택되어 있어야 합니다.</Text>}
+          {interests.length <= 1 && (
+            <Text style={styles.hint}>
+              {isJa ? '関心事は最低1つ以上選択してください。' : '관심사는 최소 1개가 선택되어 있어야 합니다.'}
+            </Text>
+          )}
 
           {/* 섹션 2: 만 나이 대운 흐름 */}
-          <Text style={styles.sectionTitle}>[02 · 만 나이 대운 흐름과 지난 일 확인]</Text>
+          <Text style={styles.sectionTitle}>
+            {isJa ? '[02 · 満年齢大運の流れと過去の検証]' : '[02 · 만 나이 대운 흐름과 지난 일 확인]'}
+          </Text>
           {timeline ? (
             <>
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryMain}>
-                  현재 {timeline.currentAgeLabel} · 일간 {timeline.dayMaster} · {timeline.strength} · {timeline.direction}
+                  {isJa
+                    ? `現在 ${timeline.currentAgeLabel} · 日干 ${timeline.dayMaster} · ${timeline.strength} · ${timeline.direction}`
+                    : `현재 ${timeline.currentAgeLabel} · 일간 ${timeline.dayMaster} · ${timeline.strength} · ${timeline.direction}`}
                 </Text>
                 <Text style={styles.summarySub}>
-                  {timeline.daewoonNum}대운(10년 주기) · 첫 대운은 만 {timeline.firstDaeunAge}세에 시작됩니다.
+                  {isJa
+                    ? `${timeline.daewoonNum}大運(10年周期) · 最初の大運は満${timeline.firstDaeunAge}歳に始まります。`
+                    : `${timeline.daewoonNum}대운(10년 주기) · 첫 대운은 만 ${timeline.firstDaeunAge}세에 시작됩니다.`}
                 </Text>
               </View>
               {timeline.periods.map(renderPeriod)}
@@ -796,26 +833,42 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             <View style={styles.emptyBox}>
               <Text style={styles.emptyText}>
                 {hasGender
-                  ? '대운을 계산하지 못했습니다. 생년월일과 태어난 시간을 다시 확인해 주세요.'
+                  ? isJa
+                    ? '大運を計算できませんでした。生年月日と出生時刻を再確認してください。'
+                    : '대운을 계산하지 못했습니다. 생년월일과 태어난 시간을 다시 확인해 주세요.'
+                  : isJa
+                  ? '大運の方向(順行/逆行)を決定するには性別情報が必要です。'
                   : '대운 방향(순행/역행)을 정하려면 성별 정보가 필요합니다.'}
               </Text>
               {!hasGender && !!onRequestProfile && (
                 <TouchableOpacity style={styles.emptyBtn} onPress={onRequestProfile} activeOpacity={0.8}>
-                  <Text style={styles.emptyBtnText}>⚙️ 운명 정보 입력하러 가기</Text>
+                  <Text style={styles.emptyBtnText}>
+                    {isJa ? '⚙️ 命式情報を入力しに行く' : '⚙️ 운명 정보 입력하러 가기'}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
 
           {/* 섹션 3: 앵커링 질문 & 슬라이더 */}
-          <Text style={styles.sectionTitle}>[03 · 기준 질문 · 일치율 보정]</Text>
+          <Text style={styles.sectionTitle}>
+            {isJa ? '[03 · 基準質問 · 一致率補正]' : '[03 · 기준 질문 · 일치율 보정]'}
+          </Text>
           <View style={[styles.anchorBox, { borderColor: color, shadowColor: color }]}>
-            <Text style={styles.anchorQuestion}>위 대운 흐름이 당신의 실제 삶과 얼마나 닮아 있나요?</Text>
+            <Text style={styles.anchorQuestion}>
+              {isJa
+                ? '上記の大運の流れは、あなたの実際の人生とどれくらい一致していますか？'
+                : '위 대운 흐름이 당신의 실제 삶과 얼마나 닮아 있나요?'}
+            </Text>
             <Text style={[styles.anchorPercent, { color, textShadowColor: color }]}>{syncRatio}%</Text>
             <Text style={[styles.anchorCaption, { color }]}>{syncCaption(syncRatio)}</Text>
             <Text style={[styles.syncStatus, isSynced ? styles.syncStatusOn : styles.syncStatusOff]}>
               {isSynced
-                ? '✔ 동기화 확정됨'
+                ? isJa
+                  ? '✔ 同期確定済み'
+                  : '✔ 동기화 확정됨'
+                : isJa
+                ? 'まだ未確定です · 確定するとAI分析に反映されます'
                 : '아직 확정 전입니다 · 확정하면 AI 분석에 반영됩니다'}
             </Text>
 
@@ -953,7 +1006,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             {saving ? (
               <ActivityIndicator color={COLOR.bg} />
             ) : (
-              <Text style={styles.confirmBtnText}>이 운명 궤적 확정 및 동기화</Text>
+              <Text style={styles.confirmBtnText}>
+                {isJa ? 'この運命軌道を確定して同期' : '이 운명 궤적 확정 및 동기화'}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -974,7 +1029,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               },
             ]}
           >
-            <Text style={styles.toastText}>⚡ {ONBOARDING_TOAST_TEXT}</Text>
+            <Text style={styles.toastText}>
+              ⚡ {isJa ? ONBOARDING_TOAST_TEXT_JA : ONBOARDING_TOAST_TEXT}
+            </Text>
           </Animated.View>
         )}
       </View>

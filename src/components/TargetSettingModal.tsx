@@ -16,6 +16,7 @@ import { savePartnerProfile } from '../database/db';
 import type { CalendarType, Gender, PartnerProfile } from '../database/db';
 import { BIRTH_TIME_UNKNOWN, validateProfileForm } from './ProfileSettingModal';
 import { playHaptic } from './reels/haptics';
+import { useLocale } from '../locales';
 
 export interface SijinOption {
   key: string;
@@ -38,6 +39,28 @@ export const SIJIN_OPTIONS: readonly SijinOption[] = [
   { key: '술시', name: '술시', label: '술시 (19:30 ~ 21:29)', time: '20:30' },
   { key: '해시', name: '해시', label: '해시 (21:30 ~ 23:29)', time: '22:30' },
 ];
+
+const TARGET_RELATIONS_JA: Record<string, string> = {
+  '애인': '恋人',
+  '배우자': '配偶者',
+  '썸': '気になる人',
+  '비즈니스': 'ビジネスパートナー',
+};
+
+const SIJIN_NAME_JA: Record<string, { name: string; label: string }> = {
+  '자시': { name: '子時', label: '子時 (23:30 ~ 01:29)' },
+  '축시': { name: '丑時', label: '丑時 (01:30 ~ 03:29)' },
+  '인시': { name: '寅時', label: '寅時 (03:30 ~ 05:29)' },
+  '묘시': { name: '卯時', label: '卯時 (05:30 ~ 07:29)' },
+  '진시': { name: '辰時', label: '辰時 (07:30 ~ 09:29)' },
+  '사시': { name: '巳時', label: '巳時 (09:30 ~ 11:29)' },
+  '오시': { name: '午時', label: '午時 (11:30 ~ 13:29)' },
+  '미시': { name: '未時', label: '未時 (13:30 ~ 15:29)' },
+  '신시': { name: '申時', label: '申時 (15:30 ~ 17:29)' },
+  '유시': { name: '酉時', label: '酉時 (17:30 ~ 19:29)' },
+  '술시': { name: '戌時', label: '戌時 (19:30 ~ 21:29)' },
+  '해시': { name: '亥時', label: '亥時 (21:30 ~ 23:29)' },
+};
 
 export interface TargetFormValues {
   relation: string;
@@ -94,6 +117,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
   initialValues,
   onApply,
 }) => {
+  const { t, isJa } = useLocale();
   const [relationKey, setRelationKey] = useState('애인');
   const [birthDate, setBirthDate] = useState('');
   const [selectedSijinKey, setSelectedSijinKey] = useState<string>('자시');
@@ -148,7 +172,10 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
 
     const error = validateProfileForm(birthDate, finalBirthTime, gender, calendarType);
     if (error || !gender) {
-      Alert.alert('입력 확인', error ?? '성별을 선택해 주세요.');
+      Alert.alert(
+        isJa ? '入力確認' : '입력 확인',
+        error ?? (isJa ? '性別を選択してください。' : '성별을 선택해 주세요.')
+      );
       return;
     }
 
@@ -182,7 +209,10 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
       setTimeout(() => onClose(), 180);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      Alert.alert('저장 오류', `상대 정보를 저장하지 못했습니다. ${message}`);
+      Alert.alert(
+        isJa ? '保存エラー' : '저장 오류',
+        isJa ? `相手情報を保存できませんでした: ${message}` : `상대 정보를 저장하지 못했습니다. ${message}`
+      );
     } finally {
       setSaving(false);
     }
@@ -191,26 +221,40 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={styles.dismiss} onPress={onClose} accessibilityLabel="닫기" />
+        <Pressable
+          style={styles.dismiss}
+          onPress={onClose}
+          accessibilityLabel={isJa ? '閉じる' : '닫기'}
+        />
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>대상 설정</Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="닫기">
+            <Text style={styles.title}>{isJa ? '対象設定' : '대상 설정'}</Text>
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={isJa ? '閉じる' : '닫기'}
+            >
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
-          <Text style={styles.caption}>생년월일과 태어난 시간을 입력하면 시주(時柱)까지 정밀하게 스캔합니다.</Text>
+          <Text style={styles.caption}>
+            {isJa
+              ? '生年月日と出生時刻を入力すると、時柱まで精密にスキャンします。'
+              : '생년월일과 태어난 시간을 입력하면 시주(時柱)까지 정밀하게 스캔합니다.'}
+          </Text>
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.body}
           >
-            <Text style={styles.label}>관계</Text>
+            <Text style={styles.label}>{isJa ? '関係' : '관계'}</Text>
             <View style={styles.chipRow}>
               {TARGET_RELATIONS.map((item) => {
                 const selected = relationKey === item.key;
+                const label = isJa ? (TARGET_RELATIONS_JA[item.key] ?? item.label) : item.label;
                 return (
                   <Pressable
                     key={item.key}
@@ -219,28 +263,28 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
                     accessibilityState={{ selected }}
                     style={[styles.chip, selected && styles.chipOn]}
                   >
-                    <Text style={[styles.chipText, selected && styles.chipTextOn]}>{item.label}</Text>
+                    <Text style={[styles.chipText, selected && styles.chipTextOn]}>{label}</Text>
                   </Pressable>
                 );
               })}
             </View>
 
-            <Text style={styles.label}>상대 생년월일 8자리</Text>
+            <Text style={styles.label}>{isJa ? '相手の生年月日 8桁' : '상대 생년월일 8자리'}</Text>
             <TextInput
               value={birthDate}
               onChangeText={(text) => setBirthDate(formatDateInput(text))}
-              placeholder="예: 19751229"
+              placeholder={isJa ? '例: 19751229' : '예: 19751229'}
               placeholderTextColor="#55657E"
               keyboardType="number-pad"
               maxLength={10}
               autoComplete="off"
               style={styles.input}
-              accessibilityLabel="상대 생년월일"
+              accessibilityLabel={isJa ? '相手の生年月日' : '상대 생년월일'}
             />
 
             {/* 태어난 시간 섹션 */}
             <View style={styles.timeHeaderRow}>
-              <Text style={styles.label}>태어난 시간</Text>
+              <Text style={styles.label}>{t.common.settings.time}</Text>
               <Pressable
                 onPress={() => {
                   void playHaptic('tap');
@@ -258,7 +302,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
                   {isTimeUnknown ? '☑' : '☐'}
                 </Text>
                 <Text style={[styles.unknownLabelText, isTimeUnknown && styles.unknownLabelTextOn]}>
-                  시간 모름
+                  {isJa ? '時間不明' : '시간 모름'}
                 </Text>
               </Pressable>
             </View>
@@ -272,7 +316,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
               }}
               disabled={isTimeUnknown}
               accessibilityRole="button"
-              accessibilityLabel="태어난 시진 선택"
+              accessibilityLabel={isJa ? '出生時辰を選択' : '태어난 시진 선택'}
               style={[
                 styles.dropdownTrigger,
                 !isTimeUnknown && isDropdownOpen && styles.dropdownTriggerOpen,
@@ -280,7 +324,9 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
               ]}
             >
               <Text style={[styles.dropdownValue, isTimeUnknown && styles.dropdownValueDisabled]}>
-                {isTimeUnknown ? '시간 미상 (삼주 정밀 분석)' : currentSijin.label}
+                {isTimeUnknown
+                  ? (isJa ? '時間不明 (三柱精密分析)' : '시간 미상 (삼주 정밀 분석)')
+                  : (isJa ? (SIJIN_NAME_JA[currentSijin.key]?.label ?? currentSijin.label) : currentSijin.label)}
               </Text>
               <Text style={[styles.dropdownArrow, isTimeUnknown && styles.dropdownArrowDisabled]}>
                 {isDropdownOpen && !isTimeUnknown ? '▲' : '▼'}
@@ -297,6 +343,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
                 >
                   {SIJIN_OPTIONS.map((item) => {
                     const isSelected = selectedSijinKey === item.key;
+                    const label = isJa ? (SIJIN_NAME_JA[item.key]?.label ?? item.label) : item.label;
                     return (
                       <Pressable
                         key={item.key}
@@ -310,7 +357,7 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
                         style={[styles.dropdownItem, isSelected && styles.dropdownItemOn]}
                       >
                         <Text style={[styles.dropdownItemText, isSelected && styles.dropdownItemTextOn]}>
-                          {item.label}
+                          {label}
                         </Text>
                         {isSelected && <Text style={styles.dropdownCheckMark}>✓</Text>}
                       </Pressable>
@@ -322,16 +369,18 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
 
             <Text style={styles.timeHint}>
               {isTimeUnknown
-                ? '✨ 시간 미상(삼주 정밀 분석)으로 연산이 수행됩니다.'
-                : `⚡ ${currentSijin.name} 입력 완료 · 시주(時柱)까지 4주 8자 온전 분석`}
+                ? (isJa ? '✨ 時間不明(三柱精密分析)で演算が実行されます。' : '✨ 시간 미상(삼주 정밀 분석)으로 연산이 수행됩니다.')
+                : (isJa
+                    ? `⚡ ${SIJIN_NAME_JA[currentSijin.key]?.name ?? currentSijin.name} 入力完了 · 時柱まで四柱八字完全分析`
+                    : `⚡ ${currentSijin.name} 입력 완료 · 시주(時柱)까지 4주 8자 온전 분석`)}
             </Text>
 
-            <Text style={styles.label}>달력</Text>
+            <Text style={styles.label}>{isJa ? '暦種' : '달력'}</Text>
             <View style={styles.chipRow}>
               {(
                 [
-                  { key: 'solar', label: '양력' },
-                  { key: 'lunar', label: '음력' },
+                  { key: 'solar', label: t.common.header.solarDate },
+                  { key: 'lunar', label: t.common.header.lunarDate },
                 ] as const
               ).map((item) => {
                 const selected = calendarType === item.key;
@@ -349,12 +398,12 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
               })}
             </View>
 
-            <Text style={styles.label}>성별</Text>
+            <Text style={styles.label}>{t.common.settings.gender}</Text>
             <View style={styles.chipRow}>
               {(
                 [
-                  { key: 'male', label: '남' },
-                  { key: 'female', label: '여' },
+                  { key: 'male', label: t.common.settings.male },
+                  { key: 'female', label: t.common.settings.female },
                 ] as const
               ).map((item) => {
                 const selected = gender === item.key;
@@ -383,7 +432,9 @@ export const TargetSettingModal: React.FC<TargetSettingModalProps> = ({
             {saving ? (
               <ActivityIndicator color={OBSIDIAN} />
             ) : (
-              <Text style={styles.applyText}>적용 및 속마음 스캔</Text>
+              <Text style={styles.applyText}>
+                {isJa ? '適用および本音スキャン' : '적용 및 속마음 스캔'}
+              </Text>
             )}
           </Pressable>
         </View>

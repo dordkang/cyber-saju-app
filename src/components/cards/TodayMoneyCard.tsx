@@ -15,6 +15,7 @@ import { playHaptic } from '../reels/haptics';
 import { analyzeTodayMoney } from '../../engine/moneyEngine';
 import type { ReelsMoneyPeek } from '../../types/reels';
 import type { SajuResult } from '../../engine/types';
+import { useLocale } from '../../locales';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -61,8 +62,8 @@ export interface TodayMoneyCardProps {
   saju?: SajuResult | null;
 }
 
-function formatDayLabel(date: Date): string {
-  const week = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()] ?? '';
+function formatDayLabel(date: Date, isJa: boolean = false): string {
+  const week = (isJa ? ['日', '月', '火', '水', '木', '金', '土'] : ['일', '월', '화', '수', '목', '금', '토'])[date.getDay()] ?? '';
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}.${mm}.${dd} (${week})`;
@@ -75,14 +76,32 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
   saju,
 }: TodayMoneyCardProps) {
   const insets = useSafeAreaInsets();
+  const { isJa, t } = useLocale();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const dateInputRef = useRef<any>(null);
 
   // 날짜 변경 시 해당 일자의 금전 기운 및 게이지 실시간 연산
-  const money = useMemo(() => {
+  const rawMoney = useMemo(() => {
     return analyzeTodayMoney(saju ?? null, selectedDate);
   }, [saju, selectedDate]);
+
+  const money = useMemo(() => {
+    if (!isJa) return rawMoney;
+    const jaPreset = t.section04.tenGods[rawMoney.godName as keyof typeof t.section04.tenGods];
+    if (!jaPreset) return rawMoney;
+    return {
+      ...rawMoney,
+      inflowLabel: jaPreset.inflowLabel,
+      outflowLabel: jaPreset.outflowLabel,
+      modeBadge: jaPreset.modeBadge as any,
+      energyBadge: t.section04.auraBadge(jaPreset.godHanja, rawMoney.elementName),
+      headline: jaPreset.headline,
+      insight: jaPreset.baseInsight,
+      actionDo: jaPreset.actionDo,
+      actionDont: jaPreset.actionDont,
+    };
+  }, [rawMoney, isJa, t]);
 
   const handlePrevDay = () => {
     void playHaptic('tap');
@@ -162,11 +181,11 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
         {/* 상단 섹션 칩 & 날짜 컨트롤러 */}
         <View style={styles.headerRow}>
           <View style={styles.chip}>
-            <Text style={styles.chipText}>04 · 돈 · 흐름</Text>
+            <Text style={styles.chipText}>{t.section04.tab}</Text>
           </View>
 
           <View style={styles.dateControlBar}>
-            <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel="이전 날">
+            <Pressable onPress={handlePrevDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '前日' : '이전 날'}>
               <Text style={styles.dateNavText}>◀</Text>
             </Pressable>
 
@@ -182,9 +201,9 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
                 }
               }}
               style={styles.dateCenterBtn}
-              accessibilityLabel="날짜 변경"
+              accessibilityLabel={isJa ? '日付変更' : '날짜 변경'}
             >
-              <Text style={styles.dateCenterText}>📅 {formatDayLabel(selectedDate)}</Text>
+              <Text style={styles.dateCenterText}>📅 {formatDayLabel(selectedDate, isJa)}</Text>
               {IS_WEB && (
                 <input
                   ref={dateInputRef}
@@ -202,11 +221,11 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
               )}
             </Pressable>
 
-            <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel="오늘로 복귀">
-              <Text style={styles.dateTodayText}>오늘</Text>
+            <Pressable onPress={handleToday} style={styles.dateTodayBtn} accessibilityLabel={isJa ? '今日に戻る' : '오늘로 복귀'}>
+              <Text style={styles.dateTodayText}>{isJa ? '今日' : '오늘'}</Text>
             </Pressable>
 
-            <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel="다음 날">
+            <Pressable onPress={handleNextDay} style={styles.dateNavBtn} accessibilityLabel={isJa ? '翌日' : '다음 날'}>
               <Text style={styles.dateNavText}>▶</Text>
             </Pressable>
           </View>
@@ -214,8 +233,8 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
 
         {/* 메인 타이틀 & 서브 카피 */}
         <View style={styles.titleWrap}>
-          <Text style={styles.mainTitle}>오늘의 돈 버는 엔진 & 지갑 방어선</Text>
-          <Text style={styles.subTitle}>벌리는 기운과 새는 구멍을 실시간 네온 게이지로 스캔합니다.</Text>
+          <Text style={styles.mainTitle}>{t.section04.title}</Text>
+          <Text style={styles.subTitle}>{t.section04.subtitle}</Text>
         </View>
 
         {/* 상단 명식 팩트 뱃지 & 동적 모드 태그 */}
@@ -248,8 +267,8 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
             <View style={styles.gaugeHeader}>
               <View style={styles.gaugeLabelBox}>
                 <Text style={styles.gaugeIcon}>💰</Text>
-                <Text style={styles.gaugeTitle}>유입 엔진</Text>
-                <Text style={styles.gaugeSubTitle}>(벌리는 기운)</Text>
+                <Text style={styles.gaugeTitle}>{isJa ? '流入エンジン' : '유입 엔진'}</Text>
+                <Text style={styles.gaugeSubTitle}>{isJa ? '(稼ぐ力)' : '(벌리는 기운)'}</Text>
               </View>
               <View style={styles.gaugeScoreBox}>
                 <Text style={styles.inflowScoreNumber}>{money.inflowPower}%</Text>
@@ -288,8 +307,8 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
             <View style={styles.gaugeHeader}>
               <View style={styles.gaugeLabelBox}>
                 <Text style={styles.gaugeIcon}>🛡️</Text>
-                <Text style={styles.gaugeTitle}>누수 경보</Text>
-                <Text style={styles.gaugeSubTitle}>(새는 구멍)</Text>
+                <Text style={styles.gaugeTitle}>{isJa ? '漏水警報' : '누수 경보'}</Text>
+                <Text style={styles.gaugeSubTitle}>{isJa ? '(漏れる穴)' : '(새는 구멍)'}</Text>
               </View>
               <View style={styles.gaugeScoreBox}>
                 <Text style={styles.outflowScoreNumber}>{money.outflowRisk}%</Text>
@@ -327,7 +346,7 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
         {/* ======================================================== */}
         <View style={[styles.insightCard, LUXURY_GLASS]}>
           <View style={styles.insightHeader}>
-            <Text style={styles.insightKicker}>사주 팩트 기반 금전 통찰</Text>
+            <Text style={styles.insightKicker}>{t.section04.insightTitle}</Text>
             <Text style={styles.insightHeadline}>{money.headline}</Text>
           </View>
 
@@ -339,14 +358,14 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
           <View style={styles.actionGrid}>
             <View style={styles.actionDoBox}>
               <View style={styles.actionHeaderRow}>
-                <Text style={styles.actionDoBadge}>✅ 추천 액션 (DO)</Text>
+                <Text style={styles.actionDoBadge}>✅ {t.section04.doTitle}</Text>
               </View>
               <Text style={styles.actionDoText}>{money.actionDo}</Text>
             </View>
 
             <View style={styles.actionDontBox}>
               <View style={styles.actionHeaderRow}>
-                <Text style={styles.actionDontBadge}>❌ 절대 금지 (DON&apos;T)</Text>
+                <Text style={styles.actionDontBadge}>❌ {t.section04.dontTitle}</Text>
               </View>
               <Text style={styles.actionDontText}>{money.actionDont}</Text>
             </View>
@@ -373,7 +392,7 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
             end={{ x: 1, y: 1 }}
             style={StyleSheet.absoluteFill}
           />
-          <Text style={styles.ctaButtonText}>돈 버는 엔진 심층 분석 보기 ➔</Text>
+          <Text style={styles.ctaButtonText}>{t.section04.deepBtn}</Text>
         </Pressable>
       </ScrollView>
 
@@ -391,8 +410,8 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
           <View style={[styles.modalCard, LUXURY_GLASS]}>
             <View style={styles.modalHeaderRow}>
               <View>
-                <Text style={styles.modalKicker}>전략적 금융 비책 해단</Text>
-                <Text style={styles.modalTitle}>오늘의 금전 흐름 심층 진단</Text>
+                <Text style={styles.modalKicker}>{t.section04.modal.kicker}</Text>
+                <Text style={styles.modalTitle}>{t.section04.modal.title}</Text>
               </View>
               <Pressable
                 onPress={() => {
@@ -400,6 +419,7 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
                   setDetailModalOpen(false);
                 }}
                 style={styles.modalCloseBtn}
+                accessibilityLabel={t.section04.modal.close}
               >
                 <Text style={styles.modalCloseText}>✕</Text>
               </Pressable>
@@ -414,40 +434,72 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
 
               {/* 1. 유입 기운 세부 분석 */}
               <View style={styles.modalSectionBox}>
-                <Text style={styles.modalSectionTitle}>💰 유입 기운 해단 ({money.inflowPower}%)</Text>
+                <Text style={styles.modalSectionTitle}>
+                  {isJa ? `💰 流入気運の解読 (${money.inflowPower}%)` : `💰 유입 기운 해단 (${money.inflowPower}%)`}
+                </Text>
                 <Text style={styles.modalSectionBody}>
-                  오늘 일진은 {money.godName}({money.godHanja})의 기운이 지배합니다. {money.inflowLabel}이 강하게 작동하여{' '}
-                  {money.inflowPower >= 70
-                    ? '협상에서 주도권을 잡거나 신규 계약을 타진하기에 최적의 시기입니다. 망설이지 말고 적극적으로 기회를 요구하십시오.'
-                    : '새로운 큰돈을 무리하게 노리기보다는 이미 형성된 매출 기반과 기존 거래처를 점검하며 안정을 도모해야 합니다.'}
+                  {isJa
+                    ? `本日の日辰は${money.godHanja}の気運が支配します。${money.inflowLabel}が強く働き、${
+                        money.inflowPower >= 70
+                          ? '交渉で主導権を握るか新規契約を打診する絶好の好機です。躊躇せず積極的に機会を掴み取ってください。'
+                          : '無理に大金を追うよりも、すでに確立された売上基盤と既存の取引先を点検し、堅実に足元を固めるべき刻です。'
+                      }`
+                    : `오늘 일진은 ${money.godName}(${money.godHanja})의 기운이 지배합니다. ${money.inflowLabel}이 강하게 작동하여 ${
+                        money.inflowPower >= 70
+                          ? '협상에서 주도권을 잡거나 신규 계약을 타진하기에 최적의 시기입니다. 망설이지 말고 적극적으로 기회를 요구하십시오.'
+                          : '새로운 큰돈을 무리하게 노리기보다는 이미 형성된 매출 기반과 기존 거래처를 점검하며 안정을 도모해야 합니다.'
+                      }`}
                 </Text>
               </View>
 
               {/* 2. 누수 방어선 심층 진단 */}
               <View style={styles.modalSectionBoxCrimson}>
-                <Text style={styles.modalSectionTitleCrimson}>🛡️ 누수 방어선 경보 ({money.outflowRisk}%)</Text>
+                <Text style={styles.modalSectionTitleCrimson}>
+                  {isJa ? `🛡️ 漏洩防衛線警報 (${money.outflowRisk}%)` : `🛡️ 누수 방어선 경보 (${money.outflowRisk}%)`}
+                </Text>
                 <Text style={styles.modalSectionBody}>
-                  {money.outflowLabel}이 발동되어 있는 상태입니다.{' '}
-                  {money.outflowRisk >= 60
-                    ? '체면이나 감정, 또는 조급함으로 인해 즉흥적인 지출이 발생할 확률이 매우 높습니다. 오늘 결제창이 열릴 때는 반드시 30분 이상 시간을 두고 재검토하십시오.'
-                    : '전반적인 재정 방어선이 탄탄하나, 계약서의 작은 특약 사항이나 자동 갱신 결제 같은 사소한 틈새를 한 번 더 짚어보는 것이 안전합니다.'}
+                  {isJa
+                    ? `${money.outflowLabel}が発動している状態です。${
+                        money.outflowRisk >= 60
+                          ? '見栄や感情、あるいは焦りから突発的な浪費が発生する危険性が極めて高い。決済画面が開いた際は、必ず30分以上間を置いて再検討してください。'
+                          : '全般的な資金防衛線は堅牢ですが、契約書の細かな特約条項や自動更新課金など、些細な隙間を今一度点検するのが賢明です。'
+                      }`
+                    : `${money.outflowLabel}이 발동되어 있는 상태입니다. ${
+                        money.outflowRisk >= 60
+                          ? '체면이나 감정, 또는 조급함으로 인해 즉흥적인 지출이 발생할 확률이 매우 높습니다. 오늘 결제창이 열릴 때는 반드시 30분 이상 시간을 두고 재검토하십시오.'
+                          : '전반적인 재정 방어선이 탄탄하나, 계약서의 작은 특약 사항이나 자동 갱신 결제 같은 사소한 틈새를 한 번 더 짚어보는 것이 안전합니다.'
+                      }`}
                 </Text>
               </View>
 
               {/* 3. 오늘의 3단계 금전 골든타임 */}
               <View style={styles.modalSectionBox}>
-                <Text style={styles.modalSectionTitle}>⏰ 시간대별 금전 행동 비책</Text>
+                <Text style={styles.modalSectionTitle}>
+                  {isJa ? '⏰ 時間帯別・資金行動の秘策' : '⏰ 시간대별 금전 행동 비책'}
+                </Text>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>[오전 09~12시]</Text>
-                  <Text style={styles.timelineDesc}>문서 정비 & 지출 계획 검토. 결재창 즉시 승인 보류.</Text>
+                  <Text style={styles.timelineHour}>{isJa ? '[午前 09~12時]' : '[오전 09~12시]'}</Text>
+                  <Text style={styles.timelineDesc}>
+                    {isJa
+                      ? '書類点検・支出計画の精査。決裁の即時承認は保留。'
+                      : '문서 정비 & 지출 계획 검토. 결재창 즉시 승인 보류.'}
+                  </Text>
                 </View>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>[오후 13~17시]</Text>
-                  <Text style={styles.timelineDesc}>협상 및 단가 확정 집중. 명확한 숫자로만 대화할 것.</Text>
+                  <Text style={styles.timelineHour}>{isJa ? '[午後 13~17時]' : '[오후 13~17시]'}</Text>
+                  <Text style={styles.timelineDesc}>
+                    {isJa
+                      ? '交渉および単価の確定に集中。明確な数字のみで語れ。'
+                      : '협상 및 단가 확정 집중. 명확한 숫자로만 대화할 것.'}
+                  </Text>
                 </View>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>[저녁 18~22시]</Text>
-                  <Text style={styles.timelineDesc}>지갑 봉인 & 계좌 잔고 확인. 술자리 호기 결제 절대 차단.</Text>
+                  <Text style={styles.timelineHour}>{isJa ? '[夜 18~22時]' : '[저녁 18~22시]'}</Text>
+                  <Text style={styles.timelineDesc}>
+                    {isJa
+                      ? '財布を封印し口座残高を確認。酒席での気前の良さは厳禁。'
+                      : '지갑 봉인 & 계좌 잔고 확인. 술자리 호기 결제 절대 차단.'}
+                  </Text>
                 </View>
               </View>
 
@@ -464,7 +516,9 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
                 }}
                 style={styles.modalConfirmBtn}
               >
-                <Text style={styles.modalConfirmText}>비책 확인 및 지갑 수성하기</Text>
+                <Text style={styles.modalConfirmText}>
+                  {isJa ? '秘策を確認し財布を守る' : '비책 확인 및 지갑 수성하기'}
+                </Text>
               </Pressable>
             </ScrollView>
           </View>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AGENT_STORE, AGENT_TYPES, AgentType } from '../prompts/agents';
+import { AGENT_STORE, AGENT_STORE_JA, AGENT_TYPES, AgentType } from '../prompts/agents';
+import { useLocale } from '../locales';
 
 interface PersonaPickerModalProps {
   visible: boolean;
@@ -15,13 +16,17 @@ export const PersonaPickerModal: React.FC<PersonaPickerModalProps> = ({
   onClose,
   onSelect,
 }) => {
+  const { isJa } = useLocale();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="닫기" />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={isJa ? '閉じる' : '닫기'} />
 
         <View style={styles.modalBox}>
-          <Text style={styles.title}>[인공지능 도사 고르기 · 풀이 말투 선택]</Text>
+          <Text style={styles.title}>
+            {isJa ? '[AI道士選択 · 解読の口調]' : '[인공지능 도사 고르기 · 풀이 말투 선택]'}
+          </Text>
 
           <ScrollView
             style={styles.list}
@@ -31,7 +36,7 @@ export const PersonaPickerModal: React.FC<PersonaPickerModalProps> = ({
             contentContainerStyle={styles.listContent}
           >
             {AGENT_TYPES.map((agentKey) => {
-              const persona = AGENT_STORE[agentKey];
+              const persona = isJa ? AGENT_STORE_JA[agentKey] : AGENT_STORE[agentKey];
               const isSelected = agentKey === selected;
               return (
                 <Pressable

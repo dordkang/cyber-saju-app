@@ -5,6 +5,7 @@ import type { PartnerProfile } from '../database/db';
 import type { PartnerRadarResult } from '../engine/partnerRadar';
 import type { PartnerPrescription } from '../engine/partnerPrescription';
 import { IS_TEST_MODE, REPORT_PRICE_LABEL } from '../constants/devFlags';
+import { useLocale } from '../locales';
 
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
 const BLUR_BACKDROP = { backdropFilter: 'blur(10px)' } as unknown as ViewStyle;
@@ -25,6 +26,13 @@ const LOCKED_ITEMS: ReadonlyArray<{ title: string; hint: string }> = [
   { title: '딴마음이 올라오는 시기', hint: '올해 달마다 조심해야 할 시기를 짚어 드려요.' },
   { title: '연락이 뜸해지는 패턴', hint: '이런 신호가 보이면 이미 마음이 흔들린 거예요.' },
   { title: '옥통자 처방 · 내가 먼저 할 행동 3가지', hint: '붙잡는 법, 확인하는 법, 놓아야 할 때까지.' },
+];
+
+const LOCKED_ITEMS_JA: ReadonlyArray<{ title: string; hint: string }> = [
+  { title: '桃花分析 · あの人の魅力構造', hint: 'どの柱に桃花が位置しているか、その意味を分析します。' },
+  { title: '浮気心が湧き上がる時期', hint: '今年各月ごとに警戒すべき時期を分析します。' },
+  { title: '連絡が途絶えがちになるパターン', hint: 'この兆候が見えたら既に心が揺らいでいます。' },
+  { title: 'サイバー童子処方 · 自分から実践すべき3つの行動', hint: '繋ぎ止める法、見極める法、手放すべき時まで。' },
 ];
 
 interface PartnerReportModalProps {
@@ -55,6 +63,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
   onPurchase,
   onRequestPartner,
 }) => {
+  const { isJa } = useLocale();
   const hasData = !!partner && !!radar;
   const isUnlocked = IS_TEST_MODE || paid;
   const accent = radar ? levelColor(radar.score) : COLORS.cyan;
@@ -62,19 +71,40 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.backdrop, BLUR_BACKDROP]}>
-        <Pressable style={styles.dismiss} onPress={onClose} accessibilityLabel="닫기" />
+        <Pressable
+          style={styles.dismiss}
+          onPress={onClose}
+          accessibilityLabel={isJa ? '閉じる' : '닫기'}
+        />
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.headerRow}>
             <View style={styles.headerText}>
               <Text style={styles.caption}>
-                {isUnlocked && IS_TEST_MODE ? '정밀 분석 리포트 · 테스트 프리패스' : '정밀 분석 리포트'}
+                {isUnlocked && IS_TEST_MODE
+                  ? isJa
+                    ? '精密分析レポート · テストフリーパス'
+                    : '정밀 분석 리포트 · 테스트 프리패스'
+                  : isJa
+                  ? '精密分析レポート'
+                  : '정밀 분석 리포트'}
               </Text>
               <Text style={styles.title} numberOfLines={2}>
-                {hasData ? `${partner.alias}의 딴마음 분석` : '분석할 사람이 아직 없어요'}
+                {hasData
+                  ? isJa
+                    ? `${partner.alias}の浮気・本音分析`
+                    : `${partner.alias}의 딴마음 분석`
+                  : isJa
+                  ? '分析対象がまだいません'
+                  : '분석할 사람이 아직 없어요'}
               </Text>
             </View>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="닫기">
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={isJa ? '閉じる' : '닫기'}
+            >
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
@@ -85,20 +115,24 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                 <View style={[styles.scoreCard, { borderColor: accent }]}>
                   <Text style={[styles.scoreValue, { color: accent }]}>{radar.score}</Text>
                   <View style={styles.scoreInfo}>
-                    <Text style={[styles.scoreLevel, { color: accent }]}>딴마음 지수 · {radar.level}</Text>
+                    <Text style={[styles.scoreLevel, { color: accent }]}>
+                      {isJa ? `浮気・別心指数 · ${radar.level}` : `딴마음 지수 · ${radar.level}`}
+                    </Text>
                     <Text style={styles.scoreHeadline}>{radar.headline}</Text>
                   </View>
                 </View>
 
                 <View style={styles.freeBox}>
-                  <Text style={styles.sectionLabel}>한 줄 요약</Text>
+                  <Text style={styles.sectionLabel}>{isJa ? '1行要約' : '한 줄 요약'}</Text>
                   {radar.lines.map((line) => (
                     <Text key={line} style={styles.freeLine}>
                       · {line}
                     </Text>
                   ))}
                   <Text style={styles.freeMeta}>
-                    도화 신호 {radar.peachCount}개 · 매력 자리 {radar.charmCount}개
+                    {isJa
+                      ? `桃花シグナル ${radar.peachCount}個 · 魅力ポジション ${radar.charmCount}個`
+                      : `도화 신호 ${radar.peachCount}개 · 매력 자리 ${radar.charmCount}개`}
                   </Text>
                 </View>
 
@@ -116,7 +150,11 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                     ))}
 
                     <View style={[styles.sectionCard, styles.prescriptionCard]}>
-                      <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>옥통자 처방 · 내가 먼저 할 행동 3가지</Text>
+                      <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>
+                        {isJa
+                          ? 'サイバー童子処方 · 自分から実践すべき3つの行動'
+                          : '옥통자 처방 · 내가 먼저 할 행동 3가지'}
+                      </Text>
                       {prescription.actions.map((action, index) => (
                         <View key={action} style={styles.actionRow}>
                           <Text style={styles.actionNo}>{index + 1}</Text>
@@ -128,8 +166,10 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <Text style={styles.sectionLabel}>전체 리포트에 들어 있는 내용</Text>
-                    {LOCKED_ITEMS.map((item) => (
+                    <Text style={styles.sectionLabel}>
+                      {isJa ? '完全版レポートに含まれる内容' : '전체 리포트에 들어 있는 내용'}
+                    </Text>
+                    {(isJa ? LOCKED_ITEMS_JA : LOCKED_ITEMS).map((item) => (
                       <View key={item.title} style={styles.lockedRow}>
                         <Text style={styles.lockIcon}>🔒</Text>
                         <View style={styles.lockedText}>
@@ -143,23 +183,35 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                       accessibilityRole="button"
                       style={({ pressed }) => [styles.buyBtn, pressed && styles.pressed]}
                     >
-                      <Text style={styles.buyBtnText}>{REPORT_PRICE_LABEL}에 전체 리포트 보기</Text>
+                      <Text style={styles.buyBtnText}>
+                        {isJa
+                          ? `${REPORT_PRICE_LABEL}で完全版レポートを見る`
+                          : `${REPORT_PRICE_LABEL}에 전체 리포트 보기`}
+                      </Text>
                     </Pressable>
                   </>
                 )}
-                <Text style={styles.disclaimer}>사주 구조로 읽는 재미용 참고 자료예요. 실제 관계의 증거가 아니에요.</Text>
+                <Text style={styles.disclaimer}>
+                  {isJa
+                    ? '四柱推命の命式構造に基づく娯楽参考資料です。実際の関係を証明するものではありません。'
+                    : '사주 구조로 읽는 재미용 참고 자료예요. 실제 관계의 증거가 아니에요.'}
+                </Text>
               </>
             ) : (
               <>
                 <Text style={styles.emptyText}>
-                  내 사람의 생년월일을 먼저 보관해 주세요. 입력한 정보는 이 기기에만 저장돼요.
+                  {isJa
+                    ? '相手の生年月日をまず登録してください。入力された情報は端末内にのみ保存されます。'
+                    : '내 사람의 생년월일을 먼저 보관해 주세요. 입력한 정보는 이 기기에만 저장돼요.'}
                 </Text>
                 <Pressable
                   onPress={onRequestPartner}
                   accessibilityRole="button"
                   style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
                 >
-                  <Text style={styles.addBtnText}>+ 내 사람 사주 추가</Text>
+                  <Text style={styles.addBtnText}>
+                    {isJa ? '+ 相手の命式を追加' : '+ 내 사람 사주 추가'}
+                  </Text>
                 </Pressable>
               </>
             )}

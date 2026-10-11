@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocale } from '../locales';
 
 const MBTI_GRID: readonly string[] = [
   'INTJ', 'INTP', 'ENTJ', 'ENTP',
@@ -23,12 +24,20 @@ export const MbtiPickerModal: React.FC<MbtiPickerModalProps> = ({
   onClose,
   onSelect,
 }) => {
+  const { isJa } = useLocale();
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
-          <Text style={styles.title}>[실제 MBTI 보정]</Text>
-          <Text style={styles.subtitle}>평소 나를 가장 잘 설명하는 유형을 선택하세요.</Text>
+          <Text style={styles.title}>
+            {isJa ? '[現実MBTI(社会的仮面)の設定]' : '[실제 MBTI 보정]'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isJa
+              ? '普段のあなたを最もよく表すタイプを選択してください。'
+              : '평소 나를 가장 잘 설명하는 유형을 선택하세요.'}
+          </Text>
 
           <View style={styles.grid}>
             {MBTI_GRID.map((type) => {
@@ -42,14 +51,16 @@ export const MbtiPickerModal: React.FC<MbtiPickerModalProps> = ({
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.cellText, isSelected && styles.cellTextActive]}>{type}</Text>
-                  {isInnate && <Text style={styles.innateTag}>선천</Text>}
+                  {isInnate && (
+                    <Text style={styles.innateTag}>{isJa ? '先天' : '선천'}</Text>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
 
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-            <Text style={styles.cancelBtnText}>닫기</Text>
+            <Text style={styles.cancelBtnText}>{isJa ? '閉じる' : '닫기'}</Text>
           </TouchableOpacity>
         </View>
       </View>

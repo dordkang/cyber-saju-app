@@ -89,6 +89,7 @@ const PeopleTargetBlock = memo(function PeopleTargetBlock({
   active: boolean;
   onChangeTarget?: () => void;
 }) {
+  const { isJa } = useLocale();
   const handleChange = () => {
     if (!active) return;
     void playHaptic('tap');
@@ -100,21 +101,21 @@ const PeopleTargetBlock = memo(function PeopleTargetBlock({
       <Pressable
         onPress={handleChange}
         accessibilityRole="button"
-        accessibilityLabel={people ? `${people.label} 변경` : '상대 설정'}
+        accessibilityLabel={people ? (isJa ? `${people.label} 変更` : `${people.label} 변경`) : (isJa ? '相手設定' : '상대 설정')}
         style={({ pressed }) => [styles.targetHit, pressed && styles.pressed]}
       >
         <View style={styles.targetCopy}>
-          <Text style={styles.targetKicker}>스캔 대상</Text>
-          <Text style={styles.targetLabel}>{people?.label ?? '아직 대상을 정하지 않았어요'}</Text>
+          <Text style={styles.targetKicker}>{isJa ? 'スキャン対象' : '스캔 대상'}</Text>
+          <Text style={styles.targetLabel}>{people?.label ?? (isJa ? 'まだ対象が設定されていません' : '아직 대상을 정하지 않았어요')}</Text>
         </View>
         <View style={styles.changeTag}>
-          <Text style={styles.changeTagText}>{people ? '변경 ✏️' : '+ 상대 변경'}</Text>
+          <Text style={styles.changeTagText}>{people ? (isJa ? '変更 ✏️' : '변경 ✏️') : (isJa ? '+ 相手変更' : '+ 상대 변경')}</Text>
         </View>
       </Pressable>
       <Text style={styles.radarLine}>
         {people
-          ? `딴마음 지수 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '대기'}`
-          : '대상을 정하면 속마음 레이더가 바로 돌아갑니다.'}
+          ? (isJa ? `浮気·別心指数 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '待機'}` : `딴마음 지수 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '대기'}`)
+          : (isJa ? '対象を決めると本音レーダーが即座に起動します。' : '대상을 정하면 속마음 레이더가 바로 돌아갑니다.')}
       </Text>
     </View>
   );
@@ -479,8 +480,8 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
             icon={context.soundOn ? '🔊' : '🔇'}
             label={
               context.soundOn
-                ? (isJa ? '音声ON' : '소리 켜짐')
-                : (isJa ? '音声' : '소리')
+                ? (isJa ? '音声 ON' : '소리 켜짐')
+                : (isJa ? '音声 OFF' : '소리')
             }
             onPress={() => railTap(() => actions.onToggleSound?.())}
           />
