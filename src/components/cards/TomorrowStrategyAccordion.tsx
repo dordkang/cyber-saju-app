@@ -41,6 +41,34 @@ const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; labelJa: string
   { key: 'business', label: '비즈니스', labelJa: 'ビジネス', icon: '🏢' },
 ];
 
+const GOD_JA_MAP: Record<string, string> = {
+  비견: '比肩',
+  겁재: '劫財',
+  식신: '食神',
+  상관: '傷官',
+  편재: '偏財',
+  정재: '正財',
+  편관: '偏官',
+  정관: '正官',
+  편인: '偏印',
+  정인: '印綬',
+};
+
+function formatGod(god: string, isJa: boolean): string {
+  return isJa ? (GOD_JA_MAP[god] ?? god) : god;
+}
+
+function formatShinsal(name: string, isJa: boolean): string {
+  if (!isJa) return name;
+  if (name.includes('천을귀인') || name.includes('天乙貴人')) return '天乙貴人';
+  if (name.includes('양인살') || name.includes('羊刃殺')) return '羊刃殺';
+  if (name.includes('백호살') || name.includes('白虎殺')) return '白虎殺';
+  if (name.includes('도화살') || name.includes('桃花殺')) return '桃花殺';
+  if (name.includes('역마살') || name.includes('驛馬殺')) return '駅馬殺';
+  if (name.includes('화개살') || name.includes('華蓋殺')) return '華蓋殺';
+  return name;
+}
+
 export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion({
   unlocked,
   saju,
@@ -78,7 +106,7 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + 1, 12, 0);
   }, [baseDate]);
 
-  const omen = useMemo(() => getTomorrowOmen(saju, tomorrowDate), [saju, tomorrowDate]);
+  const omen = useMemo(() => getTomorrowOmen(saju, tomorrowDate, isJa ? 'jp' : 'ko'), [saju, tomorrowDate, isJa]);
 
   const strategy = useMemo(() => {
     const raw = generateCoreStrategy(
@@ -171,7 +199,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           </View>
           <Text style={styles.cardTitle}>{isJa ? '明日の天機 ＆ 作戦設計' : '내일의 천기 & 작전 설계'}</Text>
           <Text style={styles.cardSub}>
-            {isJa ? '明日' : '내일'} {omen.ganji} ({omen.stemGod}·{omen.branchGod}) · {omen.shinsal.primary}
+            {isJa
+              ? `明日 ${omen.ganji} (${formatGod(omen.stemGod, true)}・${formatGod(omen.branchGod, true)}) · ${formatShinsal(omen.shinsal.primary, true)}`
+              : `내일 ${omen.ganji} (${omen.stemGod}·${omen.branchGod}) · ${omen.shinsal.primary}`}
           </Text>
         </View>
         <View style={styles.toggleBtn}>
@@ -188,14 +218,20 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           <View style={styles.omenBadgeRow}>
             <View style={styles.omenBadge}>
               <Text style={styles.omenBadgeLabel}>{isJa ? '明日の日辰' : '내일 일진'}</Text>
-              <Text style={styles.omenBadgeValue}>{omen.ganji} ({omen.stemGod})</Text>
+              <Text style={styles.omenBadgeValue}>{omen.ganji} ({formatGod(omen.stemGod, isJa)})</Text>
             </View>
             <View style={styles.omenBadge}>
               <Text style={styles.omenBadgeLabel}>{isJa ? '核心の気·神殺' : '핵심 기운·신살'}</Text>
-              <Text style={styles.omenBadgeValueHighlight}>{omen.shinsal.primary}</Text>
+              <Text style={styles.omenBadgeValueHighlight}>{formatShinsal(omen.shinsal.primary, isJa)}</Text>
             </View>
           </View>
-          <Text style={styles.shinsalDesc}>{omen.shinsal.description}</Text>
+          <Text style={styles.shinsalDesc}>
+            {isJa
+              ? (omen.shinsal.description.includes('하늘이 돕고 귀인')
+                  ? '天が助け、貴人が手を差し伸べる最高の吉兆'
+                  : omen.shinsal.description)
+              : omen.shinsal.description}
+          </Text>
 
           {/* 5대 본질 코어 카테고리 선택 칩 */}
           <Text style={styles.inputLabel}>
@@ -227,7 +263,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           {category === 'love' && !partnerSaju && (
             <View style={styles.partnerNoticeBox}>
               <Text style={styles.partnerNoticeText}>
-                ⚠️ 상대방 사주 명식이 아직 없습니다. 두 사람의 합(合)·충(沖)과 도화를 정밀하게 보려면 상대방 명식을 등록하세요.
+                {isJa
+                  ? '⚠️ お相手の命式がまだありません。二人の合・沖と桃花を精密に読み解くには相手の命式をご登録ください。'
+                  : '⚠️ 상대방 사주 명식이 아직 없습니다. 두 사람의 합(合)·충(沖)과 도화를 정밀하게 보려면 상대방 명식을 등록하세요.'}
               </Text>
               <Pressable
                 onPress={() => {
@@ -237,7 +275,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.partnerNoticeBtn, pressed && styles.pressed]}
               >
-                <Text style={styles.partnerNoticeBtnText}>+ 상대방 사주 등록하기 ✏️</Text>
+                <Text style={styles.partnerNoticeBtnText}>
+                  {isJa ? '+ お相手の命式を登録する ✏️' : '+ 상대방 사주 등록하기 ✏️'}
+                </Text>
               </Pressable>
             </View>
           )}
@@ -246,30 +286,38 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           {category === 'love' && Boolean(partnerSaju) && (
             <View style={styles.partnerLinkedBox}>
               <Text style={styles.partnerLinkedText}>
-                🔗 {partner?.alias || partner?.relation || '상대방'}({partnerSaju?.dayMaster} 일간)과의 합충 정밀 대조 중
+                {isJa
+                  ? `🔗 ${partner?.alias === '배우자' ? '配偶者' : (partner?.alias || partner?.relation || 'お相手')}(${partnerSaju?.dayMaster} 日干)との合沖精密照合中`
+                  : `🔗 ${partner?.alias || partner?.relation || '상대방'}(${partnerSaju?.dayMaster} 일간)과의 합충 정밀 대조 중`}
               </Text>
             </View>
           )}
 
           {/* 구체적 계획 및 고민 입력창 */}
-          <Text style={styles.inputLabel}>구체적인 계획이나 고민 (선택)</Text>
+          <Text style={styles.inputLabel}>
+            {isJa ? '具体的な計画や悩み（任意）' : '구체적인 계획이나 고민 (선택)'}
+          </Text>
           <View style={styles.inputWrap}>
             <TextInput
               value={planText}
               onChangeText={setPlanText}
-              placeholder="내일 계획 중인 구체적인 일이나 고민을 자유롭게 적어주세요 (예: 단가 협상, 소개팅, 계약 체결)"
+              placeholder={
+                isJa
+                  ? '明日予定している具体的な行動や悩みを入力してください...'
+                  : '내일 계획 중인 구체적인 일이나 고민을 자유롭게 적어주세요 (예: 단가 협상, 소개팅, 계약 체결)'
+              }
               placeholderTextColor="#8a6d75"
               style={styles.textInput}
               maxLength={80}
             />
           </View>
 
-          {/* ⚡ 옥통자 맞춤 작전 해단받기 버튼 */}
+          {/* ⚡ 옥동자 맞춤 작전 해단받기 버튼 */}
           <Pressable
             onPress={handleCalculate}
             disabled={isLoading}
             accessibilityRole="button"
-            accessibilityLabel="옥통자 맞춤 작전 해단받기"
+            accessibilityLabel={isJa ? 'サイバー神童の作戦解断を授かる' : '옥통자 맞춤 작전 해단받기'}
             style={({ pressed }) => [
               styles.calcActionBtn,
               isLoading && styles.calcActionBtnBusy,
@@ -278,10 +326,10 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
           >
             <Text style={styles.calcActionBtnText}>
               {isLoading
-                ? '🔮 옥통자가 천기를 관조하는 중...'
+                ? (isJa ? '🔮 サイバー神童が天機を観照中...' : '🔮 옥통자가 천기를 관조하는 중...')
                 : hasCalculated
-                ? '↺ 다른 고민으로 다시 점지받기'
-                : '⚡ 옥통자 맞춤 작전 해단받기 ↗'}
+                ? (isJa ? '↺ 別の悩みで再度神託を受ける' : '↺ 다른 고민으로 다시 점지받기')
+                : (isJa ? '⚡ サイバー神童の作戦解断を授かる ↗' : '⚡ 옥통자 맞춤 작전 해단받기 ↗')}
             </Text>
           </Pressable>
 
@@ -291,8 +339,10 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
               <ActivityIndicator size="small" color="#ff2a4b" />
               <Text style={styles.loadingPulseText}>
                 {loadingPhase === 0
-                  ? '🔮 옥통자가 천기를 관조하는 중...'
-                  : `⚡ 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신·신살 기운을 맞물리는 중...`}
+                  ? (isJa ? '🔮 サイバー神童が天機を観照中...' : '🔮 옥통자가 천기를 관조하는 중...')
+                  : (isJa
+                    ? `⚡ 明日の日辰(${omen.ganji})と${saju?.dayMaster ?? '戊'}土日干の通変星・神殺の気を噛み合わせ中...`
+                    : `⚡ 내일의 일진(${omen.ganji})과 ${saju?.dayMaster ?? '戊'}土 일간의 십신·신살 기운을 맞물리는 중...`)}
               </Text>
             </View>
           )}
@@ -309,7 +359,9 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
 
           {!hasCalculated && !isLoading && (
             <Text style={styles.preCalcHint}>
-              분야와 고민을 확인하신 후 위 [작전 해단받기]를 누르시면 옥통자의 천기 연산이 시작됩니다.
+              {isJa
+                ? '分野と悩みをご確認の上、上の［作戦解断を授かる］を押すと、神託の天機演算が始まります。'
+                : '분야와 고민을 확인하신 후 위 [작전 해단받기]를 누르시면 옥통자의 천기 연산이 시작됩니다.'}
             </Text>
           )}
         </View>

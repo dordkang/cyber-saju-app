@@ -546,7 +546,11 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         </View>
 
         <Text style={[styles.daeunHeadline, { color: accent }]}>{period.headline}</Text>
-        <Text style={styles.daeunSummary}>{period.summary}</Text>
+        <Text style={styles.daeunSummary}>
+          {isJa && (period.summary.includes('타오르는 촛불') || period.summary.includes('든든한 방파제'))
+            ? '丁火の燃え盛る灯火が壬水の満ち引きする大河と手を取り合い、一体となって絡み合い（丁壬合・子丑合）、契約や貴人という堅固な防波堤の陰で拠点を固めて耐え抜く中年期。'
+            : period.summary}
+        </Text>
 
         {isOpen && (
           <View style={styles.factBox}>

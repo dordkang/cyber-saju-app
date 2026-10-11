@@ -102,7 +102,11 @@ const BRANCH_MAIN_STEM: Record<EarthlyBranch, HeavenlyStem> = {
 };
 
 /** 특정 날짜 기준 일진 및 정통 신살 계산 */
-export function getTomorrowOmen(saju: SajuResult | null, targetDate: Date = new Date()): TomorrowOmen {
+export function getTomorrowOmen(
+  saju: SajuResult | null,
+  targetDate: Date = new Date(),
+  lang?: string
+): TomorrowOmen {
   const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
   const dd = String(targetDate.getDate()).padStart(2, '0');
   const weekDay = ['일', '월', '화', '수', '목', '금', '토'][targetDate.getDay()] ?? '';
@@ -162,15 +166,23 @@ export function getTomorrowOmen(saju: SajuResult | null, targetDate: Date = new 
     shinsalList.push('천을귀인(天乙貴人)');
   }
 
-  const primaryShinsal = shinsalList[0] ?? `${elementTitle}의 작용`;
-  const shinsalDesc =
-    shinsalList.includes('양인살(羊刃殺)') ? '극강의 칼날과 서슬 퍼런 결단력의 기운'
-    : shinsalList.includes('백호살(白虎殺)') ? '피 튀기는 추진력과 과감한 돌파의 기운'
-    : shinsalList.includes('도화살(桃花殺)') ? '이목을 집중시키고 매력이 뿜어져 나오는 기운'
-    : shinsalList.includes('역마살(驛馬殺)') ? '먼 길을 떠나고 판을 흔드는 질주의 기운'
-    : shinsalList.includes('화개살(華蓋殺)') ? '예술적 영감과 비장의 무기를 벼리는 기운'
-    : shinsalList.includes('천을귀인(天乙貴人)') ? '하늘이 돕고 귀인이 손을 내미는 최고의 길조'
-    : '본원의 중심을 세우고 실리를 챙기는 기운';
+  const isJa = lang === 'jp' || lang === 'ja';
+  const primaryShinsal = shinsalList[0] ?? (isJa ? '五行の作用' : `${elementTitle}의 작용`);
+  const shinsalDesc = isJa
+    ? (shinsalList.includes('양인살(羊刃殺)') ? '極限の刃と鋭い決断力の気'
+      : shinsalList.includes('백호살(白虎殺)') ? '血湧き肉躍る推進力と果敢な突破の気'
+      : shinsalList.includes('도화살(桃花殺)') ? '注目を集め魅力が溢れ出す気'
+      : shinsalList.includes('역마살(驛馬殺)') ? '遠くへ旅立ち局面を動かす疾走の気'
+      : shinsalList.includes('화개살(華蓋殺)') ? '芸術的インスピレーションと秘蔵の武器を研ぎ澄ます気'
+      : shinsalList.includes('천을귀인(天乙貴人)') ? '天が助け、貴人が手を差し伸べる最高の吉兆'
+      : '本元の中心を立て実利を掴む気')
+    : (shinsalList.includes('양인살(羊刃殺)') ? '극강의 칼날과 서슬 퍼런 결단력의 기운'
+      : shinsalList.includes('백호살(白虎殺)') ? '피 튀기는 추진력과 과감한 돌파의 기운'
+      : shinsalList.includes('도화살(桃花殺)') ? '이목을 집중시키고 매력이 뿜어져 나오는 기운'
+      : shinsalList.includes('역마살(驛馬殺)') ? '먼 길을 떠나고 판을 흔드는 질주의 기운'
+      : shinsalList.includes('화개살(華蓋殺)') ? '예술적 영감과 비장의 무기를 벼리는 기운'
+      : shinsalList.includes('천을귀인(天乙貴人)') ? '하늘이 돕고 귀인이 손을 내미는 최고의 길조'
+      : '본원의 중심을 세우고 실리를 챙기는 기운');
 
   return {
     dateLabel,

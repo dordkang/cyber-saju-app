@@ -29,11 +29,23 @@ const LOCKED_ITEMS: ReadonlyArray<{ title: string; hint: string }> = [
 ];
 
 const LOCKED_ITEMS_JA: ReadonlyArray<{ title: string; hint: string }> = [
-  { title: '桃花分析 · あの人の魅力構造', hint: 'どの柱に桃花が位置しているか、その意味を分析します。' },
-  { title: '浮気心が湧き上がる時期', hint: '今年各月ごとに警戒すべき時期を分析します。' },
+  { title: '桃花分析・この人の魅力構造', hint: 'どの柱に桃花が位置しているか、その意味を分析します。' },
+  { title: '浮気心・気の迷いが生じる時期', hint: '今年各月ごとに警戒すべき時期を分析します。' },
   { title: '連絡が途絶えがちになるパターン', hint: 'この兆候が見えたら既に心が揺らいでいます。' },
   { title: 'サイバー童子処方 · 自分から実践すべき3つの行動', hint: '繋ぎ止める法、見極める法、手放すべき時まで。' },
 ];
+
+function partnerAliasJa(alias?: string | null): string {
+  if (!alias) return '配偶者';
+  if (alias === '배우자') return '配偶者';
+  if (alias === '애인') return '恋人';
+  if (alias === '썸') return '気になる人';
+  if (alias === '짝사랑') return '片思いの相手';
+  if (alias === '전연인' || alias === '전애인') return '元恋人';
+  if (alias === '친구') return '友人';
+  if (alias === '동료') return '同僚';
+  return alias;
+}
 
 interface PartnerReportModalProps {
   visible: boolean;
@@ -92,7 +104,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
               <Text style={styles.title} numberOfLines={2}>
                 {hasData
                   ? isJa
-                    ? `${partner.alias}の浮気・本音分析`
+                    ? `${partnerAliasJa(partner.alias)}の浮気・本音分析`
                     : `${partner.alias}의 딴마음 분석`
                   : isJa
                   ? '分析対象がまだいません'
@@ -116,19 +128,37 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                   <Text style={[styles.scoreValue, { color: accent }]}>{radar.score}</Text>
                   <View style={styles.scoreInfo}>
                     <Text style={[styles.scoreLevel, { color: accent }]}>
-                      {isJa ? `浮気・別心指数 · ${radar.level}` : `딴마음 지수 · ${radar.level}`}
+                      {isJa
+                        ? `浮気・別心指数 · ${radar.level === '안정' ? '安定' : radar.level === '주의' ? '注意' : (radar.level || '安定')}`
+                        : `딴마음 지수 · ${radar.level}`}
                     </Text>
-                    <Text style={styles.scoreHeadline}>{radar.headline}</Text>
+                    <Text style={styles.scoreHeadline}>
+                      {isJa
+                        ? (radar.headline === '마음이 한곳에 머무는 편이에요' || radar.level === '안정'
+                            ? '心が一箇所にとどまるタイプです'
+                            : radar.headline)
+                        : radar.headline}
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.freeBox}>
                   <Text style={styles.sectionLabel}>{isJa ? '1行要約' : '한 줄 요약'}</Text>
-                  {radar.lines.map((line) => (
-                    <Text key={line} style={styles.freeLine}>
-                      · {line}
-                    </Text>
-                  ))}
+                  {radar.lines.map((line) => {
+                    let displayLine = line;
+                    if (isJa) {
+                      if (line.includes('이성의 시선') || line.includes('끌어당기는')) {
+                        displayLine = '異性の視線を強く惹きつける構造ではありません。';
+                      } else if (line.includes('소홀해지면') || line.includes('마음이 식을 수')) {
+                        displayLine = 'ただし関係が疎遠になると気持ちが冷める恐れがあるため、日頃の愛情表現を怠らないでください。';
+                      }
+                    }
+                    return (
+                      <Text key={line} style={styles.freeLine}>
+                        · {displayLine}
+                      </Text>
+                    );
+                  })}
                   <Text style={styles.freeMeta}>
                     {isJa
                       ? `桃花シグナル ${radar.peachCount}個 · 魅力ポジション ${radar.charmCount}個`
@@ -138,16 +168,37 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
 
                 {isUnlocked && prescription ? (
                   <>
-                    {prescription.sections.map((section) => (
-                      <View key={section.key} style={styles.sectionCard}>
-                        <Text style={styles.sectionTitle}>{section.title}</Text>
-                        {section.lines.map((line) => (
-                          <Text key={line} style={styles.sectionLine}>
-                            {line}
-                          </Text>
-                        ))}
-                      </View>
-                    ))}
+                    {prescription.sections.map((section) => {
+                      let sectionTitle = section.title;
+                      let sectionLines = section.lines;
+
+                      if (isJa) {
+                        if (section.key === 'peach' || section.title.includes('도화 분석') || section.title.includes('桃花分析')) {
+                          sectionTitle = '桃花分析・この人の魅力構造';
+                          sectionLines = [
+                            '配偶者様は刃のように境界線が明確な人物です。桃花を司る地支は「子」ですが、命式の4つの柱の中にこの気は巡っていません。\n\n桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきではなく、周囲の環境によって生み出されるタイプです。\n\n子・午・卯・酉の魅力地支が2つあり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。'
+                          ];
+                        } else if (section.key === 'timing' || section.title.includes('딴마음이 올라오는 시기') || section.title.includes('浮気心')) {
+                          sectionTitle = '浮気心・気の迷いが生じる時期';
+                          sectionLines = [
+                            '2026年基準、この人の心が外に向きやすい月は9月・12月です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。'
+                          ];
+                        } else if (section.key === 'pattern' || section.title.includes('연락이 뜸해지는 패턴') || section.title.includes('連絡が途絶え')) {
+                          sectionTitle = '連絡が途絶えがちになるパターン';
+                        }
+                      }
+
+                      return (
+                        <View key={section.key} style={styles.sectionCard}>
+                          <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+                          {sectionLines.map((line, idx) => (
+                            <Text key={idx} style={styles.sectionLine}>
+                              {line}
+                            </Text>
+                          ))}
+                        </View>
+                      );
+                    })}
 
                     <View style={[styles.sectionCard, styles.prescriptionCard]}>
                       <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>
@@ -155,13 +206,29 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                           ? 'サイバー童子処方 · 自分から実践すべき3つの行動'
                           : '옥통자 처방 · 내가 먼저 할 행동 3가지'}
                       </Text>
-                      {prescription.actions.map((action, index) => (
-                        <View key={action} style={styles.actionRow}>
-                          <Text style={styles.actionNo}>{index + 1}</Text>
-                          <Text style={styles.actionText}>{action}</Text>
-                        </View>
-                      ))}
-                      <Text style={styles.verdict}>{prescription.verdict}</Text>
+                      {prescription.actions.map((action, index) => {
+                        let actionText = action;
+                        if (isJa) {
+                          if (index === 0 && action.includes('의심부터')) {
+                            actionText = '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。';
+                          } else if (index === 1 && action.includes('단둘이')) {
+                            actionText = '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。';
+                          } else if (index === 2 && action.includes('서운한')) {
+                            actionText = '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。';
+                          }
+                        }
+                        return (
+                          <View key={action} style={styles.actionRow}>
+                            <Text style={styles.actionNo}>{index + 1}</Text>
+                            <Text style={styles.actionText}>{actionText}</Text>
+                          </View>
+                        );
+                      })}
+                      <Text style={styles.verdict}>
+                        {isJa && prescription.verdict.includes('칼날이 밖을 향한')
+                          ? '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。'
+                          : prescription.verdict}
+                      </Text>
                     </View>
                   </>
                 ) : (

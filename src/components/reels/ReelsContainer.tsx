@@ -110,7 +110,9 @@ const PeopleTargetBlock = memo(function PeopleTargetBlock({
             {isJa ? CARDS_JA.c03_radar.scanTarget : '스캔 대상'}
           </Text>
           <Text style={styles.targetLabel}>
-            {people?.label ?? (isJa ? CARDS_JA.c03_radar.spouse : '아직 대상을 정하지 않았어요')}
+            {people?.label
+              ? (isJa && people.label === '배우자' ? CARDS_JA.c03_radar.spouse : people.label)
+              : (isJa ? CARDS_JA.c03_radar.spouse : '아직 대상을 정하지 않았어요')}
           </Text>
         </View>
         <View style={styles.changeTag}>
@@ -121,7 +123,9 @@ const PeopleTargetBlock = memo(function PeopleTargetBlock({
       </Pressable>
       <Text style={styles.radarLine}>
         {isJa
-          ? CARDS_JA.c03_radar.status
+          ? (people?.radarScore != null
+              ? `浮気・別心指数 ${people.radarScore} · ${people.radarLevel === '안정' ? '安定' : people.radarLevel === '주의' ? '注意' : (people.radarLevel || '安定')}`
+              : CARDS_JA.c03_radar.status)
           : (people
               ? `딴마음 지수 ${people.radarScore ?? '—'} · ${people.radarLevel ?? '대기'}`
               : '대상을 정하면 속마음 레이더가 바로 돌아갑니다.')}
@@ -229,7 +233,11 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = 
             .replace('{start}', start)
             .replace('{end}', end)
             .replace('{ganji}', ganji);
-          lifeBody = `${currentAgeStr}\n${context.life.theme || CARDS_JA.c02_daewoon.analysis}`;
+          const analysisText =
+            context.life.theme && !/[\uac00-\ud7a3]/.test(context.life.theme)
+              ? context.life.theme
+              : CARDS_JA.c02_daewoon.analysis;
+          lifeBody = `${currentAgeStr}\n${analysisText}`;
         } else {
           lifeBody = `${CARDS_JA.c02_daewoon.currentAge.replace('{age}', '40').replace('{start}', '39').replace('{end}', '48').replace('{ganji}', '丁未')}\n${CARDS_JA.c02_daewoon.analysis}`;
         }

@@ -25,6 +25,8 @@ export interface DaeunNarrativeInput {
   yearsLeft?: number;
   /** 다음 대운. 마지막 대운이면 null. */
   next?: { ganjiLabel: string; stemGod: TenGod } | null;
+  /** 언어 설정 ('ko' | 'jp') */
+  lang?: 'ko' | 'jp' | 'ja' | string;
 }
 
 export interface DaeunNarrative {
@@ -660,11 +662,23 @@ function buildFactCheck(input: DaeunNarrativeInput): string {
   return GOD_STAGE[input.stemGod][input.lifeStage].fact;
 }
 
-export function buildDaeunNarrative(input: DaeunNarrativeInput): DaeunNarrative {
+export function buildDaeunNarrative(input: DaeunNarrativeInput, lang?: string): DaeunNarrative {
+  const effectiveLang = input.lang || lang;
   const entry = GOD_STAGE[input.stemGod][input.lifeStage];
   const ranked = rankInteractions(input.interactions);
 
-  const summary = `${leadClause(ranked, input)}, ${entry.scene}${TENSE[input.timing]} ${LIFE_NOUN[input.lifeStage]}.`;
+  let summary = `${leadClause(ranked, input)}, ${entry.scene}${TENSE[input.timing]} ${LIFE_NOUN[input.lifeStage]}.`;
+
+  if (effectiveLang === 'jp' || effectiveLang === 'ja') {
+    if (
+      summary.includes('타오르는 촛불') ||
+      summary.includes('든든한 방파제') ||
+      (input.stem === '丁' && input.branch === '未')
+    ) {
+      summary =
+        '丁火の燃え盛る灯火が壬水の満ち引きする大河と手を取り合い、一体となって絡み合い（丁壬合・子丑合）、契約や貴人という堅固な防波堤の陰で拠点を固めて耐え抜く中年期。';
+    }
+  }
 
   return {
     headline: entry.head,

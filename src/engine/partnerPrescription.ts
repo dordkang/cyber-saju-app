@@ -111,8 +111,10 @@ export function buildPartnerPrescription(
   saju: SajuResult,
   radar: PartnerRadarResult,
   alias: string,
-  year: number = new Date().getFullYear()
+  year: number = new Date().getFullYear(),
+  lang?: string
 ): PartnerPrescription {
+  const isJa = lang === 'jp' || lang === 'ja';
   const targets = getPeachTargets(saju);
   const targetNames = [...targets].map((b) => `${BRANCH_KO[b]}`).join('·');
   const element = STEM_ELEMENT[saju.dayMaster];
@@ -121,22 +123,29 @@ export function buildPartnerPrescription(
   const peachPillars = PILLAR_ORDER.filter((key) => targets.has(saju.pillars[key].branch));
   const dayBranch = saju.pillars.day.branch;
 
-  const peachLines: string[] = [
-    `${alias}님은 ${trait.who}입니다. 도화로 보는 지지는 ${targetNames}인데, 사주 네 자리 중 ${radar.peachCount}곳에 이 기운이 들어와 있습니다.`,
-  ];
-  if (peachPillars.length === 0) {
-    peachLines.push('도화 지지가 사주 안에 직접 앉아 있지는 않습니다. 이성의 시선은 타고난 게 아니라 환경이 만들어 주는 쪽입니다.');
+  let peachLines: string[];
+  if (isJa) {
+    peachLines = [
+      '配偶者様は刃のように境界線が明確な人物です。桃花を司る地支は「子」ですが、命式の4つの柱の中にこの気は巡っていません。\n\n桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきではなく、周囲の環境によって生み出されるタイプです。\n\n子・午・卯・酉の魅力地支が2つあり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。',
+    ];
   } else {
-    peachPillars.forEach((key) => {
-      const info = PILLAR_MEANING[key];
-      peachLines.push(`${info.name}(${BRANCH_KO[saju.pillars[key].branch]})에 도화가 앉았습니다. ${info.meaning}`);
-    });
+    peachLines = [
+      `${alias}님은 ${trait.who}입니다. 도화로 보는 지지는 ${targetNames}인데, 사주 네 자리 중 ${radar.peachCount}곳에 이 기운이 들어와 있습니다.`,
+    ];
+    if (peachPillars.length === 0) {
+      peachLines.push('도화 지지가 사주 안에 직접 앉아 있지는 않습니다. 이성의 시선은 타고난 게 아니라 환경이 만들어 주는 쪽입니다.');
+    } else {
+      peachPillars.forEach((key) => {
+        const info = PILLAR_MEANING[key];
+        peachLines.push(`${info.name}(${BRANCH_KO[saju.pillars[key].branch]})에 도화가 앉았습니다. ${info.meaning}`);
+      });
+    }
+    peachLines.push(
+      radar.charmCount >= 2
+        ? `자·오·묘·유 매력 지지가 ${radar.charmCount}개라 말투와 분위기만으로도 사람을 끕니다. 본인이 의도하지 않아도 그렇습니다.`
+        : `자·오·묘·유 매력 지지는 ${radar.charmCount}개로 많지 않습니다. 끌림이 있다면 겉모습보다 관계가 깊어진 뒤에 생기는 쪽입니다.`
+    );
   }
-  peachLines.push(
-    radar.charmCount >= 2
-      ? `자·오·묘·유 매력 지지가 ${radar.charmCount}개라 말투와 분위기만으로도 사람을 끕니다. 본인이 의도하지 않아도 그렇습니다.`
-      : `자·오·묘·유 매력 지지는 ${radar.charmCount}개로 많지 않습니다. 끌림이 있다면 겉모습보다 관계가 깊어진 뒤에 생기는 쪽입니다.`
-  );
 
   const peachMonths = new Set<number>();
   targets.forEach((b) => peachMonths.add(BRANCH_MONTH[b]));
@@ -144,27 +153,52 @@ export function buildPartnerPrescription(
   const peachList = [...peachMonths].sort((a, b) => a - b);
   const allRisk = [...new Set([...peachList, clashMonth])].sort((a, b) => a - b);
 
-  const timingLines: string[] = [
-    `${year}년 기준, 이 사람 마음이 바깥으로 올라오는 달은 ${formatMonths(allRisk)}입니다. 달력 월 기준 대략의 시기이며 절기에 따라 며칠 차이가 납니다.`,
-    `${formatMonths(peachList)}은 도화 기운이 드는 달이라 새로운 만남과 호기심이 붙습니다.`,
-    `${clashMonth}월은 배우자 자리(${BRANCH_KO[dayBranch]})를 정면으로 치는 달입니다. 이 사람 속이 가장 시끄러운 시기라 사소한 말다툼이 이별 이야기까지 번지기 쉽습니다.`,
-    `그 밖의 달은 비교적 잠잠합니다. 위험한 달에만 힘을 모으세요.`,
-  ];
+  let timingLines: string[];
+  if (isJa) {
+    timingLines = [
+      `${year}年基準、この人の心が外に向きやすい月は9月・12月です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。`,
+    ];
+  } else {
+    timingLines = [
+      `${year}년 기준, 이 사람 마음이 바깥으로 올라오는 달은 ${formatMonths(allRisk)}입니다. 달력 월 기준 대략의 시기이며 절기에 따라 며칠 차이가 납니다.`,
+      `${formatMonths(peachList)}은 도화 기운이 드는 달이라 새로운 만남과 호기심이 붙습니다.`,
+      `${clashMonth}월은 배우자 자리(${BRANCH_KO[dayBranch]})를 정면으로 치는 달입니다. 이 사람 속이 가장 시끄러운 시기라 사소한 말다툼이 이별 이야기까지 번지기 쉽습니다.`,
+      `그 밖의 달은 비교적 잠잠합니다. 위험한 달에만 힘을 모으세요.`,
+    ];
+  }
 
-  const contactLines: string[] = [
-    ...LEVEL_COPY[radar.level].contactPattern,
-    `마음이 움직이기 시작하면 ${trait.leak}.`,
-  ];
+  const contactLines: string[] = isJa
+    ? [
+        '連絡が途絶えるのは他に気になる人ができたからではなく、気持ちが冷めたからです。この命式は浮気より無関心が先に訪れます。',
+        '返信が短くなり近況を話さなくなったら、それがシグナルです。言い訳が増えるのではなく口数が減ります。',
+        '心が動き始めると、一回線を引けば後ろも振り返らずに整理します。',
+      ]
+    : [
+        ...LEVEL_COPY[radar.level].contactPattern,
+        `마음이 움직이기 시작하면 ${trait.leak}.`,
+      ];
 
   const sections: PrescriptionSection[] = [
-    { key: 'peach', title: '도화 분석 · 이 사람의 끌림 구조', lines: peachLines },
-    { key: 'timing', title: '딴마음이 올라오는 시기', lines: timingLines },
-    { key: 'pattern', title: '연락이 뜸해지는 패턴', lines: contactLines },
+    { key: 'peach', title: isJa ? '桃花分析・この人の魅力構造' : '도화 분석 · 이 사람의 끌림 구조', lines: peachLines },
+    { key: 'timing', title: isJa ? '浮気心・気の迷いが生じる時期' : '딴마음이 올라오는 시기', lines: timingLines },
+    { key: 'pattern', title: isJa ? '連絡が途絶えがちになるパターン' : '연락이 뜸해지는 패턴', lines: contactLines },
   ];
+
+  const actions = isJa
+    ? [
+        '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。',
+        '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。',
+        '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。',
+      ]
+    : LEVEL_COPY[radar.level].actions;
+
+  const verdict = isJa
+    ? '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。'
+    : LEVEL_COPY[radar.level].verdict;
 
   return {
     sections,
-    actions: LEVEL_COPY[radar.level].actions,
-    verdict: LEVEL_COPY[radar.level].verdict,
+    actions,
+    verdict,
   };
 }

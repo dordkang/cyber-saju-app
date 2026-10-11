@@ -48,6 +48,30 @@ const LEVEL_COPY: Record<RadarLevel, { headline: string; lines: string[] }> = {
   },
 };
 
+const LEVEL_COPY_JA: Record<RadarLevel, { headline: string; lines: string[] }> = {
+  안정: {
+    headline: '心が一箇所にとどまるタイプです',
+    lines: [
+      '異性の視線を強く惹きつける構造ではありません。',
+      'ただし関係が疎遠になると気持ちが冷める恐れがあるため、日頃の愛情表現を怠らないでください。',
+    ],
+  },
+  주의: {
+    headline: '人目を引くことが多い人です',
+    lines: [
+      '魅力があり、向こうから近づいてくる人ができやすいです。',
+      '連絡の時間や口調が変わったら、軽く確認してみてください。',
+    ],
+  },
+  경계: {
+    headline: '異性の視線が集中する構造です',
+    lines: [
+      '誘惑や好奇心が頻繁に訪れる命式です。',
+      '返信が遅くなり言い訳が増えたら、すぐに確かめてみてください。',
+    ],
+  },
+};
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -63,7 +87,8 @@ export function getPeachTargets(saju: SajuResult): Set<EarthlyBranch> {
  * 상대의 사주에서 도화 신호를 읽어 딴마음 지수를 만든다.
  * 외부 통신 없이 지지 배치만으로 계산하는 순수 함수이며, 재미로 보는 참고용이다.
  */
-export function analyzePartnerRadar(saju: SajuResult): PartnerRadarResult {
+export function analyzePartnerRadar(saju: SajuResult, lang?: string): PartnerRadarResult {
+  const isJa = lang === 'jp' || lang === 'ja';
   const branches = [
     saju.pillars.year.branch,
     saju.pillars.month.branch,
@@ -78,7 +103,7 @@ export function analyzePartnerRadar(saju: SajuResult): PartnerRadarResult {
 
   const score = clamp(Math.round(15 + peachCount * 22 + charmCount * 7), 5, 96);
   const level: RadarLevel = score >= 70 ? '경계' : score >= 40 ? '주의' : '안정';
-  const copy = LEVEL_COPY[level];
+  const copy = (isJa ? LEVEL_COPY_JA : LEVEL_COPY)[level];
 
   return { score, level, peachCount, charmCount, headline: copy.headline, lines: [...copy.lines] };
 }
