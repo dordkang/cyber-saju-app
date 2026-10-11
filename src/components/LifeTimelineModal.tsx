@@ -481,13 +481,22 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     Animated.timing(pulse, { toValue: 0, duration: 520, useNativeDriver: true }).start();
   }, [tmKey, pulse]);
 
-  const handleBridgeToChamber = useCallback(() => {
+  const handleJumpToChamber = useCallback(() => {
     onClose();
-    if (onNavigateToChamber) {
-      onNavigateToChamber();
-    } else if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
-    }
+    setTimeout(() => {
+      onNavigateToChamber?.();
+      if (typeof window !== 'undefined') {
+        const target =
+          document.getElementById('section-chamber') ||
+          document.querySelector('[data-section="08"]');
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        } else if ((window as any).scrollToSection) {
+          (window as any).scrollToSection(7);
+        }
+        window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
+      }
+    }, 50);
   }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {
@@ -1108,7 +1117,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.bridgeBtn}
-            onPress={handleBridgeToChamber}
+            onPress={handleJumpToChamber}
             activeOpacity={0.8}
             accessibilityRole="button"
           >

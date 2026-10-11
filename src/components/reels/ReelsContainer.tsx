@@ -374,9 +374,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
       }
     };
     if (typeof window !== 'undefined') {
+      (window as any).scrollToSection = (idx: number) => {
+        scrollToSectionIndex(idx);
+      };
       window.addEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
       return () => {
         window.removeEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
+        delete (window as any).scrollToSection;
       };
     }
   }, [scrollToSectionIndex]);
@@ -503,8 +507,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'chamber') {
       return (
         <View
+          nativeID="section-chamber"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-chamber',
+            'data-section': '08',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <ShamanChamberCard
             active={active}

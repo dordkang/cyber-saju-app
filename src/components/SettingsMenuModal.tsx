@@ -46,6 +46,7 @@ function MenuRow({ icon, title, caption, onPress }: RowProps) {
 }
 
 import { useLocale } from '../locales';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
   visible,
@@ -94,6 +95,19 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
             caption={isJa ? `現在は ${personaLabel}` : `지금은 ${personaLabel}`}
             onPress={onOpenPersona}
           />
+
+          <View style={styles.row}>
+            <Text style={styles.rowIcon}>🌐</Text>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>
+                {isJa ? '表示言語の切り替え' : '언어 설정 (KR / JP)'}
+              </Text>
+              <Text style={styles.rowCaption} numberOfLines={1}>
+                {isJa ? '日本語 (JP) / 韓国語 (KR)' : '한국어 (KR) · 일본어 (JP) 즉시 전환'}
+              </Text>
+            </View>
+            <LanguageSwitcher />
+          </View>
 
           <View style={styles.row}>
             <Text style={styles.rowIcon}>{soundOn ? '🔊' : '🔇'}</Text>
