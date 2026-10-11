@@ -481,21 +481,37 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     Animated.timing(pulse, { toValue: 0, duration: 520, useNativeDriver: true }).start();
   }, [tmKey, pulse]);
 
-  const handleJumpToChamber = useCallback(() => {
-    onClose();
-    setTimeout(() => {
-      onNavigateToChamber?.();
-      if (typeof window !== 'undefined' && (window as any).scrollToSection) {
-        (window as any).scrollToSection(7); // 08번 밀실 (인덱스 7)
-      } else if (typeof document !== 'undefined') {
-        const chamberEl =
-          document.getElementById('section-chamber') ||
-          (document.querySelectorAll('.card-section')[7] as HTMLElement | undefined);
-        if (chamberEl) {
-          chamberEl.scrollIntoView({ behavior: 'smooth' });
-        }
+  const handleJumpToChamber = useCallback((e?: any) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    onNavigateToChamber?.();
+
+    // 1. 먼저 스크롤을 08번 밀실로 강제 이동 시도
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const chamberEl =
+        document.getElementById('section-chamber') ||
+        document.querySelector('[data-section="08"], .shaman-chamber-card') ||
+        (document.querySelectorAll('.card-section')[7] as HTMLElement | undefined);
+
+      if (chamberEl) {
+        chamberEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if ((window as any).scrollToSection) {
+        (window as any).scrollToSection(7);
+      } else {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       }
-    }, 80);
+
+      if ((window as any).scrollToSection) {
+        (window as any).scrollToSection(7);
+      }
+      window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
+    }
+
+    // 2. 약간의 지연 후 모달 닫기 (시각적 부드러움 및 DOM 충돌 방지)
+    setTimeout(() => {
+      onClose();
+    }, 150);
   }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {
@@ -1171,7 +1187,18 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: COLOR.bg },
+  screen: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
+    backgroundColor: COLOR.bg,
+    ...(Platform.OS === 'web'
+      ? ({
+          pointerEvents: 'auto',
+        } as unknown as ViewStyle)
+      : null),
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1586,6 +1613,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLOR.border,
     backgroundColor: COLOR.panel,
+    zIndex: 9999,
+    ...(Platform.OS === 'web'
+      ? ({
+          pointerEvents: 'auto',
+        } as unknown as ViewStyle)
+      : null),
   },
   bridgeBtn: {
     paddingVertical: 14,
@@ -1602,10 +1635,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.85,
     shadowRadius: 12,
     elevation: 8,
+    zIndex: 10000,
     ...(Platform.OS === 'web'
       ? ({
           boxShadow: '0 0 16px rgba(245, 158, 11, 0.5), inset 0 0 8px rgba(254, 240, 138, 0.25)',
           cursor: 'pointer',
+          pointerEvents: 'auto',
+          userSelect: 'none',
         } as unknown as ViewStyle)
       : null),
   },

@@ -586,7 +586,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-chamber',
             'data-section': '08',
-            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
+            className: 'shaman-chamber-card card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <ShamanChamberCard
