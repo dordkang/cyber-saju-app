@@ -7,6 +7,13 @@ import { formatSajuTerm } from '../utils/sajuTerms';
 const GATEWAY_URL = 'https://saju-edge-gateway.cybersaju.workers.dev';
 const REQUEST_TIMEOUT_MS = 9000;
 
+export interface CurrentDaewoonInfo {
+  ageRange: string;
+  ganji: string;
+  stemGod: string;
+  branchGod: string;
+}
+
 export interface UseSajuAdviceParams {
   userProfile?: {
     birthDate?: string;
@@ -26,6 +33,7 @@ export interface UseSajuAdviceParams {
   autoFetch?: boolean;
   fallbackText?: string;
   voiceStyle?: string;
+  currentDaewoon?: CurrentDaewoonInfo | null;
 }
 
 export interface UseSajuAdviceResult {
@@ -53,6 +61,7 @@ export function useSajuAdvice({
   autoFetch = true,
   fallbackText = '',
   voiceStyle,
+  currentDaewoon,
 }: UseSajuAdviceParams): UseSajuAdviceResult {
   const isJa = lang === 'jp' || lang === 'ja';
   const effectiveLang: 'kr' | 'jp' = isJa ? 'jp' : 'kr';
@@ -86,6 +95,7 @@ export function useSajuAdvice({
     partnerId: partnerProfile?.id ?? partnerProfile?.alias ?? '',
     lang: effectiveLang,
     voiceStyle: effectiveVoiceStyle,
+    daewoon: currentDaewoon ? `${currentDaewoon.ganji}_${currentDaewoon.ageRange}` : '',
   });
 
   const fetchAdvice = useCallback(async () => {
@@ -136,6 +146,12 @@ export function useSajuAdvice({
         userLore: userInput.trim(),
         voiceStyle: effectiveVoiceStyle,
         agentType: effectiveVoiceStyle === 'brother' ? 'COMRADE' : 'DOKSA',
+        currentDaewoon: currentDaewoon ?? undefined,
+        currentDaewoonDirective: currentDaewoon
+          ? (effectiveLang === 'jp'
+              ? `【現在通過中の10年大運: ${currentDaewoon.ganji} (${currentDaewoon.ageRange}) / 通変星: ${currentDaewoon.stemGod}·${currentDaewoon.branchGod}】\n相談者の命式元局とともに大運の流れを必ず考慮せよ。相談者が事業、金、変曲点、転職などを問う場合、「お前が今通過している${currentDaewoon.ganji}大運の気運がこうであるから…」と大運の大きな潮流を突き、鋭く生々しい現実処方を単刀直入・一刀両断に下せ。`
+              : `[현재 지나고 있는 10년 대운: ${currentDaewoon.ganji} (${currentDaewoon.ageRange}) / 십신: ${currentDaewoon.stemGod}·${currentDaewoon.branchGod}]\n상담자의 사주 원국과 함께 이 대운을 반드시 고려하라. 상담자가 사업, 돈, 변곡점, 이직 등을 물을 경우 '네가 지금 지나고 있는 ${currentDaewoon.ganji} 대운의 기운이 이러하니...'라며 대운의 큰 흐름을 짚어주고 날카로운 현실 처방을 단도직입으로 내릴 것.`)
+          : undefined,
         partnerInfo: partnerProfile
           ? {
               alias: partnerProfile.alias,
@@ -180,7 +196,7 @@ export function useSajuAdvice({
       clearTimeout(timeoutId);
       setIsLoading(false);
     }
-  }, [cacheKey, dayMaster, effectiveLang, effectiveVoiceStyle, fallbackText, partnerProfile, partnerSaju, saju, selectedDate, userProfile, userInput, category]);
+  }, [cacheKey, dayMaster, effectiveLang, effectiveVoiceStyle, fallbackText, partnerProfile, partnerSaju, saju, selectedDate, userProfile, userInput, category, currentDaewoon]);
 
   useEffect(() => {
     if (!autoFetch) return;

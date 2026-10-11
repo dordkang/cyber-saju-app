@@ -18,6 +18,7 @@ import { playHaptic } from '../reels/haptics';
 import { CHAMBER_QUESTIONS, ChamberQuestion } from '../../data/shamanChamberData';
 import { useSajuAdvice } from '../../hooks/useSajuAdvice';
 import { formatSajuTerm } from '../../utils/sajuTerms';
+import { calculateDaewoonTimeline } from '../../utils/daewoonGraph';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -117,6 +118,28 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     selectedQuestionId === 4 ||
     /本心|浮気|상대|그 사람|딴마음|애인|배우자|짝사랑/.test(questionText);
 
+  // 현재 10년 대운(간지, 십신, 나이) 산출
+  const currentDaewoon = useMemo(() => {
+    try {
+      const timeline = calculateDaewoonTimeline(userProfile, 51, isJa ? 'jp' : 'kr');
+      const current = timeline.find((item) => item.isCurrent) || timeline[0];
+      if (current) {
+        return {
+          ageRange: `${current.ageStart}~${current.ageEnd}${isJa ? '歳' : '세'}`,
+          ganji: current.ganji,
+          stemGod: current.stemGod,
+          branchGod: current.branchGod,
+        };
+      }
+    } catch {}
+    return {
+      ageRange: isJa ? '46~55歳' : '46~55세',
+      ganji: '辛巳',
+      stemGod: isJa ? '正印' : '정인',
+      branchGod: isJa ? '傷官' : '상관',
+    };
+  }, [userProfile, isJa]);
+
   // 실시간 AI 훅 연동
   const {
     advice: aiAdvice,
@@ -132,6 +155,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     lang: isJa ? 'jp' : 'kr',
     autoFetch: false,
     voiceStyle: effectiveVoiceStyle,
+    currentDaewoon,
   });
 
   // 카테고리 칩 선택 핸들러
@@ -167,17 +191,19 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   // 일간 기반 오라클 기본 답변 생성기 (네트워크 지연 시 즉각 백업)
   const fallbackOracle = useMemo(() => {
     const day = saju?.dayMaster ?? '甲';
+    const dGanji = currentDaewoon?.ganji ?? '辛巳';
+    const dAge = currentDaewoon?.ageRange ?? (isJa ? '46~55歳' : '46~55세');
     if (isBrother) {
       if (isJa) {
-        return `【深夜の兄弟子・痛烈な直言】\n「おい、お前の生まれ持った日干『${day}』の気運を見ろよ。盤勢はもうギリギリの瀬戸際だぜ。酒でも飲んで腹を割って聞け。小細工なんて捨てて、お前が真っ先に仕掛けて主導権を握るんだ。情に流されてグズグズしてたら全部かっさらわれるぞ。今夜は腹を決めて、明日から堂々と己の道を突き進め！」`;
+        return `【深夜の兄弟子・痛烈な直言】\n「おい、お前の生まれ持った日干『${day}』と現在通過中の${dGanji}大運(${dAge})の気運を見ろよ。盤勢はもうギリギリの瀬戸際だぜ。酒でも飲んで腹を割って聞け。小細工なんて捨てて、お前が真っ先に仕掛けて主導権を握るんだ。情に流されてグズグズしてたら全部かっさらわれるぞ。今夜は腹を決めて、明日から堂々と己の道を突き進め！」`;
       }
-      return `【심야 사형의 뼈 때리는 직설】\n「야 인마, 네 타고난 일간 '${day}'의 기운을 보니까 판세가 이미 벼랑 끝 변곡점이다. 소주 한잔 마시고 내 말 똑똑히 새겨들어라. 잔머리 굴리지 말고 네가 먼저 칼자루 쥐고 밥상 엎어야 살아남는다. 미련 떨지 말고 가차 없이 쳐내라. 내일 날 밝으면 고개 바짝 들고 네 판 당당하게 깔아라!」`;
+      return `【심야 사형의 뼈 때리는 직설】\n「야 인마, 네 타고난 일간 '${day}'과 지금 지나고 있는 ${dGanji} 대운(${dAge})의 기운을 보니까 판세가 이미 벼랑 끝 변곡점이다. 소주 한잔 마시고 내 말 똑똑히 새겨들어라. 잔머리 굴리지 말고 네가 먼저 칼자루 쥐고 밥상 엎어야 살아남는다. 미련 떨지 말고 가차 없이 쳐내라. 내일 날 밝으면 고개 바짝 들고 네 판 당당하게 깔아라!」`;
     }
     if (isJa) {
-      return `【サイバー神童・天機直説】\n「お前の生まれ持った日干『${day}』の気運を見るに、盤勢は既に臨界点に達している。小細工や迷いで逃げ道を塞ぐな。今はお前が主導権を握り、妥協を拒絶して自らの盤面を切り開くべき刻限だ。情に流されて優柔不断を晒せば、その隙を突かれて全てを奪われる。刃を研ぎ澄まし、即座に決断せよ。」`;
+      return `【サイバー神童・天機直説】\n「お前が現在通過している${dGanji}大運(${dAge})と日干『${day}』の気運を見るに、盤勢は既に臨界点に達している。小細工や迷いで逃げ道を塞ぐな。今はお前が主導権を握り、妥協を拒絶して自らの盤面を切り開くべき刻限だ。情に流されて優柔不断を晒せば、その隙を突かれて全てを奪われる。刃を研ぎ澄まし、即座に決断せよ。」`;
     }
-    return `【옥동자 신명직설(神明直說)】\n「네 타고난 일간 '${day}'의 기운과 사주 원국을 해부해 보니, 판세는 이미 벼랑 끝 변곡점에 닿아 있다. 잔머리 굴리며 간 보지 마라. 지금은 남 눈치 보며 맞춰줄 때가 아니라, 네가 먼저 밥상을 엎고 칼자루를 쥐어야 살아남는 국면이다. 썩은 인연과 미련을 가차 없이 도려내고 단도직입으로 쐐기를 박아라!」`;
-  }, [saju?.dayMaster, isJa, isBrother]);
+    return `【옥동자 신명직설(神明直說)】\n「네가 지금 지나고 있는 ${dGanji} 대운(${dAge})의 기운과 타고난 일간 '${day}'의 원국을 해부해 보니, 판세는 이미 벼랑 끝 변곡점에 닿아 있다. 잔머리 굴리며 간 보지 마라. 지금은 남 눈치 보며 맞춰줄 때가 아니라, 네가 먼저 밥상을 엎고 칼자루를 쥐어야 살아남는 국면이다. 썩은 인연과 미련을 가차 없이 도려내고 단도직입으로 쐐기를 박아라!」`;
+  }, [saju?.dayMaster, isJa, isBrother, currentDaewoon]);
 
   const displayAdvice = aiAdvice
     ? formatSajuTerm(aiAdvice, isJa ? 'jp' : 'kr')

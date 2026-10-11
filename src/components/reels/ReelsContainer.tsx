@@ -74,6 +74,8 @@ export interface ReelsContainerProps extends ReelsActionHandlers {
   /** 모달이 열려 있으면 스크롤을 잠그고 배경을 어둡게 한다. */
   paused?: boolean;
   context: ReelsContext;
+  targetIndex?: number | null;
+  onTargetIndexHandled?: () => void;
 }
 
 function accentOf(meta: ReelSectionMeta): string {
@@ -313,7 +315,13 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = 
   }
 }
 
-export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, context, ...actions }) => {
+export const ReelsContainer: React.FC<ReelsContainerProps> = ({
+  paused = false,
+  context,
+  targetIndex,
+  onTargetIndexHandled,
+  ...actions
+}) => {
   const insets = useSafeAreaInsets();
   const { isJa } = useLocale();
   const listRef = useRef<FlatList<ReelSectionMeta>>(null);
@@ -338,6 +346,40 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
     }
     void playHaptic('snap');
   }, []);
+
+  const scrollToSectionIndex = useCallback((targetIdx: number) => {
+    if (targetIdx < 0 || targetIdx >= REEL_SECTIONS.length) return;
+    try {
+      listRef.current?.scrollToIndex({ index: targetIdx, animated: true });
+    } catch {
+      if (pageHeight > 0) {
+        (listRef.current as any)?.scrollToOffset?.({ offset: targetIdx * pageHeight, animated: true });
+      }
+    }
+    commitIndex(targetIdx);
+  }, [pageHeight, commitIndex]);
+
+  useEffect(() => {
+    if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < REEL_SECTIONS.length) {
+      scrollToSectionIndex(targetIndex);
+      onTargetIndexHandled?.();
+    }
+  }, [targetIndex, scrollToSectionIndex, onTargetIndexHandled]);
+
+  useEffect(() => {
+    const handleScrollEvent = (e: any) => {
+      const idx = typeof e.detail === 'number' ? e.detail : e.detail?.index;
+      if (typeof idx === 'number' && idx >= 0 && idx < REEL_SECTIONS.length) {
+        scrollToSectionIndex(idx);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
+      return () => {
+        window.removeEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
+      };
+    }
+  }, [scrollToSectionIndex]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const first = viewableItems[0]?.index;

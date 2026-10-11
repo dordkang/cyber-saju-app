@@ -342,6 +342,7 @@ const NeonSlider: React.FC<NeonSliderProps> = ({
 export interface LifeTimelineModalProps {
   visible: boolean;
   onClose: () => void;
+  onNavigateToChamber?: () => void;
   birthDate: string;
   birthTime: string;
   gender?: TimelineGender | null;
@@ -368,6 +369,7 @@ const ONBOARDING_TOAST_HOLD_MS = 1300;
 export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   visible,
   onClose,
+  onNavigateToChamber,
   birthDate,
   birthTime,
   gender,
@@ -383,7 +385,6 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const { isJa } = useLocale();
   const [toastVisible, setToastVisible] = useState(false);
   const toastOpacity = useRef(new Animated.Value(0)).current;
-  const [interests, setInterests] = useState<InterestKey[]>([...DEFAULT_INTERESTS]);
   const [syncRatio, setSyncRatio] = useState(DEFAULT_LIFE_SYNC_RATIO);
   const [committedSync, setCommittedSync] = useState(DEFAULT_LIFE_SYNC_RATIO);
   const [realityInput, setRealityInput] = useState(initialReality ?? '');
@@ -396,15 +397,12 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const [tmMonth, setTmMonth] = useState(1);
   const pulse = useRef(new Animated.Value(0)).current;
 
-  const initialInterestsKey = (initialInterests ?? []).join(',');
-
   useEffect(() => {
     if (!visible) return;
     const ratio = clampPercent(initialSyncRatio ?? DEFAULT_LIFE_SYNC_RATIO);
     const opened = new Date();
     setSyncRatio(ratio);
     setCommittedSync(ratio);
-    setInterests(normalizeInterests(initialInterests));
     setRealityInput(initialReality ?? '');
     if (!initialReality) {
       getUserProfile()
@@ -422,7 +420,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     setTmYear(Math.min(TM_YEAR_MAX, Math.max(TM_YEAR_MIN, opened.getFullYear())));
     setTmMonth(opened.getMonth() + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, initialSyncRatio, initialInterestsKey, initialReality]);
+  }, [visible, initialSyncRatio, initialReality]);
 
   const timeline = useMemo(() => {
     if (!visible || (gender !== 'male' && gender !== 'female')) return null;
@@ -481,15 +479,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     Animated.timing(pulse, { toValue: 0, duration: 520, useNativeDriver: true }).start();
   }, [tmKey, pulse]);
 
-  const toggleInterest = useCallback((key: InterestKey) => {
-    setInterests((prev) => {
-      if (prev.includes(key)) {
-        // 최소 1개는 유지해야 저장과 연산이 항상 유효하다.
-        return prev.length <= 1 ? prev : prev.filter((k) => k !== key);
-      }
-      return INTEREST_KEYS.filter((k) => k === key || prev.includes(k));
-    });
-  }, []);
+  const handleBridgeToChamber = useCallback(() => {
+    onClose();
+    if (onNavigateToChamber) {
+      onNavigateToChamber();
+    } else if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
+    }
+  }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {
     setExpanded((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
@@ -522,8 +519,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const handleConfirm = async () => {
     if (saving) return;
     setSaving(true);
+    const effectiveInterests = normalizeInterests(initialInterests);
     try {
-      await updateUserOnboardingData(syncRatio, interests);
+      await updateUserOnboardingData(syncRatio, effectiveInterests);
       if (realityInput.trim()) {
         try {
           await updateUserProfile({ userLore: realityInput.trim() });
@@ -532,7 +530,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         }
       }
       try {
-        await onSynced?.(syncRatio, interests);
+        await onSynced?.(syncRatio, effectiveInterests);
       } catch (e) {
         console.warn('LifeTimelineModal onSynced 실패:', e);
       }
@@ -609,32 +607,6 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             ? '丁火の燃え盛る灯火が壬水の満ち引きする大河と手を取り合い、一体となって絡み合い（丁壬合・子丑合）、契約や貴人という堅固な防波堤の陰で拠点を固めて耐え抜く中年期。'
             : period.summary}
         </Text>
-
-        {/* ⚡ 선택 관심사 맞춤 해단 네온 박스 */}
-        <View style={styles.interestAdviceBox}>
-          <View style={styles.interestAdviceHeader}>
-            <Text style={styles.interestAdviceHeaderTitle}>
-              {isJa ? '⚡ 選択関心事の個別解断' : '⚡ 선택 관심사 맞춤 해단'}
-            </Text>
-          </View>
-          {interests.length > 0 ? (
-            interests.map((key) => {
-              const item = DAEUN_INTEREST_FOCUS_MAP[key];
-              if (!item) return null;
-              return (
-                <Text key={key} style={styles.interestAdviceItem}>
-                  {isJa ? item.jp : item.kr}
-                </Text>
-              );
-            })
-          ) : (
-            <Text style={styles.interestAdviceEmpty}>
-              {isJa
-                ? '関心事を選択すると10年単位の個別戦略が表示されます'
-                : '관심사를 선택하면 10년 단위 맞춤 전략이 열립니다'}
-            </Text>
-          )}
-        </View>
 
         {isOpen && (
           <View style={styles.factBox}>
@@ -867,39 +839,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 섹션 1: 핵심 관심사 */}
+          {/* 섹션 1: 만 나이 대운 흐름 */}
           <Text style={styles.sectionTitle}>
-            {isJa ? '[01 · 核心関心事 · 複数選択]' : '[01 · 핵심 관심사 · 복수 선택]'}
-          </Text>
-          <View style={styles.chipRow}>
-            {INTEREST_KEYS.map((key) => {
-              const selected = interests.includes(key);
-              const label = isJa ? (INTEREST_LABEL_JA[key] ?? INTEREST_LABEL[key]) : INTEREST_LABEL[key];
-              return (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => toggleInterest(key)}
-                  activeOpacity={0.7}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected }}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                >
-                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                    {INTEREST_EMOJI[key]} {label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {interests.length <= 1 && (
-            <Text style={styles.hint}>
-              {isJa ? '関心事は最低1つ以上選択してください。' : '관심사는 최소 1개가 선택되어 있어야 합니다.'}
-            </Text>
-          )}
-
-          {/* 섹션 2: 만 나이 대운 흐름 */}
-          <Text style={styles.sectionTitle}>
-            {isJa ? '[02 · 満年齢大運の流れと過去の検証]' : '[02 · 만 나이 대운 흐름과 지난 일 확인]'}
+            {isJa ? '[01 · 満年齢大運の流れと過去の検証]' : '[01 · 만 나이 대운 흐름과 지난 일 확인]'}
           </Text>
           {timeline ? (
             <>
@@ -938,9 +880,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             </View>
           )}
 
-          {/* 섹션 3: 앵커링 질문 & 슬라이더 */}
+          {/* 섹션 2: 앵커링 질문 & 슬라이더 */}
           <Text style={styles.sectionTitle}>
-            {isJa ? '[03 · 基準質問 · 一致率補正]' : '[03 · 기준 질문 · 일치율 보정]'}
+            {isJa ? '[02 · 基準質問 · 一致率補正]' : '[02 · 기준 질문 · 일치율 보정]'}
           </Text>
           <View style={[styles.anchorBox, { borderColor: color, shadowColor: color }]}>
             <Text style={styles.anchorQuestion}>
@@ -991,9 +933,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             </View>
           </View>
 
-          {/* 섹션 4: 나의 현재 현실 상황 & 원터치 퀵 프리셋 */}
+          {/* 섹션 3: 나의 현재 현실 상황 & 원터치 퀵 프리셋 */}
           <Text style={styles.sectionTitle}>
-            {isJa ? '[04 · 私の現在の現実状況 · ワンタッチ入力]' : '[04 · 나의 현재 현실 상황 · 원터치 입력]'}
+            {isJa ? '[03 · 私の現在の現実状況 · ワンタッチ入力]' : '[03 · 나의 현재 현실 상황 · 원터치 입력]'}
           </Text>
           <View style={styles.realitySection}>
             <Text style={styles.realitySubGuide}>
@@ -1052,9 +994,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             />
           </View>
 
-          {/* 섹션 5: 신년 운세 */}
+          {/* 섹션 4: 신년 운세 */}
           <Text style={styles.sectionTitle}>
-            [05 · {yearFortune ? (isJa ? `${yearFortune.year}年 ${yearFortune.ganji.label}年 新年運勢` : `${yearFortune.year} ${yearFortune.ganji.label}년 신년 운세`) : (isJa ? `${DEFAULT_TARGET_YEAR}年 新年運勢` : `${DEFAULT_TARGET_YEAR}년 신년 운세`)}]
+            [04 · {yearFortune ? (isJa ? `${yearFortune.year}年 ${yearFortune.ganji.label}年 新年運勢` : `${yearFortune.year} ${yearFortune.ganji.label}년 신년 운세`) : (isJa ? `${DEFAULT_TARGET_YEAR}年 新年運勢` : `${DEFAULT_TARGET_YEAR}년 신년 운세`)}]
           </Text>
           {yearFortune ? renderYearFortune(yearFortune) : (
             <View style={styles.emptyBox}>
@@ -1064,9 +1006,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             </View>
           )}
 
-          {/* 섹션 6: 타임머신 슬라이더 */}
+          {/* 섹션 5: 타임머신 슬라이더 */}
           <Text style={styles.sectionTitle}>
-            {isJa ? '[06 · 未来予測タイムトラベル]' : '[06 · 미래 예측 시간여행]'}
+            {isJa ? '[05 · 未来予測タイムトラベル]' : '[05 · 미래 예측 시간여행]'}
           </Text>
           <View style={styles.tmBox}>
             <View style={styles.tmTabs}>
@@ -1130,11 +1072,11 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             )}
           </View>
 
-          {/* 섹션 7: 올해 남은 N개월 */}
+          {/* 섹션 6: 올해 남은 N개월 */}
           <Text style={styles.sectionTitle}>
             {isJa
-              ? `[07 · 今年の残り${months.length > 0 ? `${months.length}ヶ月` : ''}運勢]`
-              : `[07 · 올해 남은 ${months.length > 0 ? `${months.length}개월` : '개월'} 잔여운]`}
+              ? `[06 · 今年の残り${months.length > 0 ? `${months.length}ヶ月` : ''}運勢]`
+              : `[06 · 올해 남은 ${months.length > 0 ? `${months.length}개월` : '개월'} 잔여운]`}
           </Text>
           {months.length > 0 ? (
             <ScrollView
@@ -1153,6 +1095,19 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         </ScrollView>
 
         <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.bridgeBtn}
+            onPress={handleBridgeToChamber}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+          >
+            <Text style={styles.bridgeBtnText}>
+              {isJa
+                ? '⚡ 神童に現在の大運・事業の変曲点を問う ➔'
+                : '⚡ 옥동자에게 내 대운·사업 변곡점 1:1 즉문즉답 받기 ➔'}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.confirmBtn, saving && styles.confirmBtnDisabled]}
             onPress={handleConfirm}
@@ -1613,6 +1568,34 @@ const styles = StyleSheet.create({
     borderTopColor: COLOR.border,
     backgroundColor: COLOR.panel,
   },
+  bridgeBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 12,
+    elevation: 8,
+    ...(Platform.OS === 'web'
+      ? ({
+          boxShadow: '0 0 16px rgba(245, 158, 11, 0.5), inset 0 0 8px rgba(254, 240, 138, 0.25)',
+          cursor: 'pointer',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  bridgeBtnText: {
+    color: '#090D16',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
   confirmBtn: {
     paddingVertical: 15,
     borderRadius: 10,
@@ -1677,42 +1660,6 @@ const styles = StyleSheet.create({
   toastText: { color: COLOR.text, fontSize: 13, fontWeight: '800', textAlign: 'center', lineHeight: 19 },
 
   /* 선택 관심사 맞춤 해단 네온 박스 */
-  interestAdviceBox: {
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 240, 255, 0.06)',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.35)',
-    ...(Platform.OS === 'web'
-      ? ({
-          boxShadow: '0 0 10px rgba(0, 240, 255, 0.15)',
-        } as unknown as ViewStyle)
-      : null),
-  },
-  interestAdviceHeader: {
-    marginBottom: 6,
-  },
-  interestAdviceHeaderTitle: {
-    color: '#00F0FF',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  interestAdviceItem: {
-    color: '#E2E8F0',
-    fontSize: 11,
-    lineHeight: 18,
-    fontWeight: '600',
-    marginVertical: 2,
-  },
-  interestAdviceEmpty: {
-    color: '#8B9BB4',
-    fontSize: 11,
-    lineHeight: 16,
-    fontStyle: 'italic',
-  },
-
   /* 현실 상황 원터치 프리셋 칩 & 입력창 */
   realitySection: {
     marginTop: 4,

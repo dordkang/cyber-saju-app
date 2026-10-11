@@ -595,6 +595,24 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false): 
           `상담자의 사주 원국(일간: ${dayMaster || '미상'}, 십신, 결핍 오행: ${elementText || '미상'})과 당일 일진(${dailyGanji || '금일'})을 결합해 현실적 처방을 즉시 직설할 것.`
     );
   }
+
+  const currentDaewoon = isRecord(body.currentDaewoon) ? body.currentDaewoon : null;
+  if (currentDaewoon) {
+    const daewoonGanji = pickString(currentDaewoon.ganji, 10);
+    const daewoonAge = pickString(currentDaewoon.ageRange, 20);
+    const stemGod = pickString(currentDaewoon.stemGod, 10);
+    const branchGod = pickString(currentDaewoon.branchGod, 10);
+    sections.push(
+      isJa
+        ? `[現在の大運(10年周期) コンテキスト]\n` +
+          `相談者の命式元局とともに【現在通過中の10年大運: ${daewoonGanji} (${daewoonAge}) / 通変星: ${stemGod}·${branchGod}】を必ず考慮せよ。\n` +
+          `相談者が事業、金、変曲点、転職などを問う場合、「お前が今通過している${daewoonGanji}大運の気運がこうであるから…」と大運の大きな潮流を突き、鋭く生々しい現実処方を単刀直入・一刀両断に下せ。`
+        : `[현재 10년 대운 컨텍스트]\n` +
+          `상담자의 사주 원국과 함께 [현재 지나고 있는 10년 대운: ${daewoonGanji} (${daewoonAge}) / 십신: ${stemGod}·${branchGod}]을 반드시 고려하라.\n` +
+          `상담자가 사업, 돈, 변곡점, 이직 등을 물을 경우 '네가 지금 지나고 있는 ${daewoonGanji} 대운의 기운이 이러하니...'라며 대운의 큰 흐름을 짚어주고 날카로운 현실 처방을 단도직입으로 내릴 것.`
+    );
+  }
+
   if (userLore) {
     sections.push(
       `[비공개 현실 배경]\n사용자의 현재 현실 배경: [${userLore}]. ` +

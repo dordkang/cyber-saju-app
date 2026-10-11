@@ -248,6 +248,7 @@ function AppContent() {
   const [profileVisible, setProfileVisible] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
   const [timelineVisible, setTimelineVisible] = useState(false);
+  const [targetSectionIndex, setTargetSectionIndex] = useState<number | null>(null);
   const [partnerVisible, setPartnerVisible] = useState(false);
   const [reportVisible, setReportVisible] = useState(false);
   const [dailyVisible, setDailyVisible] = useState(false);
@@ -743,6 +744,8 @@ function AppContent() {
           <ReelsContainer
             paused={anyModalOpen}
             context={reelsContext}
+            targetIndex={targetSectionIndex}
+            onTargetIndexHandled={() => setTargetSectionIndex(null)}
             onSettingsPress={() => setSettingsVisible(true)}
             onToggleSound={() => handleToggleSound(!soundOn)}
             onOpenTimeline={() => setTimelineVisible(true)}
@@ -840,6 +843,10 @@ function AppContent() {
       <LifeTimelineModal
         visible={timelineVisible}
         onClose={() => setTimelineVisible(false)}
+        onNavigateToChamber={() => {
+          setTimelineVisible(false);
+          setTargetSectionIndex(7);
+        }}
         birthDate={profile?.birthDate ?? ''}
         birthTime={profile?.birthTime ?? ''}
         gender={profile?.gender ?? null}
