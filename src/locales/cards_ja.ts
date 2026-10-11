@@ -75,13 +75,13 @@ export const CARDS_JA = {
     solutionBtn: "🗡️ 不足している金（決断・収穫）の気を補う3大実戦秘策を見る ➔"
   },
 
-  // 08. 도사의 방 (설정 관리)
+  // 08. 밀실 상담 (옥동자 1:1 천기 밀실)
   c08_settings: {
-    tab: "08 · 道士の部屋",
-    title: "語り口を選び、設定を管理します",
-    subtitle: "プロフィール、バックアップ、BGMを一括管理します。",
-    currentVoiceTitle: "現在の語り口 - 🌅 義理の深夜の兄弟子（酒の席）",
-    currentVoiceDesc: "プロフィール再設定、ローカルバックアップ、BGMは設定で扱います。",
-    openSettingsBtn: "設定を開く"
+    tab: "08 · 密室相談",
+    title: "サイバー神童 1:1 天機密室",
+    subtitle: "建前を捨て、最も切迫した悩みを吐き出せ。400字の一刀両断で盤勢を解断する。",
+    currentVoiceTitle: "サイバー神童 1:1 天機密室",
+    currentVoiceDesc: "建前を捨て、最も切迫した悩みを吐き出せ。400字の一刀両断で盤勢を解断する。",
+    openSettingsBtn: "密室相談を開く"
   }
 };

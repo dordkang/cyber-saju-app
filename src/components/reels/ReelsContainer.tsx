@@ -21,6 +21,7 @@ import { TodayOmenCard } from '../cards/TodayOmenCard';
 import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import { TodayCircuitCard } from '../cards/TodayCircuitCard';
+import { ShamanChamberCard } from '../cards/ShamanChamberCard';
 import { useLocale } from '../../locales';
 import { CARDS_JA } from '../../locales/cards_ja';
 import { LanguageSwitcher } from '../LanguageSwitcher';
@@ -401,6 +402,18 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
         <View style={WEB_SNAP_ITEM}>
           <TodayCircuitCard
             elementsRatio={context.elementsRatio}
+            active={active}
+            height={pageHeight}
+            saju={context.saju}
+          />
+        </View>
+      );
+    }
+
+    if (item.id === 'chamber') {
+      return (
+        <View style={WEB_SNAP_ITEM}>
+          <ShamanChamberCard
             active={active}
             height={pageHeight}
             saju={context.saju}

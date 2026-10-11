@@ -121,9 +121,9 @@ export const REEL_SECTIONS: readonly ReelSectionMeta[] = [
     id: 'chamber',
     index: 7,
     no: '08',
-    kicker: '도사의 방',
-    title: '말투를 고르고\n설정을 닫아요',
-    subtitle: '프로필, 백업, 배경음은 여기서 한 번에 다룹니다.',
+    kicker: '밀실 상담',
+    title: '옥동자 1:1\n천기 밀실',
+    subtitle: '체면을 벗고 가장 처절한 근심을 털어놓아라. 400자 단도직입으로 판세를 짚는다.',
     accent: 'crimson',
   },
 ];

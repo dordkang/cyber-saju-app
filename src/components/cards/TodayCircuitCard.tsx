@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playHaptic } from '../reels/haptics';
 import type { FiveElement, SajuResult } from '../../engine/types';
 import { useLocale, CARDS_JA } from '../../locales';
+import { TalismanRitualModal } from '../modals/TalismanRitualModal';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -285,6 +286,7 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
 }: TodayCircuitCardProps) {
   const insets = useSafeAreaInsets();
   const [modalVisible, setModalVisible] = useState(false);
+  const [ritualVisible, setRitualVisible] = useState(false);
   const { isJa } = useLocale();
 
   // 기본 더미 데이터 (사주 정보 없을 시: 木 50%, 火 12.5%, 土 12.5%, 金 0%, 水 25%)
@@ -578,11 +580,12 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
                 <Text style={styles.solutionText}>{deficientInfo.solPartner}</Text>
               </View>
 
-              {/* 닫기 버튼 */}
+              {/* 비책 확인 및 기운 수혈 리추얼 연결 */}
               <Pressable
                 onPress={() => {
-                  void playHaptic('tap');
+                  void playHaptic('snap');
                   setModalVisible(false);
+                  setRitualVisible(true);
                 }}
                 style={styles.modalConfirmBtn}
               >
@@ -594,6 +597,12 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
           </View>
         </View>
       </Modal>
+
+      {/* 3카드 기운 수혈 리추얼 모달 */}
+      <TalismanRitualModal
+        visible={ritualVisible}
+        onClose={() => setRitualVisible(false)}
+      />
     </View>
   );
 });
