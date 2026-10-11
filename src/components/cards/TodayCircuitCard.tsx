@@ -15,6 +15,7 @@ import { playHaptic } from '../reels/haptics';
 import type { FiveElement, SajuResult } from '../../engine/types';
 import { useLocale, CARDS_JA } from '../../locales';
 import { TalismanRitualModal } from '../modals/TalismanRitualModal';
+import { OHAENG_ORGAN_HEALTH_MAP } from '../../data/sajuHealth';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -337,6 +338,8 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
   const counselingMap = isJa ? CIRCUIT_COUNSELING_DICT.ja : CIRCUIT_COUNSELING_DICT.ko;
   const dominantInfo = counselingMap[dominant];
   const deficientInfo = counselingMap[deficient];
+  const dominantHealth = OHAENG_ORGAN_HEALTH_MAP[dominant];
+  const deficientHealth = OHAENG_ORGAN_HEALTH_MAP[deficient];
 
   return (
     <View style={[styles.root, { height }]}>
@@ -476,6 +479,65 @@ export const TodayCircuitCard = memo(function TodayCircuitCard({
             <View style={styles.counselingBodyBoxDef}>
               <Text style={styles.counselingBodyTextDef}>
                 {isJa && !saju ? CARDS_JA.c07_counseling.achillesDesc : deficientInfo.deficientCounseling}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ③ 🩺 선천 오행 장기(臟器) 경보 & 건강 바이오리듬 */}
+        <View style={styles.healthSectionCard}>
+          <View style={styles.healthSectionHeader}>
+            <Text style={styles.healthSectionTitle}>
+              {isJa ? '🩺 先天五行 臓器警報 ＆ 健康バイオリズム' : '🩺 선천 오행 장기(臟器) 경보 & 건강 바이오리듬'}
+            </Text>
+          </View>
+
+          {/* 결핍 오행 장기 취약 경보 */}
+          <View style={[styles.healthItemBox, { borderColor: 'rgba(255, 42, 75, 0.45)' }]}>
+            <View style={styles.healthItemHeader}>
+              <View style={[styles.healthBadge, { backgroundColor: 'rgba(255, 42, 75, 0.2)', borderColor: '#FF2A4B' }]}>
+                <Text style={[styles.healthBadgeText, { color: '#FF2A4B' }]}>
+                  {isJa ? `⚠️ [${deficientHealth.organs.jp}] ${deficientHealth.deficientAlert.badge.jp}` : `⚠️ [${deficientHealth.organs.kr}] ${deficientHealth.deficientAlert.badge.kr}`}
+                </Text>
+              </View>
+              <Text style={styles.healthElementTag}>
+                {deficientInfo.hanja} {deficientRatio.toFixed(1)}% {isZeroDeficient ? (isJa ? '完全欠乏' : '완전 결핍') : (isJa ? '最少脆弱' : '최대 취약')}
+              </Text>
+            </View>
+            <Text style={styles.healthHeadline}>
+              {isJa ? deficientHealth.deficientAlert.headline.jp : deficientHealth.deficientAlert.headline.kr}
+            </Text>
+            <Text style={styles.healthDesc}>
+              {isJa ? deficientHealth.deficientAlert.desc.jp : deficientHealth.deficientAlert.desc.kr}
+            </Text>
+            <View style={styles.healthPrescriptionBox}>
+              <Text style={styles.healthPrescriptionText}>
+                {isJa ? `💊 処方：${deficientHealth.deficientAlert.prescription.jp}` : `💊 처방: ${deficientHealth.deficientAlert.prescription.kr}`}
+              </Text>
+            </View>
+          </View>
+
+          {/* 과다 오행 장기 과열 경보 */}
+          <View style={[styles.healthItemBox, { borderColor: 'rgba(255, 183, 0, 0.45)' }]}>
+            <View style={styles.healthItemHeader}>
+              <View style={[styles.healthBadge, { backgroundColor: 'rgba(255, 183, 0, 0.2)', borderColor: '#FFB700' }]}>
+                <Text style={[styles.healthBadgeText, { color: '#FFB700' }]}>
+                  {isJa ? `⚡ [${dominantHealth.organs.jp}] ${dominantHealth.dominantAlert.badge.jp}` : `⚡ [${dominantHealth.organs.kr}] ${dominantHealth.dominantAlert.badge.kr}`}
+                </Text>
+              </View>
+              <Text style={styles.healthElementTag}>
+                {dominantInfo.hanja} {dominantRatio.toFixed(1)}% {dominantRatio >= 50 ? (isJa ? '過多集中' : '과다 집중') : (isJa ? '最優位' : '최우위')}
+              </Text>
+            </View>
+            <Text style={styles.healthHeadline}>
+              {isJa ? dominantHealth.dominantAlert.headline.jp : dominantHealth.dominantAlert.headline.kr}
+            </Text>
+            <Text style={styles.healthDesc}>
+              {isJa ? dominantHealth.dominantAlert.desc.jp : dominantHealth.dominantAlert.desc.kr}
+            </Text>
+            <View style={styles.healthPrescriptionBox}>
+              <Text style={styles.healthPrescriptionText}>
+                {isJa ? `🌿 処方：${dominantHealth.dominantAlert.prescription.jp}` : `🌿 처방: ${dominantHealth.dominantAlert.prescription.kr}`}
               </Text>
             </View>
           </View>
@@ -973,5 +1035,80 @@ const styles = StyleSheet.create({
     color: '#0A0700',
     fontSize: 14,
     fontWeight: '900',
+  },
+  healthSectionCard: {
+    backgroundColor: 'rgba(20, 5, 10, 0.75)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 42, 75, 0.25)',
+    padding: 14,
+    gap: 12,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  healthSectionHeader: {
+    marginBottom: 2,
+  },
+  healthSectionTitle: {
+    color: '#F4F7FB',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+    ...KEEP_ALL,
+  },
+  healthItemBox: {
+    backgroundColor: 'rgba(12, 2, 6, 0.85)',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    gap: 6,
+  },
+  healthItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  healthBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  healthBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  healthElementTag: {
+    color: '#8A99AD',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  healthHeadline: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+    ...KEEP_ALL,
+  },
+  healthDesc: {
+    color: '#D4B8BE',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
+    ...KEEP_ALL,
+  },
+  healthPrescriptionBox: {
+    marginTop: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 8,
+  },
+  healthPrescriptionText: {
+    color: '#FFE2E8',
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+    ...KEEP_ALL,
   },
 });

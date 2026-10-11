@@ -513,85 +513,64 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({ paused = false, 
 
       {paused && <View pointerEvents="none" style={styles.dim} />}
 
-      {/* 우측 상단 바 [ 🇰🇷 KR | 🇯🇵 JP ] 1초 언어 스위처 */}
+      {/* 상단 통합 헤더 액션 바 [ 🇰🇷 KR | 🇯🇵 JP ] [ 🔊 / 🔇 ] [ ⚙️ ] */}
       <View
         pointerEvents="box-none"
         style={[
-          styles.topBarSwitcher,
+          styles.topHeaderBar,
           {
             top: insets.top + 8,
-            right: 28,
+            right: 16,
           },
         ]}
       >
         <LanguageSwitcher compact />
+        <Pressable
+          onPress={() => railTap(() => actions.onToggleSound?.())}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={context.soundOn ? (isJa ? '音声 OFF' : '소리 끄기') : (isJa ? '音声 ON' : '소리 켜기')}
+        >
+          <Text style={styles.headerIconText}>{context.soundOn ? '🔊' : '🔇'}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => railTap(() => actions.onSettingsPress?.())}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={isJa ? '設定' : '설정'}
+        >
+          <Text style={styles.headerIconText}>⚙️</Text>
+        </Pressable>
       </View>
 
-      <View pointerEvents="box-none" style={[styles.chrome, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.dots} accessibilityLabel={`${activeIndex + 1}번째 카드`}>
-          {REEL_SECTIONS.map((section, i) => (
-            <View
-              key={section.id}
-              style={[
-                styles.dot,
-                i === activeIndex && [styles.dotActive, { backgroundColor: accentOf(section) }],
-              ]}
-            />
-          ))}
-        </View>
-
-        <View style={[styles.rail, { marginBottom: Math.max(insets.bottom, 8) }]}>
-          <RailButton
-            icon="↗"
-            label={isJa ? '共有' : '공유'}
-            onPress={() => railTap(() => shareOmen(omenShareText))}
+      {/* 카드 스크롤 인디케이터 (본문 터치/가림 없는 초슬림 점선) */}
+      <View
+        pointerEvents="none"
+        style={[
+          styles.indicatorDots,
+          { top: insets.top + 50 },
+        ]}
+        accessibilityLabel={`${activeIndex + 1}번째 카드`}
+      >
+        {REEL_SECTIONS.map((section, i) => (
+          <View
+            key={section.id}
+            style={[
+              styles.dot,
+              i === activeIndex && [styles.dotActive, { backgroundColor: accentOf(section) }],
+            ]}
           />
-          <RailButton
-            icon={context.soundOn ? '🔊' : '🔇'}
-            label={
-              context.soundOn
-                ? (isJa ? '音声 ON' : '소리 켜짐')
-                : (isJa ? '音声 OFF' : '소리')
-            }
-            onPress={() => railTap(() => actions.onToggleSound?.())}
-          />
-          <RailButton
-            icon="⚙️"
-            label={isJa ? '設定' : '설정'}
-            onPress={() => railTap(() => actions.onSettingsPress?.())}
-          />
-          <View style={[styles.railAvatar, { borderColor: aura.core }]}>
-            <Text style={[styles.railAvatarText, { color: aura.core }]}>{aura.hanja}</Text>
-          </View>
-        </View>
+        ))}
       </View>
     </View>
   );
 };
-
-const RailButton = memo(function RailButton({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.railBtn, GLASS, pressed && styles.pressed]}
-    >
-      <View style={styles.railIconWrap}>
-        <Text style={styles.railIcon}>{icon}</Text>
-      </View>
-      <Text style={styles.railLabel}>{label}</Text>
-    </Pressable>
-  );
-});
 
 const styles = StyleSheet.create({
   root: {
@@ -674,26 +653,33 @@ const styles = StyleSheet.create({
   ctaInk: { color: REEL_PALETTE.text },
   ctaInkDark: { color: REEL_PALETTE.ink },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
-  topBarSwitcher: {
+  topHeaderBar: {
     position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     zIndex: 99,
   },
-  chrome: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: 78,
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingRight: 8,
-    zIndex: 8,
-  },
-  dots: {
+  headerIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(11, 14, 20, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
     alignItems: 'center',
-    gap: 7,
-    marginRight: 10,
-    marginTop: 8,
+    justifyContent: 'center',
+    ...(IS_WEB ? ({ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' } as unknown as ViewStyle) : null),
+  },
+  headerIconText: {
+    fontSize: 15,
+  },
+  indicatorDots: {
+    position: 'absolute',
+    right: 8,
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 5,
   },
   dot: {
     width: 4,
@@ -705,36 +691,4 @@ const styles = StyleSheet.create({
     height: 16,
     borderRadius: 3,
   },
-  rail: {
-    alignItems: 'center',
-    gap: 12,
-    marginRight: 2,
-  },
-  railBtn: {
-    width: 54,
-    alignItems: 'center',
-    gap: 3,
-  },
-  railIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(11, 14, 20, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
-  },
-  railIcon: { fontSize: 18, color: REEL_PALETTE.text },
-  railLabel: { color: REEL_PALETTE.text, fontSize: 10, fontWeight: '800', ...KEEP_ALL },
-  railAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(11, 14, 20, 0.7)',
-  },
-  railAvatarText: { fontSize: 18, fontWeight: '900' },
 });
