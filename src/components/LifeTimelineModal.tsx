@@ -483,25 +483,19 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
   const handleJumpToChamber = useCallback(() => {
     onClose();
-    const execute = () => {
+    setTimeout(() => {
       onNavigateToChamber?.();
-      if (typeof window !== 'undefined') {
-        if ((window as any).scrollToSection) {
-          (window as any).scrollToSection(7);
-        }
-        const target =
+      if (typeof window !== 'undefined' && (window as any).scrollToSection) {
+        (window as any).scrollToSection(7); // 08번 밀실 (인덱스 7)
+      } else if (typeof document !== 'undefined') {
+        const chamberEl =
           document.getElementById('section-chamber') ||
-          document.querySelector('[data-section="08"]');
-        if (target) {
-          try {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } catch {}
+          (document.querySelectorAll('.card-section')[7] as HTMLElement | undefined);
+        if (chamberEl) {
+          chamberEl.scrollIntoView({ behavior: 'smooth' });
         }
-        window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
       }
-    };
-    setTimeout(execute, 50);
-    setTimeout(execute, 180);
+    }, 80);
   }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {

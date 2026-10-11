@@ -205,7 +205,7 @@ const PeekCard = memo(function PeekCard({
       {...({
         id: `section-${meta.id}`,
         'data-section': meta.no,
-        className: 'w-full h-full snap-start snap-always overflow-hidden',
+        className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
       } as any)}
     >
       <LinearGradient
@@ -473,7 +473,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-omen',
             'data-section': '01',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <TodayOmenCard
@@ -499,7 +499,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-life',
             'data-section': '02',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <DaewoonTimelineCard
@@ -522,7 +522,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-money',
             'data-section': '04',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <TodayMoneyCard
@@ -543,7 +543,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-mbti',
             'data-section': '06',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <TodayMbtiCard
@@ -565,7 +565,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-circuit',
             'data-section': '07',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <TodayCircuitCard
@@ -586,7 +586,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           {...({
             id: 'section-chamber',
             'data-section': '08',
-            className: 'w-full h-full snap-start snap-always overflow-hidden',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
           } as any)}
         >
           <ShamanChamberCard
