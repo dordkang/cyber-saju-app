@@ -199,9 +199,14 @@ const PeekCard = memo(function PeekCard({
 
   return (
     <View
+      nativeID={`section-${meta.id}`}
       style={[styles.page, WEB_SNAP_ITEM, { height }]}
       pointerEvents={active ? 'auto' : 'none'}
-      {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+      {...({
+        id: `section-${meta.id}`,
+        'data-section': meta.no,
+        className: 'w-full h-full snap-start snap-always overflow-hidden',
+      } as any)}
     >
       <LinearGradient
         colors={[REEL_PALETTE.obsidian, `${accent}33`, REEL_PALETTE.obsidian]}
@@ -347,43 +352,87 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     void playHaptic('snap');
   }, []);
 
-  const scrollToSectionIndex = useCallback((targetIdx: number) => {
-    if (targetIdx < 0 || targetIdx >= REEL_SECTIONS.length) return;
-    try {
-      listRef.current?.scrollToIndex({ index: targetIdx, animated: true });
-    } catch {
-      if (pageHeight > 0) {
-        (listRef.current as any)?.scrollToOffset?.({ offset: targetIdx * pageHeight, animated: true });
+  const scrollToSection = useCallback((index: number) => {
+    const totalSections = 8; // 01번부터 08번 밀실까지 총 8개 섹션 (인덱스 0~7)
+    const targetIndex = Math.max(0, Math.min(index, totalSections - 1));
+
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const scrollableNode =
+        (listRef.current as any)?.getScrollableNode?.() ||
+        document.querySelector('.snap-y');
+
+      let targetElement: HTMLElement | null = null;
+
+      // 1) container.children 기반 탐색
+      if (scrollableNode) {
+        const contentContainer = (scrollableNode.firstElementChild as HTMLElement) || scrollableNode;
+        targetElement =
+          (contentContainer.children[targetIndex] as HTMLElement) ||
+          (scrollableNode.children[targetIndex] as HTMLElement);
+      }
+
+      // 2) id / data-section 기반 탐색 (폴백)
+      if (!targetElement) {
+        const targetNo = String(targetIndex + 1).padStart(2, '0');
+        targetElement =
+          (targetIndex === 7 ? (document.getElementById('section-chamber') as HTMLElement) : null) ||
+          (document.querySelector(`[data-section="${targetNo}"]`) as HTMLElement) ||
+          (targetIndex === 7 ? (document.querySelector('[data-section="08"]') as HTMLElement) : null);
+      }
+
+      if (targetElement) {
+        try {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } catch {}
+      }
+
+      if (scrollableNode && pageHeight > 0) {
+        try {
+          scrollableNode.scrollTo({
+            top: targetIndex * pageHeight,
+            behavior: 'smooth',
+          });
+        } catch {}
       }
     }
-    commitIndex(targetIdx);
+
+    try {
+      listRef.current?.scrollToIndex({ index: targetIndex, animated: true });
+    } catch {
+      if (pageHeight > 0) {
+        (listRef.current as any)?.scrollToOffset?.({ offset: targetIndex * pageHeight, animated: true });
+      }
+    }
+
+    commitIndex(targetIndex);
   }, [pageHeight, commitIndex]);
 
   useEffect(() => {
     if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < REEL_SECTIONS.length) {
-      scrollToSectionIndex(targetIndex);
-      onTargetIndexHandled?.();
+      const timer = setTimeout(() => {
+        scrollToSection(targetIndex);
+        onTargetIndexHandled?.();
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [targetIndex, scrollToSectionIndex, onTargetIndexHandled]);
+  }, [targetIndex, scrollToSection, onTargetIndexHandled]);
 
   useEffect(() => {
     const handleScrollEvent = (e: any) => {
       const idx = typeof e.detail === 'number' ? e.detail : e.detail?.index;
-      if (typeof idx === 'number' && idx >= 0 && idx < REEL_SECTIONS.length) {
-        scrollToSectionIndex(idx);
+      if (typeof idx === 'number') {
+        scrollToSection(idx);
       }
     };
     if (typeof window !== 'undefined') {
-      (window as any).scrollToSection = (idx: number) => {
-        scrollToSectionIndex(idx);
-      };
+      (window as any).scrollToSection = scrollToSection;
       window.addEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
       return () => {
         window.removeEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
         delete (window as any).scrollToSection;
       };
     }
-  }, [scrollToSectionIndex]);
+  }, [scrollToSection]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     const first = viewableItems[0]?.index;
@@ -419,8 +468,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'omen') {
       return (
         <View
+          nativeID="section-omen"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-omen',
+            'data-section': '01',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <TodayOmenCard
             data={context.omen}
@@ -440,8 +494,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'life') {
       return (
         <View
+          nativeID="section-life"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-life',
+            'data-section': '02',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <DaewoonTimelineCard
             active={active}
@@ -458,8 +517,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'money') {
       return (
         <View
+          nativeID="section-money"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-money',
+            'data-section': '04',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <TodayMoneyCard
             data={context.money}
@@ -474,8 +538,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'mbti') {
       return (
         <View
+          nativeID="section-mbti"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-mbti',
+            'data-section': '06',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <TodayMbtiCard
             data={context.mbti}
@@ -491,8 +560,13 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (item.id === 'circuit') {
       return (
         <View
+          nativeID="section-circuit"
           style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
-          {...({ className: 'w-full h-full snap-start snap-always overflow-hidden' } as any)}
+          {...({
+            id: 'section-circuit',
+            'data-section': '07',
+            className: 'w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
         >
           <TodayCircuitCard
             elementsRatio={context.elementsRatio}
@@ -615,10 +689,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
             bounces={false}
             overScrollMode="never"
             scrollEnabled={!paused}
-            windowSize={3}
-            initialNumToRender={1}
-            maxToRenderPerBatch={2}
-            removeClippedSubviews={!IS_WEB}
+            windowSize={11}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            removeClippedSubviews={false}
             viewabilityConfig={VIEWABILITY}
             onViewableItemsChanged={onViewableItemsChanged}
             onMomentumScrollEnd={handleScrollEnd}

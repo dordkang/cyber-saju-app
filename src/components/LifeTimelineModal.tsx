@@ -483,20 +483,25 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
   const handleJumpToChamber = useCallback(() => {
     onClose();
-    setTimeout(() => {
+    const execute = () => {
       onNavigateToChamber?.();
       if (typeof window !== 'undefined') {
+        if ((window as any).scrollToSection) {
+          (window as any).scrollToSection(7);
+        }
         const target =
           document.getElementById('section-chamber') ||
           document.querySelector('[data-section="08"]');
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth' });
-        } else if ((window as any).scrollToSection) {
-          (window as any).scrollToSection(7);
+          try {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } catch {}
         }
         window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
       }
-    }, 50);
+    };
+    setTimeout(execute, 50);
+    setTimeout(execute, 180);
   }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {
