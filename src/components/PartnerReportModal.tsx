@@ -85,10 +85,10 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
   const partnerDate = partner ? (partner.birthDate || `${(partner as any).year || ''}-${(partner as any).month || ''}-${(partner as any).day || ''}`) : undefined;
   const { advice: aiReport, isLoading: isAiLoading, loadingMessage } = useSajuAdvice({
     partnerProfile: partner ? {
-      name: partner.alias,
+      ...partner,
       relation: formatSajuTerm(partner.relation || partner.alias, isJa ? 'jp' : 'kr'),
-      birthDate: partnerDate,
-      gender: partner.gender || undefined,
+      birthDate: partnerDate ?? partner.birthDate,
+      gender: partner.gender ?? null,
     } : undefined,
     category: 'love',
     userInput: partner ? `${partner.alias || '상대'}과의 궁합 및 심리 분석` : undefined,

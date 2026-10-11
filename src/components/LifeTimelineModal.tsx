@@ -41,7 +41,7 @@ import {
   TimeSliderMode,
   YearFortuneResult,
 } from '../engine/timelineEngine';
-import { updateUserOnboardingData, updateUserProfile, getUserProfile } from '../database/db';
+import { updateUserOnboardingData, saveUserProfile, getUserProfile } from '../database/db';
 import { useLocale } from '../locales';
 
 const COLOR = {
@@ -442,6 +442,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     setExpanded(open);
   }, [timeline]);
 
+  const interests = useMemo(() => normalizeInterests(initialInterests), [initialInterests]);
+
   // 연운·월운·타임머신은 성별 없이도 계산되므로 성별이 있을 때만 함께 넘긴다.
   const engineOptions = useMemo<TimelineOptions>(
     () => ({
@@ -524,7 +526,16 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       await updateUserOnboardingData(syncRatio, effectiveInterests);
       if (realityInput.trim()) {
         try {
-          await updateUserProfile({ userLore: realityInput.trim() });
+          const current = await getUserProfile();
+          if (current) {
+            await saveUserProfile({
+              name: current.name,
+              birthDate: current.birthDate,
+              birthTime: current.birthTime,
+              sajuData: current.sajuData,
+              userLore: realityInput.trim(),
+            });
+          }
         } catch (e) {
           console.warn('userLore 저장 실패:', e);
         }

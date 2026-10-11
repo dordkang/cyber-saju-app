@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import { USER_LORE_MAX_LENGTH } from '../database/db';
 import type { CalendarType, Gender } from '../database/db';
 import { useLocale } from '../locales';

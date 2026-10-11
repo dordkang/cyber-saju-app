@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
-interface SettingsMenuModalProps {
+export interface SettingsMenuModalProps {
   visible: boolean;
   onClose: () => void;
   /** 현재 선택된 도사 이름. 예: "⚡ 단칼의 직언" */
