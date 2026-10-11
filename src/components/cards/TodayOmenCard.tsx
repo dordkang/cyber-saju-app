@@ -19,7 +19,23 @@ import type { TodayOmenData } from '../../types/reels';
 import type { SajuResult } from '../../engine/types';
 import type { PartnerProfile } from '../../database/db';
 import { calculateSaju } from '../../engine/calculator';
-import { formatGanji, ELEMENT_TITLE_KR } from '../../engine/reelsContent';
+import {
+  formatGanji,
+  ELEMENT_TITLE_KR,
+  getElementTitle,
+  getGodKeyTitle,
+  getGodName,
+  GOD_LINE,
+  GOD_LINE_JA,
+  FALLBACK_LINE,
+  FALLBACK_LINE_JA,
+  localizeLuckyItem,
+  localizeLuckyReason,
+  STEM_JA,
+  BRANCH_JA,
+  getGanjiReadingJa,
+} from '../../engine/reelsContent';
+import type { HeavenlyStem, EarthlyBranch, FiveElement } from '../../engine/types';
 import { getTenGod } from '../../engine/timelineEngine';
 import { playHaptic } from '../reels/haptics';
 import { TomorrowStrategyAccordion } from './TomorrowStrategyAccordion';
@@ -69,10 +85,24 @@ function formatTodayLabel(now: Date, isJa: boolean = false): string {
   return `${now.getFullYear()}.${mm}.${dd} (${week})`;
 }
 
-function splitGanji(raw: string): { hanja: string; reading: string } {
-  const match = raw?.match(/^(.+?)\((.+)\)$/);
-  if (match?.[1] && match[2]) return { hanja: match[1], reading: match[2] };
-  return { hanja: raw || '丙辰', reading: raw ? '일진 계산 중' : '병진' };
+function splitGanji(raw: string, isJa: boolean = false): { hanja: string; reading: string } {
+  const match = raw?.match(/^([^\(]+?)\((.+)\)$/);
+  if (match?.[1] && match[2]) {
+    const hanja = match[1].trim();
+    let reading = match[2].trim();
+    if (isJa && hanja.length >= 2) {
+      const stem = hanja[0] as HeavenlyStem;
+      const branch = hanja[1] as EarthlyBranch;
+      if (STEM_JA[stem] && BRANCH_JA[branch]) {
+        reading = getGanjiReadingJa(stem, branch);
+      }
+    }
+    return { hanja, reading };
+  }
+  return {
+    hanja: raw || '丙辰',
+    reading: isJa ? (raw ? '日辰算出中' : 'へいしん') : (raw ? '일진 계산 중' : '병진'),
+  };
 }
 
 export const TodayOmenCard = memo(function TodayOmenCard({
@@ -138,37 +168,53 @@ export const TodayOmenCard = memo(function TodayOmenCard({
       );
       const dayPillar = calculated.pillars.day;
       const element = dayPillar.elements[0];
-      const ganjiText = formatGanji(dayPillar.stem, dayPillar.branch);
+      const ganjiText = formatGanji(dayPillar.stem, dayPillar.branch, isJa);
       const myDay = saju?.dayMaster ?? '戊';
       const god = getTenGod(myDay, dayPillar.stem);
       return {
         element,
-        elementName: ELEMENT_TITLE_KR[element] ?? '적화(赤火)의 기운',
+        elementName: getElementTitle(element, isJa),
         dayPillarText: ganjiText,
         god,
-        ganji: splitGanji(ganjiText),
+        ganji: splitGanji(ganjiText, isJa),
       };
     } catch {
       return {
         element: data.element,
-        elementName: data.elementName,
+        elementName: getElementTitle(data.element, isJa),
         dayPillarText: data.dayPillarText,
         god: null,
-        ganji: splitGanji(data.dayPillarText),
+        ganji: splitGanji(data.dayPillarText, isJa),
       };
     }
-  }, [selectedDate, saju, data]);
+  }, [selectedDate, saju, data, isJa]);
 
-  const aura = ELEMENT_AURA[dynamicOmen.element] ?? ELEMENT_AURA.Fire;
+  const aura = ELEMENT_AURA[dynamicOmen.element as FiveElement] ?? ELEMENT_AURA.Fire;
   const ganji = dynamicOmen.ganji;
 
+  const displayProfileLabel = useMemo(() => {
+    if (!data.profileLabel) return '';
+    if (!isJa) return data.profileLabel;
+    return data.profileLabel
+      .replace(/일간/g, '日干')
+      .replace(/호스트/g, 'ホスト');
+  }, [data.profileLabel, isJa]);
+
   const displayFortuneText = useMemo(() => {
+    if (isJa) {
+      if (dynamicOmen.god && GOD_LINE_JA[dynamicOmen.god]) {
+        return GOD_LINE_JA[dynamicOmen.god];
+      }
+      return FALLBACK_LINE_JA;
+    }
     const raw = data.fortuneText || '';
-    return raw
+    const cleaned = raw
       .replace(/\([^)]*\)/g, '')
       .replace(/네가\s*오늘\s*['"][^'"]*['"]\s*일로/g, '오늘 마음에 맺힌 일로')
       .trim();
-  }, [data.fortuneText]);
+    if (cleaned) return cleaned;
+    return dynamicOmen.god ? GOD_LINE[dynamicOmen.god] : FALLBACK_LINE;
+  }, [data.fortuneText, dynamicOmen.god, isJa]);
 
   const handlePrevDay = () => {
     void playHaptic('tap');
@@ -293,7 +339,7 @@ export const TodayOmenCard = memo(function TodayOmenCard({
           <Text style={[styles.title, compact && styles.titleCompact]}>
             {isJa ? '天が送る\n今日の予兆' : META?.title}
           </Text>
-          {!!data.profileLabel && !compact && <Text style={styles.profile}>{data.profileLabel}</Text>}
+          {!!displayProfileLabel && !compact && <Text style={styles.profile}>{displayProfileLabel}</Text>}
         </View>
 
         {/* 2. 중앙 일주/오행 링 (Fire Ring) & 붉은빛 글로우 방사 효과 */}
@@ -341,27 +387,33 @@ export const TodayOmenCard = memo(function TodayOmenCard({
             setFortuneModalOpen(true);
           }}
           accessibilityRole="button"
-          accessibilityLabel="천기 해단 전문 보기"
+          accessibilityLabel={isJa ? '天機神託の全文を見る' : '천기 해단 전문 보기'}
           style={({ pressed }) => [styles.glass, WINE_GLASS, pressed && styles.glassPressed]}
         >
           <View style={styles.glassHeaderRow}>
             <Text style={styles.keywordLabel}>
-              {dynamicOmen.god ? `${dynamicOmen.god}의 열쇠` : '오늘의 열쇠'}
+              {getGodKeyTitle(dynamicOmen.god, isJa)}
             </Text>
             <View style={styles.readMoreBadge}>
-              <Text style={styles.readMoreText}>천기 전문 보기 ↗</Text>
+              <Text style={styles.readMoreText}>{isJa ? '神託の全文を見る ↗' : '천기 전문 보기 ↗'}</Text>
             </View>
           </View>
           <Text style={styles.keyword}>
-            {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
+            {dynamicOmen.god
+              ? `${getGodName(dynamicOmen.god, isJa)} · ${dynamicOmen.elementName}`
+              : (isJa ? `天機 · ${dynamicOmen.elementName}` : data.keyword)}
           </Text>
           <Text style={styles.fortune} numberOfLines={2}>
             {displayFortuneText}
           </Text>
           {!compact && (
             <View style={styles.itemRow}>
-              <Text style={styles.itemLabel}>곁에 둘 물건</Text>
-              <Text style={styles.itemValue}>{data.luckyItem}</Text>
+              <Text style={styles.itemLabel}>
+                {isJa ? '開運アイテム (身につけるべきもの)' : '곁에 둘 물건'}
+              </Text>
+              <Text style={styles.itemValue}>
+                {localizeLuckyItem(data.luckyItem, isJa)}
+              </Text>
             </View>
           )}
         </Pressable>
@@ -449,7 +501,9 @@ export const TodayOmenCard = memo(function TodayOmenCard({
               {/* 모달 상단 헤더 */}
               <View style={styles.modalHeader}>
                 <View style={styles.modalBadge}>
-                  <Text style={styles.modalBadgeText}>🔮 옥통자 천기(天氣) 해단 전문</Text>
+                  <Text style={styles.modalBadgeText}>
+                    {isJa ? '🔮 サイバー童子・天機神託の全文' : '🔮 옥통자 천기(天氣) 해단 전문'}
+                  </Text>
                 </View>
                 <Pressable
                   onPress={() => {
@@ -458,17 +512,19 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                   }}
                   hitSlop={12}
                   style={styles.modalCloseBtn}
-                  accessibilityLabel="닫기"
+                  accessibilityLabel={isJa ? '閉じる' : '닫기'}
                 >
                   <Text style={styles.modalCloseText}>✕</Text>
                 </Pressable>
               </View>
 
               <Text style={styles.modalKeyword}>
-                {dynamicOmen.god ? `${dynamicOmen.god} · ${dynamicOmen.elementName}` : data.keyword}
+                {dynamicOmen.god
+                  ? `${getGodName(dynamicOmen.god, isJa)} · ${dynamicOmen.elementName}`
+                  : (isJa ? `天機 · ${dynamicOmen.elementName}` : data.keyword)}
               </Text>
               <Text style={styles.modalDateSub}>
-                {formatTodayLabel(selectedDate)} · {dynamicOmen.dayPillarText}
+                {formatTodayLabel(selectedDate, isJa)} · {dynamicOmen.dayPillarText}
               </Text>
 
               {/* 전문 스크롤 영역 */}
@@ -484,11 +540,17 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                 {Boolean(data.luckyItem) && (
                   <View style={styles.modalItemSection}>
                     <View style={styles.modalItemRow}>
-                      <Text style={styles.modalItemLabel}>곁에 둘 비책 물건</Text>
-                      <Text style={styles.modalItemValue}>{data.luckyItem}</Text>
+                      <Text style={styles.modalItemLabel}>
+                        {isJa ? '開運アイテム (身につけるべき秘策)' : '곁에 둘 비책 물건'}
+                      </Text>
+                      <Text style={styles.modalItemValue}>
+                        {localizeLuckyItem(data.luckyItem, isJa)}
+                      </Text>
                     </View>
                     {Boolean(data.luckyReason) && (
-                      <Text style={styles.modalItemReason}>{data.luckyReason}</Text>
+                      <Text style={styles.modalItemReason}>
+                        {localizeLuckyReason(data.luckyReason, isJa, dynamicOmen.element)}
+                      </Text>
                     )}
                   </View>
                 )}
@@ -502,7 +564,9 @@ export const TodayOmenCard = memo(function TodayOmenCard({
                 }}
                 style={({ pressed }) => [styles.modalConfirmBtn, pressed && styles.pressed]}
               >
-                <Text style={styles.modalConfirmText}>마음에 깊이 새기기 (닫기)</Text>
+                <Text style={styles.modalConfirmText}>
+                  {isJa ? '心に刻み込む (閉じる)' : '마음에 깊이 새기기 (닫기)'}
+                </Text>
               </Pressable>
             </LinearGradient>
           </View>
