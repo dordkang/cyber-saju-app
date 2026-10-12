@@ -365,6 +365,9 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
 
       // 1) container.children 기반 탐색
       if (scrollableNode) {
+        try {
+          (scrollableNode as HTMLElement).style.overflowY = 'auto';
+        } catch {}
         const contentContainer = (scrollableNode.firstElementChild as HTMLElement) || scrollableNode;
         targetElement =
           (contentContainer.children[targetIndex] as HTMLElement) ||
@@ -688,7 +691,7 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
             showsVerticalScrollIndicator={false}
             bounces={false}
             overScrollMode="never"
-            scrollEnabled={!paused}
+            scrollEnabled={Platform.OS !== 'web' ? !paused : true}
             windowSize={11}
             initialNumToRender={8}
             maxToRenderPerBatch={8}

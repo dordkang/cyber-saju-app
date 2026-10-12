@@ -24,8 +24,6 @@ export function handleJumpToChamber(
   e?.preventDefault?.();
   e?.stopPropagation?.();
 
-  onNavigateToChamber?.();
-
   // 1. 먼저 스크롤을 08번 밀실로 강제 이동 시도
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const chamberEl =
@@ -49,6 +47,7 @@ export function handleJumpToChamber(
 
   // 2. 약간의 지연 후 모달 닫기 (시각적 부드러움 및 DOM 충돌 방지)
   setTimeout(() => {
+    onNavigateToChamber?.();
     onClose?.();
   }, 150);
 }

@@ -481,11 +481,17 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     Animated.timing(pulse, { toValue: 0, duration: 520, useNativeDriver: true }).start();
   }, [tmKey, pulse]);
 
+  const isJumpingRef = useRef(false);
+
   const handleJumpToChamber = useCallback((e?: any) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
 
-    onNavigateToChamber?.();
+    if (isJumpingRef.current) return;
+    isJumpingRef.current = true;
+    setTimeout(() => {
+      isJumpingRef.current = false;
+    }, 1200);
 
     // 1. 먼저 스크롤을 08번 밀실로 강제 이동 시도
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
@@ -510,6 +516,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
     // 2. 약간의 지연 후 모달 닫기 (시각적 부드러움 및 DOM 충돌 방지)
     setTimeout(() => {
+      onNavigateToChamber?.();
       onClose();
     }, 150);
   }, [onClose, onNavigateToChamber]);
@@ -833,7 +840,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <View style={styles.screen}>
+      <View style={styles.screen} pointerEvents="auto">
         <View style={styles.header}>
           <Text style={styles.headerTitle} numberOfLines={2}>
             {isJa ? '🪐 生涯大運の流れ · 運命タイムトラベル' : '🪐 일생 대운 흐름 · 운명 시간여행'}
@@ -1129,12 +1136,16 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           )}
         </ScrollView>
 
-        <View style={styles.footer}>
+        <View style={styles.footer} pointerEvents="auto">
           <TouchableOpacity
             style={styles.bridgeBtn}
             onPress={handleJumpToChamber}
+            pointerEvents="auto"
             activeOpacity={0.8}
             accessibilityRole="button"
+            {...({
+              onClick: handleJumpToChamber,
+            } as any)}
           >
             <Text style={styles.bridgeBtnText}>
               {isJa
@@ -1193,9 +1204,11 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     alignSelf: 'center',
     backgroundColor: COLOR.bg,
+    zIndex: 9999,
     ...(Platform.OS === 'web'
       ? ({
           pointerEvents: 'auto',
+          position: 'relative',
         } as unknown as ViewStyle)
       : null),
   },
