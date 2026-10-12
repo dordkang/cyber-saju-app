@@ -19,6 +19,7 @@ import { CHAMBER_QUESTIONS, ChamberQuestion } from '../../data/shamanChamberData
 import { useSajuAdvice } from '../../hooks/useSajuAdvice';
 import { formatSajuTerm } from '../../utils/sajuTerms';
 import { calculateDaewoonTimeline } from '../../utils/daewoonGraph';
+import { getActiveLanguage } from '../../utils/langManager';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -152,7 +153,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     partnerProfile: partnerProfile || undefined,
     category: isLoveQuestion ? 'love' : 'chamber_oracle',
     userInput: questionText,
-    lang: isJa ? 'jp' : 'kr',
+    lang: getActiveLanguage(),
     autoFetch: false,
     voiceStyle: effectiveVoiceStyle,
     currentDaewoon,

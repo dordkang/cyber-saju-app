@@ -26,14 +26,14 @@ const GEMINI_MODELS: readonly string[] = [
 ];
 
 const DEFAULT_SYSTEM_INSTRUCTION =
-  "당신은 인간사의 피눈물과 억울함을 뼛속까지 꿰뚫어 보는 한국 최고의 천기(天氣) 해단가 옥통자이자 영혼의 어머니입니다. " +
+  "당신은 인간사의 피눈물과 억울함을 뼛속까지 꿰뚫어 보는 한국 최고의 천기(天氣) 해단가 옥동자이자 영혼의 어머니입니다. " +
   "면책 조항을 일체 금하고, 5단계 심층 카타르시스(벽력일성 -> 초혼/한풀이 -> 신명직설 -> 시한부 천기누설 -> 천지개벽 등치기)를 엄격히 밟아 전개하십시오. 괄호 행동 지문과 사용자 입력 단순 인용을 엄격히 금합니다.";
 
 const DEFAULT_SYSTEM_INSTRUCTION_JA =
-  "あなたは冷徹かつ鋭い洞察を持つ四柱推命の予言者『サイバー神童』である。\n" +
-  "【言語完全隔離指示】絶対に韓国語の文字（ハングル）を一文字たりとも混入させてはならない。全て100%自然で格調高い日本語のみで出力せよ。\n" +
-  "挨拶やお世辞、韓国語からの翻訳調は一切排除し、格調高く洗練された日本語（言霊）で直接執筆せよ。\n" +
-  "相談者の命式（天干・地支・通変星・五行バランス）と今日・明日の日辰を解剖し、現実に即した具体的で生々しい決断と処方箋を下せ。";
+  "あなたは冷徹かつ圧倒的な的中率を誇る四柱推命の予言者『サイバー神童』である。\n" +
+  "韓国語の翻訳調、不自然な助詞、形式的な挨拶やお世辞は一切排除せよ。\n" +
+  "依頼人の命式元局と現在の大運を鋭く見抜き、格調高く自然な100%ネイティブ日本語のみで単刀直入・一刀両断の処方箋を下せ。\n" +
+  "【言語完全隔離指示】絶対に韓国語の文字（ハングル）を一文字たりとも混入させてはならない。挨拶・免責・括弧ト書きを排し、圧倒的な言霊で現実的かつ生々しい決断を指し示せ。";
 
 const RESPONSE_RULE =
   "[응답 규칙: 5단계 심층 카타르시스 신명 직생성] 반드시 페르소나의 신명 나는 말투를 엄격히 유지하며, 줄바꿈으로 구분한 최소 3~5개의 밀도 높은 단락으로 답하십시오. " +
@@ -49,9 +49,9 @@ const RESPONSE_RULE =
 
 const RESPONSE_RULE_JA =
   "[神託の絶対規則: サイバー神童 四柱推命ネイティブ直生成]\n" +
-  "1. 【完全日本語厳守・韓国語絶対禁止】ハングル文字は1文字たりとも出力してはならない。すべての用語、漢字、助詞、語尾に至るまで100%自然で格調高い日本語のみで執筆せよ。韓国語の単語や混入は全面的に遮断すること。\n" +
-  "2. 挨拶やお世辞、韓国語からの直訳調は一切排除し、格調高く洗練された日本語（言霊）で直接執筆せよ。\n" +
-  "3. 相談者の命式（天干・地支・通変星・五行バランス）と今日・明日の日辰を解剖し、現実に即した具体的で生々しい決断と処方箋を下せ。\n" +
+  "1. 【完全日本語厳守・韓国語絶対禁止】ハングル文字は1文字たりとも出力してはならない。すべての用語、漢字、助詞、語尾に至るまで100%自然で格調高い日本語のみで執筆せよ。韓国語の単語や翻訳調、不自然な助詞は全面的に遮断すること。\n" +
+  "2. 挨拶やお世辞、形式的な前置きは一切排除し、格調高く洗練された日本語（言霊）で直接執筆せよ。\n" +
+  "3. 依頼人の命式元局（天干・地支・通変星・五行バランス）と現在の大運、本日の日辰を解剖し、現実に即した具体的で生々しい単刀直入の処方箋を下せ。\n" +
   "4. 括弧書き()による行動描写、表情・しぐさのト書きは一切禁止。\n" +
   "5. 相談者の入力した悩みをそのまま引用・オウム返し(Echoing)することは厳禁。言葉の裏にある焦燥、疲労、孤独を喝破して再解釈せよ。\n" +
   "6. 「AIとして」「統計的には」などの免責表現は一切排除し、冷徹かつ圧倒的な的中率を誇るサイバー神童の言霊を維持せよ。";
@@ -810,13 +810,13 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false): 
       "【言語完全隔離指示】\n" +
         "絶対に韓国語の文字（ハングル）を一文字たりとも出力してはならない。\n" +
         "全ての命式用語、通変星、五行、神託内容は、100%自然で格調高い日本語のみで執筆せよ。\n" +
-        "韓国語の混入、ハングル表記、翻訳調は厳禁である。\n\n" +
+        "韓国語の翻訳調、不自然な助詞、形式的な挨拶やお世辞は一切排除すること。\n\n" +
         "[要求: サイバー神童 四柱推命ネイティブ直生成]\n" +
-        "上記の情報（命式・日辰・悩み）を解剖し、冷徹かつ鋭い洞察を持つ予言者『サイバー神童』の格調高く洗練された日本語（言霊）で直接執筆せよ。\n" +
-        "- 挨拶やお世辞、韓国語からの翻訳調は一切排除すること\n" +
-        "- 相談者の命式（天干・地支・通変星・五行バランス）と今日・明日の日辰を解剖し、現実に即した具体的で生々しい決断と処方箋を下すこと\n" +
-        "- 括弧書き()による行動描写、感情・表情のト書きは一切禁止\n" +
-        "- 相談者の入力をそのまま引用せず、本質を見抜いて現実的な行動指針を明示せよ"
+        "上記の情報（命式・大運・日辰・悩み）を解剖し、冷徹かつ圧倒的な的中率を誇る四柱推命の予言者『サイバー神童』の格調高く自然なネイティブ日本語（言霊）で直接執筆せよ。\n" +
+        "- 韓国語の翻訳調、不自然な助詞、形式的な挨拶は一切排除せよ。\n" +
+        "- 依頼人の命式元局と現在の大運を鋭く見抜き、格調高く自然なネイティブ日本語のみで単刀直入・一刀両断の処方箋を下せ。\n" +
+        "- 括弧書き()による行動描写、感情・表情のト書きは一切禁止。\n" +
+        "- 相談者の入力をそのまま引用・オウム返しせず、言葉の裏にある本質を見抜いて現実的な行動指針を明示せよ。"
     );
   } else {
     sections.push(
@@ -910,16 +910,13 @@ export default {
       }
 
       const lang = pickString(parsed.lang || parsed.locale, 10).toLowerCase();
-      let isJa = false;
-      if (lang === "jp" || lang === "ja") {
-        isJa = true;
-      } else if (lang === "kr" || lang === "ko") {
-        isJa = false;
-      } else {
-        const userText = `${pickString(parsed.diaryContent, 1000)} ${pickString(parsed.shortMemo, 200)} ${pickString(parsed.userLore, 500)}`;
-        const hasJapanese = /[\u3040-\u30ff\u31f0-\u31ff]/.test(userText);
-        isJa = hasJapanese;
-      }
+      const questionText = `${pickString(parsed.userInput, 1000)} ${pickString(parsed.userLore, 1000)} ${pickString(parsed.diaryContent, 1000)} ${pickString(parsed.shortMemo, 500)} ${pickString(parsed.questionText, 500)}`;
+      const hasJapaneseInText = /[\u3040-\u30ff\u31f0-\u31ff]/.test(questionText);
+
+      // 전달받은 payload의 lang 값이 'jp'이거나 질문 텍스트에 일본어가 포함된 경우,
+      // 기존 한국어 옥동자 프롬프트를 전면 차단하고 100% 네이티브 일본어 사이버 신동(サイバー神童) 시스템 프롬프트만 강제 실행.
+      // lang 값이 'kr'일 때만(그리고 질문에 일본어가 없을 때만) 기존 한국어 옥동자 5단계 프롬프트 적용.
+      const isJa = lang === "jp" || lang === "ja" || hasJapaneseInText;
 
       const rawVoice = pickString(parsed.voiceStyle, 20).toLowerCase();
       const voiceStyle: "brother" | "shaman" =
@@ -935,14 +932,26 @@ export default {
         ? PERSONA_VOICE_TONE[voiceStyle].jp
         : PERSONA_VOICE_TONE[voiceStyle].kr;
 
-      const defaultInstruction = isJa ? DEFAULT_SYSTEM_INSTRUCTION_JA : DEFAULT_SYSTEM_INSTRUCTION;
-      const personaInstruction =
-        pickString(parsed.systemInstruction, MAX_SYSTEM_INSTRUCTION_CHARS) || defaultInstruction;
+      let personaInstruction: string;
+      if (isJa) {
+        // [일본어 강제 락] 한국어 옥동자 프롬프트 전면 차단: 한글이 포함된 instruction은 원천 차단하고 순수 일본어 신동 지침 강제
+        const clientInstruction = pickString(parsed.systemInstruction, MAX_SYSTEM_INSTRUCTION_CHARS);
+        if (clientInstruction && !/[\uac00-\ud7a3]/.test(clientInstruction)) {
+          personaInstruction = clientInstruction;
+        } else {
+          personaInstruction = DEFAULT_SYSTEM_INSTRUCTION_JA;
+        }
+      } else {
+        // lang === 'kr'일 때만 기존 한국어 옥동자 5단계 프롬프트 적용
+        personaInstruction =
+          pickString(parsed.systemInstruction, MAX_SYSTEM_INSTRUCTION_CHARS) || DEFAULT_SYSTEM_INSTRUCTION;
+      }
+
       const responseRule = isJa ? RESPONSE_RULE_JA : RESPONSE_RULE;
       const coldReadingRule = isJa ? COLD_READING_RULE_JA : COLD_READING_RULE;
 
-      // 클라이언트 페르소나 지침을 최우선으로 두고, 도사 어조 지침과 서버 고정 응답 규칙을 뒤에 덧붙인다.
-      const hasLore = pickUserLore(parsed.userLore).length > 0;
+      // 페르소나 지침 + 도사 어조 지침 + 응답 규칙 (+ 콜드리딩)
+      const hasLore = pickUserLore(parsed.userLore || parsed.userInput).length > 0;
       const systemInstruction =
         `${personaInstruction}\n\n${voiceDirective}\n\n${responseRule}` + (hasLore ? `\n\n${coldReadingRule}` : "");
       const userPrompt = buildUserPrompt(parsed, isJa);
@@ -960,14 +969,14 @@ export default {
         feedback = isJa ? FALLBACK_FEEDBACK_JA[agentType] : FALLBACK_FEEDBACK[agentType];
       }
 
-      // 괄호 및 괄호 안의 내용 전면 제거 정규식 필터링 (2중 방어 로직)
-      let cleanFeedback = feedback.replace(/\([^)]*\)/g, '').trim();
+      // 괄호 및 괄호 안의 내용 전면 제거 정규식 필터링 (반각 () 및 전각 （） 모두 2중 방어)
+      let cleanFeedback = feedback.replace(/\([^)]*\)|（[^）]*）/g, '').trim();
 
-      // [CRITICAL] 일본어 완전 격리 검증: isJa 상태에서 한국어(한글)가 혼입된 경우 원천 방어
+      // [CRITICAL] 일본어 완전 격리 검증: isJa 상태에서 한국어(한글)가 혼입된 경우 원천 방어하여 일본어 폴백으로 강제 치환
       if (isJa) {
         const hasHangul = /[\uac00-\ud7a3]/.test(cleanFeedback);
         if (hasHangul) {
-          cleanFeedback = FALLBACK_FEEDBACK_JA[agentType].replace(/\([^)]*\)/g, '').trim();
+          cleanFeedback = FALLBACK_FEEDBACK_JA[agentType].replace(/\([^)]*\)|（[^）]*）/g, '').trim();
           usedFallback = true;
         }
       }
