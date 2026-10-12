@@ -3,9 +3,12 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import type { TextStyle, ViewStyle } from 'react-native';
 import type { PartnerProfile } from '../database/db';
 import type { PartnerRadarResult } from '../engine/partnerRadar';
+import { RADAR_COPY_JA } from '../engine/partnerRadar';
 import type { PartnerPrescription } from '../engine/partnerPrescription';
+import { PRESCRIPTION_COPY_JA } from '../engine/partnerPrescription';
 import { IS_TEST_MODE, REPORT_PRICE_LABEL } from '../constants/devFlags';
 import { useLocale } from '../locales';
+import { getActiveLanguage } from '../utils/langManager';
 import { useSajuAdvice } from '../hooks/useSajuAdvice';
 import { formatSajuTerm } from '../utils/sajuTerms';
 
@@ -34,7 +37,7 @@ const LOCKED_ITEMS_JA: ReadonlyArray<{ title: string; hint: string }> = [
   { title: '桃花分析・この人の魅力構造', hint: 'どの柱に桃花が位置しているか、その意味を分析します。' },
   { title: '浮気心・気の迷いが生じる時期', hint: '今年各月ごとに警戒すべき時期を分析します。' },
   { title: '連絡が途絶えがちになるパターン', hint: 'この兆候が見えたら既に心が揺らいでいます。' },
-  { title: 'サイバー童子処方 · 自分から実践すべき3つの行動', hint: '繋ぎ止める法、見極める法、手放すべき時まで。' },
+  { title: 'サイバー神童処方・自分から実践すべき3つの行動', hint: '繋ぎ止める法、見極める法、手放すべき時まで。' },
 ];
 
 function partnerAliasJa(alias?: string | null): string {
@@ -77,7 +80,8 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
   onPurchase,
   onRequestPartner,
 }) => {
-  const { isJa } = useLocale();
+  const { isJa: localeIsJa } = useLocale();
+  const isJa = localeIsJa || getActiveLanguage() === 'jp';
   const hasData = !!partner && !!radar;
   const isUnlocked = IS_TEST_MODE || paid;
   const accent = radar ? levelColor(radar.score) : COLORS.cyan;
@@ -91,7 +95,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
       gender: partner.gender ?? null,
     } : undefined,
     category: 'love',
-    userInput: partner ? `${partner.alias || '상대'}과의 궁합 및 심리 분석` : undefined,
+    userInput: partner ? (isJa ? `${partnerAliasJa(partner.alias)}との相性および心理分析` : `${partner.alias || '상대'}과의 궁합 및 심리 분석`) : undefined,
     lang: isJa ? 'jp' : 'kr',
     autoFetch: visible && !!partner,
   });
@@ -145,14 +149,12 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                   <View style={styles.scoreInfo}>
                     <Text style={[styles.scoreLevel, { color: accent }]}>
                       {isJa
-                        ? `浮気・別心指数 · ${radar.level === '안정' ? '安定' : radar.level === '주의' ? '注意' : (radar.level || '安定')}`
+                        ? `浮気・別心指数 · ${radar.level === '안정' ? '安定' : radar.level === '주의' ? '注意' : '警戒'}`
                         : `딴마음 지수 · ${radar.level}`}
                     </Text>
                     <Text style={styles.scoreHeadline}>
                       {isJa
-                        ? (radar.headline === '마음이 한곳에 머무는 편이에요' || radar.level === '안정'
-                            ? '心が一箇所にとどまるタイプです'
-                            : radar.headline)
+                        ? (RADAR_COPY_JA[radar.level]?.headline ?? '心が一箇所にとどまるタイプです')
                         : radar.headline}
                     </Text>
                   </View>
@@ -160,21 +162,17 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
 
                 <View style={styles.freeBox}>
                   <Text style={styles.sectionLabel}>{isJa ? '1行要約' : '한 줄 요약'}</Text>
-                  {radar.lines.map((line) => {
-                    let displayLine = line;
-                    if (isJa) {
-                      if (line.includes('이성의 시선') || line.includes('끌어당기는')) {
-                        displayLine = '異性の視線を強く惹きつける構造ではありません。';
-                      } else if (line.includes('소홀해지면') || line.includes('마음이 식을 수')) {
-                        displayLine = 'ただし関係が疎遠になると気持ちが冷める恐れがあるため、日頃の愛情表現を怠らないでください。';
-                      }
-                    }
-                    return (
-                      <Text key={line} style={styles.freeLine}>
-                        · {displayLine}
-                      </Text>
-                    );
-                  })}
+                  {(isJa
+                    ? (RADAR_COPY_JA[radar.level]?.lines ?? [
+                        '異性の視線を強く惹きつける構造ではありません。',
+                        'ただし関係が疎遠になると気持ちが冷める恐れがあるため、日頃の愛情表現を怠らないでください。',
+                      ])
+                    : radar.lines
+                  ).map((line, idx) => (
+                    <Text key={idx} style={styles.freeLine}>
+                      · {line}
+                    </Text>
+                  ))}
                   <Text style={styles.freeMeta}>
                     {isJa
                       ? `桃花シグナル ${radar.peachCount}個 · 魅力ポジション ${radar.charmCount}個`
@@ -212,16 +210,66 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                       if (isJa) {
                         if (section.key === 'peach' || section.title.includes('도화 분석') || section.title.includes('桃花分析')) {
                           sectionTitle = '桃花分析・この人の魅力構造';
-                          sectionLines = [
-                            '配偶者様は刃のように境界線が明確な人物です。桃花を司る地支は「子」ですが、命式の4つの柱の中にこの気は巡っていません。\n\n桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきではなく、周囲の環境によって生み出されるタイプです。\n\n子・午・卯・酉の魅力地支が2つあり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。'
-                          ];
+                          if (sectionLines.some((l) => /[가-힣]/.test(l))) {
+                            sectionLines = sectionLines.map((line) => {
+                              if (line.includes('곧게 뻗는') || line.includes('나무')) return `${partnerAliasJa(partner.alias)}様はまっすぐ伸びる大樹のような人です。桃花を司る地支の気運が巡っています。`;
+                              if (line.includes('불꽃') || line.includes('감정')) return `${partnerAliasJa(partner.alias)}様は炎のように感情が先立つ人です。桃花を司る地支の気運が巡っています。`;
+                              if (line.includes('묵직하게') || line.includes('흙')) return `${partnerAliasJa(partner.alias)}様は重厚に胸の内へ溜め込む人です。桃花を司る地支の気運が巡っています。`;
+                              if (line.includes('칼처럼') || line.includes('선이 분명') || line.includes('도화로 보는 지지')) {
+                                return `${partnerAliasJa(partner.alias)}様は刃のように境界線が明確な人物です。桃花を司る地支の気運が巡っています。`;
+                              }
+                              if (line.includes('도화 지지가 사주 안에 직접 앉아 있지는 않습니다') || line.includes('타고난 게 아니라')) {
+                                return '桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきというより、置かれた環境や振る舞いによって惹きつけられるタイプです。';
+                              }
+                              if (line.includes('년지') || line.includes('밖에서 받는 시선')) return '年柱地支：外の世界からの視線。初対面の人々がまずこの人に惹きつけられます。';
+                              if (line.includes('월지') || line.includes('일터')) return '月柱地支：仕事場や社会的な集まり。職場・社会活動の中で自然と好意が交わされる構造です。';
+                              if (line.includes('일지') || line.includes('배우자 자리')) return '日柱地支：配偶者の座。この人の最も深い本心が宿る場所であり、ここに桃花が入ると心の揺らぎが直ちに本音へと直結します。';
+                              if (line.includes('시지') || line.includes('숨겨 둔')) return '時柱地支：秘めたる心の座。普段は表に出さない魅力が夜や一人の時間に現れます。';
+                              if (line.includes('자·오·묘·유') && (line.includes('끕니다') || line.includes('말투와 분위기'))) {
+                                return `子・午・卯・酉の魅力地支が${radar.charmCount}個あり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。`;
+                              }
+                              if (line.includes('자·오·묘·유') && line.includes('많지 않습니다')) {
+                                return `子・午・卯・酉の魅力地支は${radar.charmCount}個と多くありません。惹きつける力があるとしても、外見より関係が深まってから現れるタイプです。`;
+                              }
+                              return formatSajuTerm(line, 'jp');
+                            });
+                          }
                         } else if (section.key === 'timing' || section.title.includes('딴마음이 올라오는 시기') || section.title.includes('浮気心')) {
                           sectionTitle = '浮気心・気の迷いが生じる時期';
-                          sectionLines = [
-                            '2026年基準、この人の心が外に向きやすい月は9月・12月です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。'
-                          ];
+                          if (sectionLines.some((l) => /[가-힣]/.test(l))) {
+                            sectionLines = sectionLines.map((line) => {
+                              if (line.includes('기준') && (line.includes('바깥으로') || line.includes('마음이'))) {
+                                return '2026年基準、この人の心が外に向きやすい月は9月・12月です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。';
+                              }
+                              if (line.includes('도화 기운이 드는 달')) {
+                                return '桃花の気運が巡る月であり、新たな出会いや好奇心が刺激されます。';
+                              }
+                              if (line.includes('배우자 자리') && line.includes('치는 달')) {
+                                return '配偶者の座を正面から冲(衝突)する月です。この人の胸の内が最も波立つ時期であり、些細な口論が別れ話にまで発展しやすいので注意が必要です。';
+                              }
+                              if (line.includes('그 밖의 달')) {
+                                return 'その他の月は比較的平穏です。警戒すべき月に集中して絆を深めてください。';
+                              }
+                              return formatSajuTerm(line, 'jp');
+                            });
+                          }
                         } else if (section.key === 'pattern' || section.title.includes('연락이 뜸해지는 패턴') || section.title.includes('連絡が途絶え')) {
                           sectionTitle = '連絡が途絶えがちになるパターン';
+                          if (radar.level === '안정' || sectionLines.some((l) => l.includes('연락이 끊기는') || l.includes('무관심이 먼저'))) {
+                            sectionLines = [
+                              '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
+                            ];
+                          } else if (radar.level === '주의') {
+                            sectionLines = [
+                              ...PRESCRIPTION_COPY_JA['주의'].contactPattern,
+                              '心が離れ始め、準備された言葉で隠そうとします。',
+                            ];
+                          } else {
+                            sectionLines = [
+                              ...PRESCRIPTION_COPY_JA['경계'].contactPattern,
+                              '心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
+                            ];
+                          }
                         }
                       }
 
@@ -240,30 +288,26 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                     <View style={[styles.sectionCard, styles.prescriptionCard]}>
                       <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>
                         {isJa
-                          ? 'サイバー童子処方 · 自分から実践すべき3つの行動'
+                          ? 'サイバー神童処方・自分から実践すべき3つの行動'
                           : '옥통자 처방 · 내가 먼저 할 행동 3가지'}
                       </Text>
-                      {prescription.actions.map((action, index) => {
-                        let actionText = action;
-                        if (isJa) {
-                          if (index === 0 && action.includes('의심부터')) {
-                            actionText = '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。';
-                          } else if (index === 1 && action.includes('단둘이')) {
-                            actionText = '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。';
-                          } else if (index === 2 && action.includes('서운한')) {
-                            actionText = '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。';
-                          }
-                        }
-                        return (
-                          <View key={action} style={styles.actionRow}>
-                            <Text style={styles.actionNo}>{index + 1}</Text>
-                            <Text style={styles.actionText}>{actionText}</Text>
-                          </View>
-                        );
-                      })}
+                      {(isJa
+                        ? (PRESCRIPTION_COPY_JA[radar.level]?.actions ?? [
+                            '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。',
+                            '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。',
+                            '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。',
+                          ])
+                        : prescription.actions
+                      ).map((actionText, index) => (
+                        <View key={index} style={styles.actionRow}>
+                          <Text style={styles.actionNo}>{index + 1}</Text>
+                          <Text style={styles.actionText}>{actionText}</Text>
+                        </View>
+                      ))}
                       <Text style={styles.verdict}>
-                        {isJa && prescription.verdict.includes('칼날이 밖을 향한')
-                          ? '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。'
+                        {isJa
+                          ? (PRESCRIPTION_COPY_JA[radar.level]?.verdict ??
+                              '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。')
                           : prescription.verdict}
                       </Text>
                     </View>
@@ -289,7 +333,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                     >
                       <Text style={styles.buyBtnText}>
                         {isJa
-                          ? `${REPORT_PRICE_LABEL}で完全版レポートを見る`
+                          ? '390円で完全版レポートを見る'
                           : `${REPORT_PRICE_LABEL}에 전체 리포트 보기`}
                       </Text>
                     </Pressable>

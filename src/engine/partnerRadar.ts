@@ -1,4 +1,5 @@
 import type { EarthlyBranch, SajuResult } from './types';
+import { getActiveLanguage } from '../utils/langManager';
 
 /** 년지·일지 삼합 그룹별 도화(이성 매력) 지지. 寅午戌→卯, 申子辰→酉, 巳酉丑→午, 亥卯未→子 */
 const PEACH_BRANCH: Record<EarthlyBranch, EarthlyBranch> = {
@@ -72,6 +73,8 @@ const LEVEL_COPY_JA: Record<RadarLevel, { headline: string; lines: string[] }> =
   },
 };
 
+export { LEVEL_COPY_JA, LEVEL_COPY_JA as RADAR_COPY_JA };
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -88,7 +91,8 @@ export function getPeachTargets(saju: SajuResult): Set<EarthlyBranch> {
  * 외부 통신 없이 지지 배치만으로 계산하는 순수 함수이며, 재미로 보는 참고용이다.
  */
 export function analyzePartnerRadar(saju: SajuResult, lang?: string): PartnerRadarResult {
-  const isJa = lang === 'jp' || lang === 'ja';
+  const effectiveLang = lang ?? (getActiveLanguage() === 'jp' ? 'jp' : 'kr');
+  const isJa = effectiveLang === 'jp' || effectiveLang === 'ja';
   const branches = [
     saju.pillars.year.branch,
     saju.pillars.month.branch,

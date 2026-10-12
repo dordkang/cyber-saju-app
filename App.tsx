@@ -17,6 +17,8 @@ import { analyzePartnerRadar } from './src/engine/partnerRadar';
 import type { PartnerRadarResult } from './src/engine/partnerRadar';
 import { buildPartnerPrescription } from './src/engine/partnerPrescription';
 import type { PartnerPrescription } from './src/engine/partnerPrescription';
+import { getActiveLanguage } from './src/utils/langManager';
+import { useLocale } from './src/locales';
 import { analyzeTodayMoney } from './src/engine/moneyEngine';
 import { buildReelsContent, lackingElement } from './src/engine/reelsContent';
 import { generateTodayCustomAdvice } from './src/engine/tomorrowStrategy';
@@ -236,6 +238,7 @@ export default function App() {
 }
 
 function AppContent() {
+  const { locale, isJa } = useLocale();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
@@ -305,12 +308,19 @@ function AppContent() {
     partnerPrescription: PartnerPrescription | null;
   }>(() => {
     if (!partnerSaju) return { partnerRadar: null, partnerPrescription: null };
-    const radar = analyzePartnerRadar(partnerSaju);
+    const currentLang = isJa || getActiveLanguage() === 'jp' ? 'jp' : 'kr';
+    const radar = analyzePartnerRadar(partnerSaju, currentLang);
     return {
       partnerRadar: radar,
-      partnerPrescription: buildPartnerPrescription(partnerSaju, radar, partner?.alias || partner?.relation || '상대'),
+      partnerPrescription: buildPartnerPrescription(
+        partnerSaju,
+        radar,
+        partner?.alias || partner?.relation || '상대',
+        new Date().getFullYear(),
+        currentLang
+      ),
     };
-  }, [partnerSaju, partner]);
+  }, [partnerSaju, partner, locale, isJa]);
 
   const partnerInfo = useMemo<ReelsPeoplePeek | null>(() => {
     if (!partner) return null;

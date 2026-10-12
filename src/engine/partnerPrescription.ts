@@ -1,6 +1,7 @@
 import type { EarthlyBranch, FiveElement, HeavenlyStem, SajuResult } from './types';
 import type { PartnerRadarResult, RadarLevel } from './partnerRadar';
 import { getPeachTargets } from './partnerRadar';
+import { getActiveLanguage } from '../utils/langManager';
 
 export interface PrescriptionSection {
   key: string;
@@ -99,8 +100,75 @@ const LEVEL_COPY: Record<RadarLevel, LevelCopy> = {
   },
 };
 
+export const LEVEL_COPY_JA: Record<RadarLevel, LevelCopy> = {
+  안정: {
+    contactPattern: [
+      '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。',
+      '返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。',
+    ],
+    actions: [
+      '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。',
+      '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。',
+      '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。',
+    ],
+    verdict: '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。',
+  },
+  주의: {
+    contactPattern: [
+      '視線を浴びることが多いため本人は軽く流しますが、相手はその軽さの中に隙を見出します。',
+      '急に予定が増え、スマホを伏せて置き、集まりの話を曖昧にし始めたら心が片方に傾いた証拠です。まだ一線は越えていません。',
+      '言い訳が早い日よりも、説明が滑らかすぎる日に警戒してください。準備された言葉は隠したいことがある証です。',
+    ],
+    actions: [
+      '問い詰めるのではなく、一度だけ軽く指摘してください。二度目からは相手が隠れる術を覚えます。',
+      '危険な月には二人きりの予定を先に入れて、一緒に過ごす時間を確保してください。',
+      'こちらから不安を表に出さないでください。動揺した側が主導権を失う構造です。代わりに自分の魅力を高めてください。',
+    ],
+    verdict: '扉は開いていますが、まだ外に出てはいない人です。繋ぎ止める力ではなく、この家庭が温かいという実感こそがこの人を留まらせます。',
+  },
+  경계: {
+    contactPattern: [
+      '桃花が重なる命式のため、本人がじっとしていても人が寄ってきます。問題は断らない日が訪れた瞬間、そこから心が漏れ出すことです。',
+      '返信が遅れ、会った人の話を濁し、急に外見や香りに気を使い始めたら、既に心が片足を突っ込んでいます。',
+      '「絶対に違う」と強く否定する日が一番危険です。この命式はやましいことがあるほど逆ギレします。',
+    ],
+    actions: [
+      '証拠を追わないでください。追えば追うほどこの人は深く隠れます。代わりに予定や動線を自然に共有するルールを作ってください。',
+      '危険な月には自分から側にいてください。共に過ごす時間こそが、この命式の唯一の防波堤です。',
+      '一線を越えたか確認するより、一線を越えたくさせた心の隙間を見つめてください。そこを埋めることこそが真の処方です。',
+    ],
+    verdict: '生まれ持った桃花を消し去ることはできません。統御できるのは環境です。隙を与えない側が勝ちます。この人は信頼の問題ではなく構造の問題です。',
+  },
+};
+
+export { LEVEL_COPY_JA as PRESCRIPTION_COPY_JA };
+
+const ELEMENT_TRAIT_JA: Record<FiveElement, { who: string; leak: string }> = {
+  Wood: { who: 'まっすぐ伸びる大樹のような人', leak: '息苦しさを感じると言葉もなく外へと枝を伸ばします' },
+  Fire: { who: '炎のように感情が先立つ人', leak: '冷めた分だけ素早く別の火種を求めます' },
+  Earth: { who: '重厚に胸の内へ溜め込む人', leak: '口には出さずとも心は静かに別の場所へと引っ越します' },
+  Metal: { who: '刃のように境界線が明確な人', leak: '一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します' },
+  Water: { who: '水のように染み込む人', leak: '目立たぬよう静かに流れ、別の水たまりへと溜まります' },
+};
+
+function partnerAliasJa(alias?: string | null): string {
+  if (!alias) return '配偶者';
+  if (alias === '배우자') return '配偶者';
+  if (alias === '애인') return '恋人';
+  if (alias === '썸') return '気になる人';
+  if (alias === '짝사랑') return '片思いの相手';
+  if (alias === '전연인' || alias === '전애인') return '元恋人';
+  if (alias === '친구') return '友人';
+  if (alias === '동료') return '同僚';
+  return alias;
+}
+
 function formatMonths(months: number[]): string {
   return months.map((m) => `${m}월`).join(' · ');
+}
+
+function formatMonthsJa(months: number[]): string {
+  return months.map((m) => `${m}月`).join('・');
 }
 
 /**
@@ -114,9 +182,10 @@ export function buildPartnerPrescription(
   year: number = new Date().getFullYear(),
   lang?: string
 ): PartnerPrescription {
-  const isJa = lang === 'jp' || lang === 'ja';
+  const effectiveLang = lang ?? (getActiveLanguage() === 'jp' ? 'jp' : 'kr');
+  const isJa = effectiveLang === 'jp' || effectiveLang === 'ja';
   const targets = getPeachTargets(saju);
-  const targetNames = [...targets].map((b) => `${BRANCH_KO[b]}`).join('·');
+  const targetNames = isJa ? [...targets].join('・') : [...targets].map((b) => `${BRANCH_KO[b]}`).join('·');
   const element = STEM_ELEMENT[saju.dayMaster];
   const trait = ELEMENT_TRAIT[element];
 
@@ -125,9 +194,30 @@ export function buildPartnerPrescription(
 
   let peachLines: string[];
   if (isJa) {
+    const aliasJa = partnerAliasJa(alias);
+    const traitJa = ELEMENT_TRAIT_JA[element] || ELEMENT_TRAIT_JA.Metal;
     peachLines = [
-      '配偶者様は刃のように境界線が明確な人物です。桃花を司る地支は「子」ですが、命式の4つの柱の中にこの気は巡っていません。\n\n桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきではなく、周囲の環境によって生み出されるタイプです。\n\n子・午・卯・酉の魅力地支が2つあり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。',
+      `${aliasJa}様は${traitJa.who}です。桃花を司る地支は${targetNames}ですが、四柱推命の4つの柱のうち${radar.peachCount}箇所にこの気運が巡っています。`,
     ];
+    if (peachPillars.length === 0) {
+      peachLines.push('桃花の地支が命式内に直接鎮座しているわけではありません。異性の視線は生まれつきというより、置かれた環境や振る舞いによって惹きつけられるタイプです。');
+    } else {
+      const pillarMeaningJa: Record<PillarKey, { name: string; meaning: string }> = {
+        year: { name: '年柱地支', meaning: '外の世界からの視線。初対面の人々がまずこの人に惹きつけられます。' },
+        month: { name: '月柱地支', meaning: '仕事場や社会的な集まり。職場・社会活動の中で自然と好意が交わされる構造です。' },
+        day: { name: '日柱地支', meaning: '配偶者の座。この人の最も深い本心が宿る場所であり、ここに桃花が入ると心の揺らぎが直ちに本音へと直結します。' },
+        time: { name: '時柱地支', meaning: '秘めたる心の座。普段は表に出さない魅力が夜や一人の時間に現れます。' },
+      };
+      peachPillars.forEach((key) => {
+        const info = pillarMeaningJa[key];
+        peachLines.push(`${info.name}(${saju.pillars[key].branch})に桃花が座しています。${info.meaning}`);
+      });
+    }
+    peachLines.push(
+      radar.charmCount >= 2
+        ? `子・午・卯・酉の魅力地支が${radar.charmCount}個あり、言葉遣いや雰囲気だけで人を惹きつけます。本人が意図せずとも魅力を放ちます。`
+        : `子・午・卯・酉の魅力地支は${radar.charmCount}個と多くありません。惹きつける力があるとしても、外見より関係が深まってから現れるタイプです。`
+    );
   } else {
     peachLines = [
       `${alias}님은 ${trait.who}입니다. 도화로 보는 지지는 ${targetNames}인데, 사주 네 자리 중 ${radar.peachCount}곳에 이 기운이 들어와 있습니다.`,
@@ -156,7 +246,10 @@ export function buildPartnerPrescription(
   let timingLines: string[];
   if (isJa) {
     timingLines = [
-      `${year}年基準、この人の心が外に向きやすい月は9月・12月です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。`,
+      `${year}年基準、この人の心が外に向きやすい月は${formatMonthsJa(allRisk)}です。暦の月を基準とした目安であり、節入りによって数日の差が生じます。`,
+      `${formatMonthsJa(peachList)}は桃花の気運が巡る月であり、新たな出会いや好奇心が刺激されます。`,
+      `${clashMonth}月は配偶者の座(${dayBranch})を正面から冲(衝突)する月です。この人の胸の内が最も波立つ時期であり、些細な口論が別れ話にまで発展しやすいので注意が必要です。`,
+      `その他の月は比較的平穏です。警戒すべき月に集中して絆を深めてください。`,
     ];
   } else {
     timingLines = [
@@ -168,11 +261,14 @@ export function buildPartnerPrescription(
   }
 
   const contactLines: string[] = isJa
-    ? [
-        '連絡が途絶えるのは他に気になる人ができたからではなく、気持ちが冷めたからです。この命式は浮気より無関心が先に訪れます。',
-        '返信が短くなり近況を話さなくなったら、それがシグナルです。言い訳が増えるのではなく口数が減ります。',
-        '心が動き始めると、一回線を引けば後ろも振り返らずに整理します。',
-      ]
+    ? radar.level === '안정'
+      ? [
+          '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
+        ]
+      : [
+          ...LEVEL_COPY_JA[radar.level].contactPattern,
+          `心が離れ始め、${ELEMENT_TRAIT_JA[element]?.leak ?? '一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します'}。`,
+        ]
     : [
         ...LEVEL_COPY[radar.level].contactPattern,
         `마음이 움직이기 시작하면 ${trait.leak}.`,
@@ -185,15 +281,11 @@ export function buildPartnerPrescription(
   ];
 
   const actions = isJa
-    ? [
-        '疑うことから始めず、愛情表現を増やしてください。この人は監視ではなく放置によって崩れます。',
-        '月に一度は二人きりの予定を確定させてください。約束があってこそ心が留まります。',
-        '寂しいことや不満はその日のうちに伝えてください。溜め込むとこの人は何も言わずに整理します。',
-      ]
+    ? LEVEL_COPY_JA[radar.level].actions
     : LEVEL_COPY[radar.level].actions;
 
   const verdict = isJa
-    ? '刃が外に向いている命式ではありません。守るべきはこの人ではなく二人の間の温度です。温度さえ保てば、去る人はいません。'
+    ? LEVEL_COPY_JA[radar.level].verdict
     : LEVEL_COPY[radar.level].verdict;
 
   return {
