@@ -491,34 +491,38 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     isJumpingRef.current = true;
     setTimeout(() => {
       isJumpingRef.current = false;
-    }, 1200);
+    }, 1500);
 
-    // 1. 먼저 스크롤을 08번 밀실로 강제 이동 시도
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      const chamberEl =
-        document.getElementById('section-chamber') ||
-        document.querySelector('[data-section="08"], .shaman-chamber-card') ||
-        (document.querySelectorAll('.card-section')[7] as HTMLElement | undefined);
+    // 1. 모달 먼저 닫기
+    onNavigateToChamber?.();
+    onClose();
 
-      if (chamberEl) {
-        chamberEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else if ((window as any).scrollToSection) {
-        (window as any).scrollToSection(7);
-      } else {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      }
-
-      if ((window as any).scrollToSection) {
-        (window as any).scrollToSection(7);
-      }
-      window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
-    }
-
-    // 2. 약간의 지연 후 모달 닫기 (시각적 부드러움 및 DOM 충돌 방지)
+    // 2. 릴스 컨테이너에 08번 섹터(인덱스 7)로 이동할 것을 알리는 전역 이벤트 발사
     setTimeout(() => {
-      onNavigateToChamber?.();
-      onClose();
-    }, 150);
+      if (typeof window !== 'undefined') {
+        // 방법 A: 전역 함수 호출
+        if ((window as any).scrollToSection) {
+          (window as any).scrollToSection(7);
+        } else if ((window as any).jumpToSection) {
+          (window as any).jumpToSection(7);
+        }
+
+        // 방법 B: 커스텀 이벤트 디스패치
+        window.dispatchEvent(new CustomEvent('cyber-saju-jump', { detail: { index: 7 } }));
+        window.dispatchEvent(new CustomEvent('cyber_saju_scroll_to_section', { detail: 7 }));
+
+        // 방법 C: DOM 강제 점프 폴백
+        if (typeof document !== 'undefined') {
+          const chamberEl =
+            document.getElementById('section-chamber') ||
+            (document.querySelectorAll('.card-section, section')[7] as HTMLElement | undefined) ||
+            document.querySelector('[data-section="08"], .shaman-chamber-card');
+          if (chamberEl) {
+            chamberEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+    }, 100);
   }, [onClose, onNavigateToChamber]);
 
   const toggleExpanded = useCallback((index: number) => {

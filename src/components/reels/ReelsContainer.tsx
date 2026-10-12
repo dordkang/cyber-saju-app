@@ -340,7 +340,23 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     [pageHeight]
   );
 
+  const isNavigatingRef = useRef(false);
+  const navigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const forceSyncTargetIndex = useCallback((targetIndex: number) => {
+    const clamped = Math.max(0, Math.min(REEL_SECTION_COUNT - 1, targetIndex));
+    activeRef.current = clamped;
+    setActiveIndex(clamped);
+
+    isNavigatingRef.current = true;
+    if (navigationTimerRef.current) clearTimeout(navigationTimerRef.current);
+    navigationTimerRef.current = setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 1500);
+  }, []);
+
   const commitIndex = useCallback((next: number) => {
+    if (isNavigatingRef.current) return;
     const clamped = Math.max(0, Math.min(REEL_SECTION_COUNT - 1, next));
     if (clamped === activeRef.current) return;
     activeRef.current = clamped;
@@ -355,6 +371,9 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
   const scrollToSection = useCallback((index: number) => {
     const totalSections = 8; // 01번부터 08번 밀실까지 총 8개 섹션 (인덱스 0~7)
     const targetIndex = Math.max(0, Math.min(index, totalSections - 1));
+
+    // [중요] 외부/전역 점프 신호 유입 시 내부 인덱스를 즉시 7(08번 밀실)로 강제 동기화하고 롤백 차단
+    forceSyncTargetIndex(targetIndex);
 
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       const scrollableNode =
@@ -379,8 +398,9 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         const targetNo = String(targetIndex + 1).padStart(2, '0');
         targetElement =
           (targetIndex === 7 ? (document.getElementById('section-chamber') as HTMLElement) : null) ||
+          (document.querySelectorAll('.card-section, section')[targetIndex] as HTMLElement | undefined) ||
           (document.querySelector(`[data-section="${targetNo}"]`) as HTMLElement) ||
-          (targetIndex === 7 ? (document.querySelector('[data-section="08"]') as HTMLElement) : null);
+          (targetIndex === 7 ? (document.querySelector('[data-section="08"], .shaman-chamber-card') as HTMLElement) : null);
       }
 
       if (targetElement) {
@@ -389,12 +409,21 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         } catch {}
       }
 
-      if (scrollableNode && pageHeight > 0) {
+      if (scrollableNode) {
         try {
-          scrollableNode.scrollTo({
-            top: targetIndex * pageHeight,
-            behavior: 'smooth',
-          });
+          const targetTop =
+            typeof targetElement?.offsetTop === 'number' && targetElement.offsetTop > 0
+              ? targetElement.offsetTop
+              : pageHeight > 0
+              ? targetIndex * pageHeight
+              : 0;
+
+          if (targetTop > 0) {
+            scrollableNode.scrollTo({
+              top: targetTop,
+              behavior: 'smooth',
+            });
+          }
         } catch {}
       }
     }
@@ -406,43 +435,49 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         (listRef.current as any)?.scrollToOffset?.({ offset: targetIndex * pageHeight, animated: true });
       }
     }
-
-    commitIndex(targetIndex);
-  }, [pageHeight, commitIndex]);
+  }, [pageHeight, forceSyncTargetIndex]);
 
   useEffect(() => {
     if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < REEL_SECTIONS.length) {
-      const timer = setTimeout(() => {
-        scrollToSection(targetIndex);
-        onTargetIndexHandled?.();
-      }, 50);
-      return () => clearTimeout(timer);
+      scrollToSection(targetIndex);
+      onTargetIndexHandled?.();
     }
   }, [targetIndex, scrollToSection, onTargetIndexHandled]);
 
   useEffect(() => {
-    const handleScrollEvent = (e: any) => {
-      const idx = typeof e.detail === 'number' ? e.detail : e.detail?.index;
-      if (typeof idx === 'number') {
-        scrollToSection(idx);
-      }
+    const handleJumpEvent = (e: any) => {
+      const idx =
+        typeof e.detail === 'number'
+          ? e.detail
+          : typeof e.detail?.index === 'number'
+          ? e.detail.index
+          : 7;
+      scrollToSection(idx);
     };
+
     if (typeof window !== 'undefined') {
       (window as any).scrollToSection = scrollToSection;
-      window.addEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
+      (window as any).jumpToSection = scrollToSection;
+      window.addEventListener('cyber-saju-jump', handleJumpEvent as EventListener);
+      window.addEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
+
       return () => {
-        window.removeEventListener('cyber_saju_scroll_to_section', handleScrollEvent as EventListener);
+        window.removeEventListener('cyber-saju-jump', handleJumpEvent as EventListener);
+        window.removeEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
         delete (window as any).scrollToSection;
+        delete (window as any).jumpToSection;
       };
     }
   }, [scrollToSection]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (isNavigatingRef.current) return;
     const first = viewableItems[0]?.index;
     if (typeof first === 'number') commitIndex(first);
   }).current;
 
   const handleScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isNavigatingRef.current) return;
     if (pageHeight <= 0) return;
     commitIndex(Math.round(e.nativeEvent.contentOffset.y / pageHeight));
   };
