@@ -158,6 +158,9 @@ const EVENT_GUIDELINES: Record<string, string> = {
     "관재구설, 뒤통수 배신수, 상사·거래처와의 권력 싸움에서 살아남는 처세 처방을 내리십시오. 누구를 믿고 누구를 경계할지 구체적으로 짚으십시오.",
   "건강/액땜":
     "흉살과 기운 고갈을 짚고, 오늘 당장 몸을 사리는 구체적인 액땜 행동 미션을 부여하십시오. 의학적 진단이나 치료 지시는 하지 말고 생활 속 조심 행동으로 처방하십시오.",
+  "대운":
+    "해당 10년 대운의 천간지지(십신과 12운성), 사주 원국과의 합충 변화를 정밀하게 해부하십시오. " +
+    "인생의 성패, 비즈니스 및 자금맥의 변곡점, 이 대운을 돌파하기 위한 단도직입적인 현실 처방을 5단계 카타르시스로 내리십시오.",
 };
 
 const EVENT_GUIDELINES_JA: Record<string, string> = {
@@ -171,6 +174,9 @@ const EVENT_GUIDELINES_JA: Record<string, string> = {
     "官災口舌、裏切り、上司や取引先との権力闘争を生き抜く処世の処方箋を下せ。誰を信じ、誰を警戒すべきか具体的に示せ。",
   "健康/厄払い":
     "凶殺と気運の枯渇を突き、本日身を守るための具体的な厄除け行動ミッションを与えよ。医学的診断ではなく日常の防衛行動として処方せよ。",
+  "大運":
+    "該当する10年大運の天干地支（通変星および十二運）、命式元局との合沖変化を精密に解剖せよ。" +
+    "人生の盛衰、ビジネスおよび資金脈の変曲点、この大運を突破するための単刀直入・一刀両断の現実処方箋を格調高く下せ。",
 };
 
 // 구버전 기록(재물/직장/건강)도 같은 지침으로 연결한다.
@@ -178,6 +184,9 @@ const EVENT_ALIASES: Record<string, string> = {
   재물: "돈/대박",
   직장: "생존/직장",
   건강: "건강/액땜",
+  daewoon: "대운",
+  "daewoon_oracle": "대운",
+  대운: "대운",
 };
 
 const EVENT_ALIASES_JA: Record<string, string> = {
@@ -197,6 +206,10 @@ const EVENT_ALIASES_JA: Record<string, string> = {
   치정: "愛憎/浮気",
   "치정/바람": "愛憎/浮気",
   恋愛: "愛憎/浮気",
+  daewoon: "大運",
+  "daewoon_oracle": "大運",
+  대운: "大運",
+  大運: "大運",
 };
 
 function getEventGuideline(category: string, isJa: boolean = false): string {
@@ -726,20 +739,22 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false): 
     );
   }
 
-  const currentDaewoon = isRecord(body.currentDaewoon) ? body.currentDaewoon : null;
-  if (currentDaewoon) {
-    const daewoonGanji = pickString(currentDaewoon.ganji, 10);
-    const daewoonAge = pickString(currentDaewoon.ageRange, 20);
-    const stemGod = pickString(currentDaewoon.stemGod, 10);
-    const branchGod = pickString(currentDaewoon.branchGod, 10);
+  const selectedDaeun = isRecord(body.selectedDaeun) ? body.selectedDaeun : (isRecord(body.currentDaewoon) ? body.currentDaewoon : null);
+  if (selectedDaeun) {
+    const daewoonGanji = pickString(selectedDaeun.ganji, 10);
+    const daewoonAge = pickString(selectedDaeun.ageRange, 20);
+    const stemGod = pickString(selectedDaeun.stemGod, 10);
+    const branchGod = pickString(selectedDaeun.branchGod, 10);
+    const stage12 = pickString(selectedDaeun.stage12, 10);
+    const lifeStage = pickString(selectedDaeun.lifeStage, 10);
     sections.push(
       isJa
-        ? `[現在の大運(10年周期) コンテキスト]\n` +
-          `相談者の命式元局とともに【現在通過中の10年大運: ${daewoonGanji} (${daewoonAge}) / 通変星: ${stemGod}·${branchGod}】を必ず考慮せよ。\n` +
-          `相談者が事業、金、変曲点、転職などを問う場合、「お前が今通過している${daewoonGanji}大運の気運がこうであるから…」と大運の大きな潮流を突き、鋭く生々しい現実処方を単刀直入・一刀両断に下せ。`
-        : `[현재 10년 대운 컨텍스트]\n` +
-          `상담자의 사주 원국과 함께 [현재 지나고 있는 10년 대운: ${daewoonGanji} (${daewoonAge}) / 십신: ${stemGod}·${branchGod}]을 반드시 고려하라.\n` +
-          `상담자가 사업, 돈, 변곡점, 이직 등을 물을 경우 '네가 지금 지나고 있는 ${daewoonGanji} 대운의 기운이 이러하니...'라며 대운의 큰 흐름을 짚어주고 날카로운 현실 처방을 단도직입으로 내릴 것.`
+        ? `[分析対象の10年大運 コンテキスト]\n` +
+          `相談者の命式元局とともに【該当の10年大運: ${daewoonGanji} (${daewoonAge}) / 通変星: ${stemGod}·${branchGod}${stage12 ? ` / 十二運: ${stage12}` : ''}${lifeStage ? ` / 時期: ${lifeStage}` : ''}】の流れを精密に解剖せよ。\n` +
+          `この10年間の人生の盛衰、天干地支の合沖・通変星の気運が人生や事業の成敗・変曲点にどう作用するかを鋭く突き、具体的で生々しい現実処方を単刀直入・一刀両断に下せ。`
+        : `[분석 대상 10년 대운 컨텍스트]\n` +
+          `상담자의 사주 원국과 함께 [해당 10년 대운: ${daewoonGanji} (${daewoonAge}) / 십신: ${stemGod}·${branchGod}${stage12 ? ` / 12운성: ${stage12}` : ''}${lifeStage ? ` / 시기: ${lifeStage}` : ''}]의 흐름을 정밀하게 해부하라.\n` +
+          `이 10년간의 인생 성패, 천간지지 합충과 십신 기운이 인생과 사업의 변곡점에 미치는 영향을 날카롭게 짚고 구체적이고 생생한 현실 처방을 단도직입으로 내릴 것.`
     );
   }
 
@@ -911,7 +926,8 @@ export default {
 
       const lang = pickString(parsed.lang || parsed.locale, 10).toLowerCase();
       const questionText = `${pickString(parsed.userInput, 1000)} ${pickString(parsed.userLore, 1000)} ${pickString(parsed.diaryContent, 1000)} ${pickString(parsed.shortMemo, 500)} ${pickString(parsed.questionText, 500)}`;
-      const hasJapaneseInText = /[\u3040-\u30ff\u31f0-\u31ff]/.test(questionText);
+      const allText = `${questionText} ${pickString(parsed.currentDaewoonDirective, 1000)} ${pickString(parsed.eventCategory, 100)}`;
+      const hasJapaneseInText = /[\u3040-\u30ff\u31f0-\u31ff]/.test(allText);
 
       // 전달받은 payload의 lang 값이 'jp'이거나 질문 텍스트에 일본어가 포함된 경우,
       // 기존 한국어 옥동자 프롬프트를 전면 차단하고 100% 네이티브 일본어 사이버 신동(サイバー神童) 시스템 프롬프트만 강제 실행.

@@ -43,6 +43,61 @@ import {
 } from '../engine/timelineEngine';
 import { updateUserOnboardingData, saveUserProfile, getUserProfile } from '../database/db';
 import { useLocale } from '../locales';
+import { getActiveLanguage } from '../utils/langManager';
+import { formatSajuTerm } from '../utils/sajuTerms';
+
+const GATEWAY_URL = 'https://saju-edge-gateway.cybersaju.workers.dev';
+
+export const LIFE_STAGE_JA: Record<string, string> = {
+  초년: '初年',
+  청년: '青年',
+  중년: '中年',
+  장년: '壮年',
+  말년: '晩年',
+  노년: '晩年',
+};
+
+export const TEN_GOD_JA: Record<string, string> = {
+  비견: '比肩',
+  겁재: '劫財',
+  식신: '食神',
+  상관: '傷官',
+  편재: '偏財',
+  정재: '正財',
+  편관: '偏官',
+  정관: '正官',
+  편인: '偏印',
+  정인: '正印',
+};
+
+export const STAGE12_JA: Record<string, string> = {
+  장생: '長生',
+  목욕: '沐浴',
+  관대: '冠帯',
+  건록: '建禄',
+  제왕: '帝旺',
+  쇠: '衰',
+  병: '病',
+  사: '死',
+  묘: '墓',
+  절: '絶',
+  태: '胎',
+  양: '養',
+};
+
+export const GRADE_LABEL_JA: Record<Grade, string> = {
+  대길: '大吉',
+  길: '吉',
+  평: '平',
+  흉: '凶',
+  대흉: '大凶',
+};
+
+export const RISK_LABEL_JA: Record<RiskLevel, string> = {
+  safe: '安全',
+  caution: '注意',
+  danger: '危険',
+};
 
 const COLOR = {
   bg: '#090D16',
@@ -137,6 +192,10 @@ const TM_MODE_LABEL: Record<'year' | 'month', string> = {
   year: `연도별 시간여행 (${TM_YEAR_MIN}~${TM_YEAR_MAX})`,
   month: '월별 시간여행 (1~12월)',
 };
+const TM_MODE_LABEL_JA: Record<'year' | 'month', string> = {
+  year: `年別タイムトラベル (${TM_YEAR_MIN}〜${TM_YEAR_MAX})`,
+  month: '月別タイムトラベル (1〜12月)',
+};
 const TM_YEAR_TICKS: readonly SliderTick[] = Array.from(
   { length: TM_YEAR_MAX - TM_YEAR_MIN + 1 },
   (_, i) => ({ value: TM_YEAR_MIN + i, label: `'${String((TM_YEAR_MIN + i) % 100).padStart(2, '0')}` })
@@ -158,7 +217,13 @@ function syncColor(percent: number): string {
   return COLOR.red;
 }
 
-function syncCaption(percent: number): string {
+function syncCaption(percent: number, isJa: boolean = false): string {
+  if (isJa) {
+    if (percent >= 85) return '鳥肌が立つほど一致しています';
+    if (percent >= 60) return 'かなり一致しています';
+    if (percent >= 30) return '部分的に一致しています';
+    return 'あまり一致していません';
+  }
   if (percent >= 85) return '소름 돋게 닮았어요';
   if (percent >= 60) return '꽤 닮았어요';
   if (percent >= 30) return '부분적으로 닮았어요';
@@ -391,6 +456,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
+  const [daeunAiMap, setDaeunAiMap] = useState<Record<number, { loading: boolean; text?: string; error?: string }>>({});
   const [now, setNow] = useState<Date>(() => new Date());
   const [tmMode, setTmMode] = useState<Exclude<TimeSliderMode, 'day'>>('year');
   const [tmYear, setTmYear] = useState(DEFAULT_TARGET_YEAR);
@@ -530,9 +596,103 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     }, 100);
   }, [onClose, onNavigateToChamber]);
 
-  const toggleExpanded = useCallback((index: number) => {
-    setExpanded((prev) => (prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]));
-  }, []);
+  const fetchDaeunAi = useCallback(
+    async (period: DaeunPeriod) => {
+      setDaeunAiMap((prev) => {
+        if (prev[period.index]?.loading || prev[period.index]?.text) return prev;
+        return { ...prev, [period.index]: { loading: true } };
+      });
+
+      const activeLang = getActiveLanguage();
+      const currentIsJa = activeLang === 'jp' || isJa;
+      const effectiveVoice =
+        typeof localStorage !== 'undefined'
+          ? (localStorage.getItem('cyber_saju_persona') || 'shaman')
+          : 'shaman';
+
+      try {
+        const payload = {
+          lang: currentIsJa ? 'jp' : 'kr',
+          dayMaster: timeline?.dayMaster ?? '戊',
+          eventCategory: currentIsJa ? '大運' : '대운',
+          voiceStyle: effectiveVoice,
+          agentType: effectiveVoice === 'COMRADE' || effectiveVoice === 'brother' ? 'COMRADE' : 'DOKSA',
+          userLore: realityInput.trim(),
+          pillars: timeline?.natalPillars,
+          currentDaewoon: {
+            ganji: period.ganji.label,
+            ageRange: currentIsJa ? `満${period.startAge}歳〜${period.endAge}歳` : `만 ${period.startAge}세~${period.endAge}세`,
+            stemGod: currentIsJa ? (TEN_GOD_JA[period.stemGod] ?? period.stemGod) : period.stemGod,
+            branchGod: currentIsJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod,
+            stage12: currentIsJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12,
+          },
+          selectedDaeun: {
+            ganji: period.ganji.label,
+            ageRange: currentIsJa ? `満${period.startAge}歳〜${period.endAge}歳` : `만 ${period.startAge}세~${period.endAge}세`,
+            stemGod: currentIsJa ? (TEN_GOD_JA[period.stemGod] ?? period.stemGod) : period.stemGod,
+            branchGod: currentIsJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod,
+            stage12: currentIsJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12,
+            lifeStage: currentIsJa ? (LIFE_STAGE_JA[period.lifeStage] ?? period.lifeStage) : period.lifeStage,
+          },
+          userInput: currentIsJa
+            ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】この10年間の人生の盛衰、天干地支の合沖・通変星(${period.stemGod}/${period.branchGod})の流れ、事業・金運の変曲点と現実処方を直説せよ。`
+            : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] 이 10년간의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 사업·재물 변곡점과 현실 처방을 직설하라.`,
+        };
+
+        const res = await fetch(GATEWAY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const analysis = data?.analysis?.trim();
+        if (analysis) {
+          const formatted = formatSajuTerm(analysis, currentIsJa ? 'jp' : 'kr');
+          setDaeunAiMap((prev) => ({
+            ...prev,
+            [period.index]: { loading: false, text: formatted },
+          }));
+        } else {
+          throw new Error('Empty response');
+        }
+      } catch {
+        const fallback = currentIsJa
+          ? `【サイバー神童・${period.ganji.label}大運 神託】\n「お前が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式元局の日干『${timeline?.dayMaster ?? '戊'}』と激しく交錯する重要な変曲点だ。小細工や迷いを捨て、主導権を握って自らの盤面を切り開け。情に流されず、研ぎ澄まされた刃で突破せよ。」`
+          : `【옥동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
+        setDaeunAiMap((prev) => ({
+          ...prev,
+          [period.index]: { loading: false, text: fallback },
+        }));
+      }
+    },
+    [isJa, realityInput, timeline]
+  );
+
+  const toggleExpanded = useCallback(
+    (index: number) => {
+      setExpanded((prev) => {
+        const isOpening = !prev.includes(index);
+        if (isOpening && timeline) {
+          const targetPeriod = timeline.periods.find((p) => p.index === index);
+          if (targetPeriod) {
+            void fetchDaeunAi(targetPeriod);
+          }
+        }
+        return isOpening ? [...prev, index] : prev.filter((i) => i !== index);
+      });
+    },
+    [timeline, fetchDaeunAi]
+  );
+
+  useEffect(() => {
+    if (!timeline) return;
+    const currentPeriod = timeline.periods.find((p) => p.isCurrent);
+    if (currentPeriod) {
+      void fetchDaeunAi(currentPeriod);
+    }
+  }, [timeline, fetchDaeunAi]);
 
   const handleStep = (delta: number) => {
     const next = clampPercent(syncRatio + delta);
@@ -610,6 +770,17 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       ? (isJa ? '過去の軌跡' : '지나온 궤적')
       : (isJa ? 'これから訪れる大運' : '다가올 대운');
 
+    const ageLabel = isJa ? `満${period.startAge}歳 〜 ${period.endAge}歳` : `만 ${period.startAge}세 ~ ${period.endAge}세`;
+    const lifeStage = isJa ? (LIFE_STAGE_JA[period.lifeStage] ?? period.lifeStage) : period.lifeStage;
+    const stemGod = isJa ? (TEN_GOD_JA[period.stemGod] ?? period.stemGod) : period.stemGod;
+    const branchGod = isJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod;
+    const stage12 = isJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12;
+
+    const aiState = daeunAiMap[period.index];
+    const aiPreview = aiState?.text
+      ? aiState.text.split('\n').map((l) => l.trim()).filter(Boolean)[0] || ''
+      : '';
+
     return (
       <TouchableOpacity
         key={period.index}
@@ -627,10 +798,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         <View style={styles.daeunHeadRow}>
           <Text style={[styles.daeunGanji, { color: accent }]}>{period.ganji.label}</Text>
           <View style={styles.daeunHeadText}>
-            <Text style={styles.daeunAge}>{period.ageLabel}</Text>
+            <Text style={styles.daeunAge}>{ageLabel}</Text>
             <Text style={styles.daeunYears}>
-              {period.startYear}~{period.endYear} · {period.lifeStage} · {period.stemGod}/{period.branchGod} ·{' '}
-              {period.stage12}
+              {period.startYear}~{period.endYear} · {lifeStage} · {stemGod}/{branchGod} · {stage12}
             </Text>
           </View>
           <View
@@ -652,20 +822,47 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           </View>
         </View>
 
-        <Text style={[styles.daeunHeadline, { color: accent }]}>{period.headline}</Text>
-        <Text style={styles.daeunSummary}>
-          {isJa && (period.summary.includes('타오르는 촛불') || period.summary.includes('든든한 방파제'))
-            ? '丁火の燃え盛る灯火が壬水の満ち引きする大河と手を取り合い、一体となって絡み合い（丁壬合・子丑合）、契約や貴人という堅固な防波堤の陰で拠点を固めて耐え抜く中年期。'
-            : period.summary}
+        <Text style={[styles.daeunHeadline, { color: accent }]}>
+          {aiPreview
+            ? aiPreview
+            : (isJa
+                ? `【${period.ganji.label}大運】天干地支・通変星の気運解断`
+                : `【${period.ganji.label} 대운】천간지지·십신 기운 해단`)}
         </Text>
 
         {isOpen && (
           <View style={styles.factBox}>
-            <Text style={styles.factDetail}>{period.detail}</Text>
-            <Text style={styles.factCheck}>✔ 팩트체크: {period.factCheck}</Text>
+            {aiState?.loading ? (
+              <View style={styles.aiLoadingBox}>
+                <ActivityIndicator size="small" color={accent} />
+                <Text style={[styles.aiLoadingText, { color: accent }]}>
+                  {isJa ? '神童が該当大運の天機を演算中...' : '옥동자가 해당 대운의 천기를 짚어내는 중...'}
+                </Text>
+              </View>
+            ) : aiState?.text ? (
+              <View style={styles.aiResultBox}>
+                <View style={[styles.aiBadge, { borderColor: accent }]}>
+                  <Text style={[styles.aiBadgeText, { color: accent }]}>
+                    {isJa ? '🔮 サイバー神童 大運神託' : '🔮 옥동자 대운 신명직설'}
+                  </Text>
+                </View>
+                <Text style={styles.aiResultText}>{aiState.text}</Text>
+              </View>
+            ) : (
+              <View style={styles.aiLoadingBox}>
+                <ActivityIndicator size="small" color={accent} />
+                <Text style={[styles.aiLoadingText, { color: accent }]}>
+                  {isJa ? '神童が該当大運の天機を演算中...' : '옥동자가 해당 대운의 천기를 짚어내는 중...'}
+                </Text>
+              </View>
+            )}
           </View>
         )}
-        <Text style={styles.expandHint}>{isOpen ? '▲ 접기' : '▼ 탭하여 팩트체크 보기'}</Text>
+        <Text style={styles.expandHint}>
+          {isOpen
+            ? (isJa ? '▲ 閉じる' : '▲ 접기')
+            : (isJa ? '▼ タップしてファクトチェックを見る' : '▼ 탭하여 팩트체크 보기')}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -681,17 +878,23 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         <View style={styles.yearTopRow}>
           <View style={styles.yearScoreBox}>
             <Text style={[styles.yearScore, { color: gradeColor, textShadowColor: gradeColor }]}>{score}</Text>
-            <Text style={styles.yearScoreUnit}>/ 100점</Text>
+            <Text style={styles.yearScoreUnit}>{isJa ? '/ 100点' : '/ 100점'}</Text>
           </View>
           <View style={styles.yearMeta}>
             <View style={[styles.badge, styles.yearGradeBadge, { borderColor: gradeColor, backgroundColor: `${gradeColor}1A` }]}>
-              <Text style={[styles.badgeText, { color: gradeColor }]}>{fortune.grade}</Text>
+              <Text style={[styles.badgeText, { color: gradeColor }]}>
+                {isJa ? (GRADE_LABEL_JA[fortune.grade] ?? fortune.grade) : fortune.grade}
+              </Text>
             </View>
             <Text style={styles.yearTitle}>
-              {fortune.year}년 {fortune.ganji.label}년 · {fortune.ageLabel}
+              {isJa
+                ? `${fortune.year}年 ${fortune.ganji.label}年 · ${fortune.ageStart === fortune.ageEnd ? `満${fortune.ageStart}歳` : `満${fortune.ageStart}〜${fortune.ageEnd}歳`}`
+                : `${fortune.year}년 ${fortune.ganji.label}년 · ${fortune.ageLabel}`}
             </Text>
             <Text style={styles.yearGods}>
-              천간 {fortune.stemGod} · 지지 {fortune.branchGod} · 12운성 {fortune.stage12}
+              {isJa
+                ? `天干 ${TEN_GOD_JA[fortune.stemGod] ?? fortune.stemGod} · 地支 ${TEN_GOD_JA[fortune.branchGod] ?? fortune.branchGod} · 十二運 ${STAGE12_JA[fortune.stage12] ?? fortune.stage12}`
+                : `천간 ${fortune.stemGod} · 지지 ${fortune.branchGod} · 12운성 ${fortune.stage12}`}
             </Text>
             <Text style={[styles.yearKeyword, { color: gradeColor }]}>#{fortune.keyword}</Text>
           </View>
@@ -712,15 +915,17 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           {fortune.appliedInterests.map((key) => (
             <View key={key} style={styles.yearInterestChip}>
               <Text style={styles.yearInterestText}>
-                {INTEREST_EMOJI[key]} {INTEREST_LABEL[key]} {clampPercent(fortune.interestScores[key] ?? 0)}
+                {INTEREST_EMOJI[key]} {isJa ? INTEREST_LABEL_JA[key] : INTEREST_LABEL[key]} {clampPercent(fortune.interestScores[key] ?? 0)}
               </Text>
             </View>
           ))}
         </View>
 
         <View style={[styles.yearListBox, { borderColor: COLOR.green }]}>
-          <Text style={[styles.yearListTitle, { color: COLOR.green }]}>🟢 핵심 기회</Text>
-          {(opportunities.length > 0 ? opportunities : ['뚜렷한 기회 신호가 없습니다. 현상 유지에 집중하세요.']).map(
+          <Text style={[styles.yearListTitle, { color: COLOR.green }]}>
+            {isJa ? '🟢 核心機会' : '🟢 핵심 기회'}
+          </Text>
+          {(opportunities.length > 0 ? opportunities : [isJa ? '明確な機会シグナルはありません。現状維持に集中してください。' : '뚜렷한 기회 신호가 없습니다. 현상 유지에 집중하세요.']).map(
             (text, i) => (
               <Text key={`opp-${i}`} style={styles.yearListItem}>
                 · {text}
@@ -730,8 +935,10 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         </View>
 
         <View style={[styles.yearListBox, { borderColor: COLOR.red }]}>
-          <Text style={[styles.yearListTitle, { color: COLOR.red }]}>🔴 치명적 리스크 · 손재수 / 관재구설</Text>
-          {(risks.length > 0 ? risks : ['특별히 두드러진 충·형 신호는 감지되지 않았습니다.']).map((text, i) => (
+          <Text style={[styles.yearListTitle, { color: COLOR.red }]}>
+            {isJa ? '🔴 致命的リスク · 損失 / 官災口舌' : '🔴 치명적 리스크 · 손재수 / 관재구설'}
+          </Text>
+          {(risks.length > 0 ? risks : [isJa ? '特段の衝突・刑シグナルは感知されていません。' : '특별히 두드러진 충·형 신호는 감지되지 않았습니다.']).map((text, i) => (
             <Text key={`risk-${i}`} style={styles.yearListItem}>
               · {text}
             </Text>
@@ -754,26 +961,36 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         />
         <View style={styles.hudHeadRow}>
           <View style={styles.hudHeadText}>
-            <Text style={styles.hudLabel}>{result.label}</Text>
-            <Text style={styles.hudAge}>{result.ageLabel}</Text>
+            <Text style={styles.hudLabel}>
+              {isJa ? (result.mode === 'year' ? `${result.value}年` : `${result.value}月`) : result.label}
+            </Text>
+            <Text style={styles.hudAge}>
+              {isJa
+                ? (result.ageStart === result.ageEnd ? `満${result.ageStart}歳` : `満${result.ageStart}〜${result.ageEnd}歳`)
+                : result.ageLabel}
+            </Text>
           </View>
           <View style={[styles.badge, { borderColor: risk.color, backgroundColor: `${risk.color}1A` }]}>
-            <Text style={[styles.badgeText, { color: risk.color }]}>● {risk.label}</Text>
+            <Text style={[styles.badgeText, { color: risk.color }]}>
+              ● {isJa ? (RISK_LABEL_JA[result.riskLevel] ?? risk.label) : risk.label}
+            </Text>
           </View>
         </View>
 
         <View style={styles.hudMainRow}>
           <View style={styles.hudCell}>
-            <Text style={styles.hudCellLabel}>천간지지</Text>
+            <Text style={styles.hudCellLabel}>{isJa ? '天干地支' : '천간지지'}</Text>
             <Text style={[styles.hudGanji, { color: COLOR.purple }]}>{result.ganji.label}</Text>
           </View>
           <View style={styles.hudCell}>
-            <Text style={styles.hudCellLabel}>운세 점수</Text>
+            <Text style={styles.hudCellLabel}>{isJa ? '運勢スコア' : '운세 점수'}</Text>
             <Text style={[styles.hudScore, { color: gradeColor, textShadowColor: gradeColor }]}>{score}</Text>
           </View>
           <View style={styles.hudCell}>
-            <Text style={styles.hudCellLabel}>길흉 등급</Text>
-            <Text style={[styles.hudGrade, { color: gradeColor }]}>{result.grade}</Text>
+            <Text style={styles.hudCellLabel}>{isJa ? '吉凶グレード' : '길흉 등급'}</Text>
+            <Text style={[styles.hudGrade, { color: gradeColor }]}>
+              {isJa ? (GRADE_LABEL_JA[result.grade] ?? result.grade) : result.grade}
+            </Text>
           </View>
         </View>
 
@@ -781,11 +998,15 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           <View style={[styles.hudBarFill, { width: `${score}%`, backgroundColor: gradeColor }]} />
         </View>
         <Text style={styles.hudGods}>
-          {result.stemGod}/{result.branchGod} · {result.stage12} · #{result.keyword}
+          {isJa
+            ? `${TEN_GOD_JA[result.stemGod] ?? result.stemGod}/${TEN_GOD_JA[result.branchGod] ?? result.branchGod} · ${STAGE12_JA[result.stage12] ?? result.stage12} · #${result.keyword}`
+            : `${result.stemGod}/${result.branchGod} · ${result.stage12} · #${result.keyword}`}
         </Text>
 
         <View style={[styles.hudAdviceBox, { borderColor: risk.color }]}>
-          <Text style={[styles.hudAdviceLabel, { color: risk.color }]}>💊 행동 처방</Text>
+          <Text style={[styles.hudAdviceLabel, { color: risk.color }]}>
+            {isJa ? '💊 行動処方' : '💊 행동 처방'}
+          </Text>
           <Text style={styles.hudAdviceText}>{result.advice}</Text>
         </View>
       </View>
@@ -801,17 +1022,17 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         style={[styles.monthCard, { borderColor: month.isCurrentMonth ? COLOR.cyan : COLOR.border }]}
       >
         <View style={styles.monthHeadRow}>
-          <Text style={styles.monthLabel}>{month.label}</Text>
-          {month.isCurrentMonth && <Text style={styles.monthNow}>지금</Text>}
+          <Text style={styles.monthLabel}>{isJa ? `${month.month}月` : month.label}</Text>
+          {month.isCurrentMonth && <Text style={styles.monthNow}>{isJa ? '現在' : '지금'}</Text>}
         </View>
-        <Text style={styles.monthGanji}>{month.ganji.label}월</Text>
-        <Text style={styles.monthAge}>{month.ageLabel}</Text>
+        <Text style={styles.monthGanji}>{isJa ? `${month.ganji.label}月` : `${month.ganji.label}월`}</Text>
+        <Text style={styles.monthAge}>{isJa ? `満${month.age}歳` : month.ageLabel}</Text>
         <Text style={styles.monthKeyword} numberOfLines={1}>
           {month.keyword}
         </Text>
 
         <View style={styles.monthScoreRow}>
-          <Text style={styles.monthScoreLabel}>재물</Text>
+          <Text style={styles.monthScoreLabel}>{isJa ? '金運' : '재물'}</Text>
           <View style={styles.monthBarBg}>
             <View
               style={[
@@ -823,7 +1044,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           <Text style={styles.monthScoreValue}>{clampPercent(month.wealthScore)}</Text>
         </View>
         <View style={styles.monthScoreRow}>
-          <Text style={styles.monthScoreLabel}>종합</Text>
+          <Text style={styles.monthScoreLabel}>{isJa ? '総合' : '종합'}</Text>
           <View style={styles.monthBarBg}>
             <View
               style={[
@@ -837,7 +1058,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
         <View style={[styles.riskBadge, { borderColor: risk.color }]}>
           <Text style={[styles.riskBadgeText, { color: risk.color }]}>
-            위험 경보 · {risk.label} ({month.grade})
+            {isJa
+              ? `警戒レベル · ${RISK_LABEL_JA[month.riskLevel] ?? risk.label} (${GRADE_LABEL_JA[month.grade] ?? month.grade})`
+              : `위험 경보 · ${risk.label} (${month.grade})`}
           </Text>
         </View>
         <Text style={styles.monthNote} numberOfLines={3}>
@@ -899,8 +1122,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               <View style={styles.summaryBox}>
                 <Text style={styles.summaryMain}>
                   {isJa
-                    ? `現在 ${timeline.currentAgeLabel} · 日干 ${timeline.dayMaster} · ${timeline.strength} · ${timeline.direction}`
-                    : `현재 ${timeline.currentAgeLabel} · 일간 ${timeline.dayMaster} · ${timeline.strength} · ${timeline.direction}`}
+                    ? `現在 満${timeline.currentAge}歳 · 日干 ${timeline.dayMaster} · ${timeline.strength === '신강' ? '身強' : timeline.strength === '신약' ? '身弱' : '中和'} · ${timeline.direction === '순행' ? '順行' : '逆行'}`
+                    : `현재 만 ${timeline.currentAge}세 · 일간 ${timeline.dayMaster} · ${timeline.strength} · ${timeline.direction}`}
                 </Text>
                 <Text style={styles.summarySub}>
                   {isJa
@@ -942,7 +1165,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                 : '위 대운 흐름이 당신의 실제 삶과 얼마나 닮아 있나요?'}
             </Text>
             <Text style={[styles.anchorPercent, { color, textShadowColor: color }]}>{syncRatio}%</Text>
-            <Text style={[styles.anchorCaption, { color }]}>{syncCaption(syncRatio)}</Text>
+            <Text style={[styles.anchorCaption, { color }]}>{syncCaption(syncRatio, isJa)}</Text>
             <Text style={[styles.syncStatus, isSynced ? styles.syncStatusOn : styles.syncStatusOff]}>
               {isSynced
                 ? isJa
@@ -969,7 +1192,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                 style={[styles.stepBtn, { borderColor: color }]}
                 onPress={() => handleStep(-SLIDER_STEP)}
                 activeOpacity={0.7}
-                accessibilityLabel={`일치율 ${SLIDER_STEP} 낮추기`}
+                accessibilityLabel={isJa ? `一致率 ${SLIDER_STEP} 下げる` : `일치율 ${SLIDER_STEP} 낮추기`}
               >
                 <Text style={[styles.stepBtnText, { color }]}>−{SLIDER_STEP}</Text>
               </TouchableOpacity>
@@ -977,7 +1200,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                 style={[styles.stepBtn, { borderColor: color }]}
                 onPress={() => handleStep(SLIDER_STEP)}
                 activeOpacity={0.7}
-                accessibilityLabel={`일치율 ${SLIDER_STEP} 높이기`}
+                accessibilityLabel={isJa ? `一致率 ${SLIDER_STEP} 上げる` : `일치율 ${SLIDER_STEP} 높이기`}
               >
                 <Text style={[styles.stepBtnText, { color }]}>+{SLIDER_STEP}</Text>
               </TouchableOpacity>
@@ -1075,7 +1298,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                     accessibilityState={{ selected }}
                   >
                     <Text style={[styles.tmTabText, selected && styles.tmTabTextSelected]}>
-                      {TM_MODE_LABEL[mode]}
+                      {isJa ? TM_MODE_LABEL_JA[mode] : TM_MODE_LABEL[mode]}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -1091,8 +1314,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                   max={TM_YEAR_MAX}
                   ticks={TM_YEAR_TICKS}
                   color={COLOR.purple}
-                  accessibilityLabel="연도별 시간여행"
-                  accessibilityValueText={(v) => `${v}년`}
+                  accessibilityLabel={isJa ? '年別タイムトラベル' : '연도별 시간여행'}
+                  accessibilityValueText={(v) => isJa ? `${v}年` : `${v}년`}
                   onChange={setTmYear}
                   onComplete={setTmYear}
                   onDragStateChange={setDragging}
@@ -1105,8 +1328,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                   max={12}
                   ticks={TM_MONTH_TICKS}
                   color={COLOR.purple}
-                  accessibilityLabel="월별 시간여행"
-                  accessibilityValueText={(v) => `${v}월`}
+                  accessibilityLabel={isJa ? '月別タイムトラベル' : '월별 시간여행'}
+                  accessibilityValueText={(v) => isJa ? `${v}月` : `${v}월`}
                   onChange={setTmMonth}
                   onComplete={setTmMonth}
                   onDragStateChange={setDragging}
@@ -1140,7 +1363,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             </ScrollView>
           ) : (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>월별 운세를 계산하지 못했습니다. 생년월일을 확인해 주세요.</Text>
+              <Text style={styles.emptyText}>
+                {isJa ? '月別運勢を計算できませんでした。生年月日をご確認ください。' : '월별 운세를 계산하지 못했습니다. 생년월일을 확인해 주세요.'}
+              </Text>
             </View>
           )}
         </ScrollView>
@@ -1797,5 +2022,40 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     minHeight: 76,
+  },
+  aiLoadingBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 10,
+  },
+  aiLoadingText: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  aiResultBox: {
+    paddingVertical: 4,
+  },
+  aiBadge: {
+    alignSelf: 'flex-start',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    marginBottom: 8,
+  },
+  aiBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  aiResultText: {
+    color: COLOR.text,
+    fontSize: 12.5,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });
