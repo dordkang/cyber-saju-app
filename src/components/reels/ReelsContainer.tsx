@@ -410,10 +410,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         } catch {}
 
         const targetTop =
-          typeof targetElement?.offsetTop === 'number' && targetElement.offsetTop > 0
-            ? targetElement.offsetTop
-            : pageHeight > 0
+          pageHeight > 0
             ? targetIndex * pageHeight
+            : typeof targetElement?.offsetTop === 'number' && targetElement.offsetTop > 0
+            ? targetElement.offsetTop
             : 0;
 
         if (targetTop > 0) {
@@ -458,6 +458,22 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     }
   }, [pageHeight, forceSyncTargetIndex]);
 
+  const scrollToSectionRef = useRef(scrollToSection);
+  scrollToSectionRef.current = scrollToSection;
+
+  // [A. ReelsContainer 전역 인덱스 브리지 장착]
+  useEffect(() => {
+    (window as any).jumpToReelIndex = (index: number) => {
+      if (typeof setActiveIndex === 'function') {
+        setActiveIndex(index);
+      }
+      scrollToSectionRef.current?.(index);
+    };
+    return () => {
+      delete (window as any).jumpToReelIndex;
+    };
+  }, [setActiveIndex]);
+
   useEffect(() => {
     if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < REEL_SECTIONS.length) {
       scrollToSection(targetIndex);
@@ -473,20 +489,16 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           : typeof e.detail?.index === 'number'
           ? e.detail.index
           : 7;
-      scrollToSection(idx);
+      if (typeof (window as any).jumpToReelIndex === 'function') {
+        (window as any).jumpToReelIndex(idx);
+      } else {
+        scrollToSection(idx);
+      }
     };
 
     if (typeof window !== 'undefined') {
       (window as any).scrollToSection = scrollToSection;
       (window as any).jumpToSection = scrollToSection;
-      (window as any).jumpToReelIndex = (index: number) => {
-        if (typeof setActiveIndex === 'function') {
-          setActiveIndex(index);
-        }
-        if (typeof scrollToSection === 'function') {
-          scrollToSection(index);
-        }
-      };
       window.addEventListener('cyber-saju-jump', handleJumpEvent as EventListener);
       window.addEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
 
@@ -495,10 +507,9 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         window.removeEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
         delete (window as any).scrollToSection;
         delete (window as any).jumpToSection;
-        delete (window as any).jumpToReelIndex;
       };
     }
-  }, [scrollToSection, setActiveIndex]);
+  }, [scrollToSection]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (isNavigatingRef.current) return;
