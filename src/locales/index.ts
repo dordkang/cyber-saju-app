@@ -4,37 +4,24 @@ import type { Locale, LocaleDictionary } from './types';
 import { ko } from './ko';
 import { ja } from './ja';
 
+import { getActiveLanguage, STORAGE_KEY_LANG } from '../utils/langManager';
+
 export * from './types';
 export { ko } from './ko';
 export { ja } from './ja';
 export { CARDS_JA } from './cards_ja';
+export { getActiveLanguage, setActiveLanguage, type ActiveLanguage } from '../utils/langManager';
 
 export const DICTIONARY: Record<Locale, LocaleDictionary> = {
   ko,
   ja,
 };
 
-const STORAGE_KEY = 'cyber_saju_lang';
+const STORAGE_KEY = STORAGE_KEY_LANG;
 
 export function detectInitialLocale(): Locale {
-  if (typeof window !== 'undefined') {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === 'ko' || saved === 'ja') {
-        return saved;
-      }
-      const nav =
-        (typeof navigator !== 'undefined' &&
-          (navigator.language || (navigator.languages && navigator.languages[0]))) ||
-        '';
-      if (nav.toLowerCase().startsWith('ja')) {
-        return 'ja';
-      }
-    } catch {
-      // ignore security/storage errors
-    }
-  }
-  return 'ko';
+  const active = getActiveLanguage();
+  return active === 'jp' ? 'ja' : 'ko';
 }
 
 let activeLocale: Locale = detectInitialLocale();
@@ -49,7 +36,7 @@ export function setLocale(next: Locale): void {
   activeLocale = next;
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      localStorage.setItem(STORAGE_KEY, next === 'ja' ? 'jp' : 'kr');
       window.dispatchEvent(new CustomEvent('cyber_saju_lang_change', { detail: next }));
     } catch {
       // ignore
@@ -77,8 +64,12 @@ export function useLocale(): {
     listeners.add(handler);
 
     const onCustomEvent = (e: any) => {
-      if (e?.detail && (e.detail === 'ko' || e.detail === 'ja')) {
-        setLocal(e.detail);
+      if (e?.detail) {
+        if (e.detail === 'ko' || e.detail === 'kr') {
+          setLocal('ko');
+        } else if (e.detail === 'ja' || e.detail === 'jp') {
+          setLocal('ja');
+        }
       }
     };
     if (typeof window !== 'undefined') {

@@ -3,6 +3,7 @@ import type { SajuResult } from '../engine/types';
 import type { PartnerProfile } from '../database/db';
 import { calculateSaju } from '../engine/calculator';
 import { formatSajuTerm } from '../utils/sajuTerms';
+import { getActiveLanguage } from '../utils/langManager';
 
 const GATEWAY_URL = 'https://saju-edge-gateway.cybersaju.workers.dev';
 const REQUEST_TIMEOUT_MS = 9000;
@@ -57,14 +58,19 @@ export function useSajuAdvice({
   userInput = '',
   partnerProfile,
   partnerSaju,
-  lang = 'kr',
+  lang,
   autoFetch = true,
   fallbackText = '',
   voiceStyle,
   currentDaewoon,
 }: UseSajuAdviceParams): UseSajuAdviceResult {
-  const isJa = lang === 'jp' || lang === 'ja';
-  const effectiveLang: 'kr' | 'jp' = isJa ? 'jp' : 'kr';
+  const activeLang = getActiveLanguage();
+  const effectiveLang: 'kr' | 'jp' = (lang === 'jp' || lang === 'ja')
+    ? 'jp'
+    : (lang === 'kr' || lang === 'ko')
+      ? 'kr'
+      : activeLang;
+  const isJa = effectiveLang === 'jp';
 
   // 페르소나 말투 (voiceStyle) 판별: brother (심야 사형) vs shaman (옥동자)
   const storedPersona = typeof localStorage !== 'undefined' ? localStorage.getItem('cyber_saju_persona') : null;
