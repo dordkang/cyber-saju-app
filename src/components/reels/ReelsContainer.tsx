@@ -403,27 +403,48 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
           (targetIndex === 7 ? (document.querySelector('[data-section="08"], .shaman-chamber-card') as HTMLElement) : null);
       }
 
-      if (targetElement) {
-        try {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } catch {}
-      }
-
       if (scrollableNode) {
         try {
-          const targetTop =
-            typeof targetElement?.offsetTop === 'number' && targetElement.offsetTop > 0
-              ? targetElement.offsetTop
-              : pageHeight > 0
-              ? targetIndex * pageHeight
-              : 0;
+          // 일시적으로 스냅을 풀어 중간 카드(02번 대운 등)에 걸려 튕기는 현상 원천 방지
+          (scrollableNode as HTMLElement).style.scrollSnapType = 'none';
+        } catch {}
 
-          if (targetTop > 0) {
+        const targetTop =
+          typeof targetElement?.offsetTop === 'number' && targetElement.offsetTop > 0
+            ? targetElement.offsetTop
+            : pageHeight > 0
+            ? targetIndex * pageHeight
+            : 0;
+
+        if (targetTop > 0) {
+          try {
             scrollableNode.scrollTo({
               top: targetTop,
               behavior: 'smooth',
             });
+          } catch {
+            scrollableNode.scrollTop = targetTop;
           }
+        } else if (targetElement) {
+          try {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } catch {}
+        }
+
+        // 스크롤 안착 후 스냅 복원 및 정밀 위치 고정
+        setTimeout(() => {
+          if (scrollableNode) {
+            try {
+              (scrollableNode as HTMLElement).style.scrollSnapType = 'y mandatory';
+              if (targetTop > 0) {
+                scrollableNode.scrollTop = targetTop;
+              }
+            } catch {}
+          }
+        }, 600);
+      } else if (targetElement) {
+        try {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch {}
       }
     }
