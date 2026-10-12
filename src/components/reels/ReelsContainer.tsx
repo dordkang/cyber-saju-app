@@ -458,6 +458,14 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
     if (typeof window !== 'undefined') {
       (window as any).scrollToSection = scrollToSection;
       (window as any).jumpToSection = scrollToSection;
+      (window as any).jumpToReelIndex = (index: number) => {
+        if (typeof setActiveIndex === 'function') {
+          setActiveIndex(index);
+        }
+        if (typeof scrollToSection === 'function') {
+          scrollToSection(index);
+        }
+      };
       window.addEventListener('cyber-saju-jump', handleJumpEvent as EventListener);
       window.addEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
 
@@ -466,9 +474,10 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
         window.removeEventListener('cyber_saju_scroll_to_section', handleJumpEvent as EventListener);
         delete (window as any).scrollToSection;
         delete (window as any).jumpToSection;
+        delete (window as any).jumpToReelIndex;
       };
     }
-  }, [scrollToSection]);
+  }, [scrollToSection, setActiveIndex]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (isNavigatingRef.current) return;

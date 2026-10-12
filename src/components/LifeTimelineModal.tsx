@@ -500,6 +500,11 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     // 2. 릴스 컨테이너에 08번 섹터(인덱스 7)로 이동할 것을 알리는 전역 이벤트 발사
     setTimeout(() => {
       if (typeof window !== 'undefined') {
+        // 방법 0: 전역 인덱스 제어 함수 호출 (State-based Index Jump)
+        if ((window as any).jumpToReelIndex) {
+          (window as any).jumpToReelIndex(7);
+        }
+
         // 방법 A: 전역 함수 호출
         if ((window as any).scrollToSection) {
           (window as any).scrollToSection(7);
