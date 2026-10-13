@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Modal,
   Platform,
   Pressable,
@@ -63,6 +64,7 @@ import type { ProfileFormValues } from './src/components/ProfileSettingModal';
 import { ReelsContainer } from './src/components/reels/ReelsContainer';
 import { SettingsModal } from './src/components/modals/SettingsModal';
 import { TalismanRitualModal } from './src/components/modals/TalismanRitualModal';
+import { ExitConfirmModal } from './src/components/modals/ExitConfirmModal';
 import type { ReelsContext, ReelsLifePeek, ReelsMbtiPeek, ReelsPeoplePeek } from './src/types/reels';
 import { AGENT_STORE, AGENT_TYPES } from './src/prompts/agents';
 import type { AgentType } from './src/prompts/agents';
@@ -261,6 +263,206 @@ function AppContent() {
   const [celebrityVisible, setCelebrityVisible] = useState(false);
   const [mbtiVisible, setMbtiVisible] = useState(false);
   const [talismanVisible, setTalismanVisible] = useState(false);
+  const [exitModalVisible, setExitModalVisible] = useState(false);
+
+  const activeModalRef = useRef({
+    exit: false,
+    daily: false,
+    report: false,
+    partner: false,
+    timeline: false,
+    profile: false,
+    mbti: false,
+    celebrity: false,
+    persona: false,
+    backup: false,
+    talisman: false,
+    settings: false,
+  });
+
+  useEffect(() => {
+    activeModalRef.current = {
+      exit: exitModalVisible,
+      daily: dailyVisible,
+      report: reportVisible,
+      partner: partnerVisible,
+      timeline: timelineVisible,
+      profile: profileVisible,
+      mbti: mbtiVisible,
+      celebrity: celebrityVisible,
+      persona: personaVisible,
+      backup: backupVisible,
+      talisman: talismanVisible,
+      settings: settingsVisible,
+    };
+  }, [
+    exitModalVisible,
+    dailyVisible,
+    reportVisible,
+    partnerVisible,
+    timelineVisible,
+    profileVisible,
+    mbtiVisible,
+    celebrityVisible,
+    personaVisible,
+    backupVisible,
+    talismanVisible,
+    settingsVisible,
+  ]);
+
+  const handleBackAction = useCallback(() => {
+    const modals = activeModalRef.current;
+
+    // 1단계: 종료 확인 모달이 이미 열려 있다면 닫기
+    if (modals.exit) {
+      setExitModalVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+
+    // 1단계: 현재 열려 있는 활성 모달이 있으면 해당 모달 우선 닫기
+    if (modals.daily) {
+      setDailyVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.report) {
+      setReportVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.partner) {
+      setPartnerVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.timeline) {
+      setTimelineVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.profile) {
+      setProfileVisible(false);
+      setOnboarding(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.mbti) {
+      setMbtiVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.celebrity) {
+      setCelebrityVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.persona) {
+      setPersonaVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.backup) {
+      setBackupVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.talisman) {
+      setTalismanVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+    if (modals.settings) {
+      setSettingsVisible(false);
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      return true;
+    }
+
+    // 2단계: 열려 있는 모달이 없으면 종료 확인 모달 띄우기 + 페이지 이탈 방어
+    setExitModalVisible(true);
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState(null, '', window.location.href);
+    }
+    return true;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState(null, '', window.location.href);
+
+      const onPopState = () => {
+        handleBackAction();
+      };
+
+      window.addEventListener('popstate', onPopState);
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        return handleBackAction();
+      });
+
+      return () => {
+        window.removeEventListener('popstate', onPopState);
+        backHandler.remove();
+      };
+    } else {
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        return handleBackAction();
+      });
+      return () => {
+        backHandler.remove();
+      };
+    }
+  }, [handleBackAction]);
+
+  const handleStay = useCallback(() => {
+    setExitModalVisible(false);
+    if (typeof window !== 'undefined' && window.history) {
+      window.history.pushState(null, '', window.location.href);
+    }
+  }, []);
+
+  const handleExitApp = useCallback(() => {
+    setExitModalVisible(false);
+    if (Platform.OS !== 'web') {
+      BackHandler.exitApp();
+      return;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        if (window.history.length > 2) {
+          window.history.go(-2);
+        } else {
+          window.close();
+        }
+      } catch {
+        window.close();
+      }
+    }
+  }, []);
   const [persona, setPersona] = useState<AgentType>(DEFAULT_PERSONA);
   const [soundOn, setSoundOn] = useState(false);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -908,6 +1110,12 @@ function AppContent() {
           </View>
         </View>
       </Modal>
+
+      <ExitConfirmModal
+        visible={exitModalVisible}
+        onStay={handleStay}
+        onExit={handleExitApp}
+      />
     </View>
   );
 }
