@@ -924,15 +924,13 @@ export default {
         return jsonResponse({ error: "Invalid request body" }, 400);
       }
 
-      const lang = pickString(parsed.lang || parsed.locale, 10).toLowerCase();
+      const lang = pickString(parsed.lang || parsed.locale || parsed.language, 10).toLowerCase();
       const questionText = `${pickString(parsed.userInput, 1000)} ${pickString(parsed.userLore, 1000)} ${pickString(parsed.diaryContent, 1000)} ${pickString(parsed.shortMemo, 500)} ${pickString(parsed.questionText, 500)}`;
       const allText = `${questionText} ${pickString(parsed.currentDaewoonDirective, 1000)} ${pickString(parsed.eventCategory, 100)}`;
       const hasJapaneseInText = /[\u3040-\u30ff\u31f0-\u31ff]/.test(allText);
 
-      // 전달받은 payload의 lang 값이 'jp'이거나 질문 텍스트에 일본어가 포함된 경우,
-      // 기존 한국어 옥동자 프롬프트를 전면 차단하고 100% 네이티브 일본어 사이버 신동(サイバー神童) 시스템 프롬프트만 강제 실행.
-      // lang 값이 'kr'일 때만(그리고 질문에 일본어가 없을 때만) 기존 한국어 옥동자 5단계 프롬프트 적용.
-      const isJa = lang === "jp" || lang === "ja" || hasJapaneseInText;
+      // 전달받은 payload의 lang/locale/language가 'jp'/'ja'이거나 isJa가 true이거나 질문 텍스트에 일본어가 포함된 경우
+      const isJa = lang === "jp" || lang === "ja" || parsed.isJa === true || hasJapaneseInText;
 
       const rawVoice = pickString(parsed.voiceStyle, 20).toLowerCase();
       const voiceStyle: "brother" | "shaman" =

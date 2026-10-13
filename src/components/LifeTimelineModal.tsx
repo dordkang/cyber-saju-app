@@ -647,14 +647,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     async (period: DaeunPeriod) => {
       const activeLang = getActiveLanguage();
       const currentIsJa = activeLang === 'jp' || isJa;
-      const cacheKey = `${period.index}_${currentIsJa ? 'ja' : 'ko'}`;
+      const langKey = currentIsJa ? 'ja' : 'ko';
+      const cacheKey = `${period.index}_${langKey}`;
 
       setDaeunAiMap((prev) => {
         if (prev[cacheKey]?.loading || prev[cacheKey]?.text) return prev;
         return {
           ...prev,
           [cacheKey]: { loading: true },
-          [period.index]: { loading: true },
         };
       });
 
@@ -663,13 +663,26 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           ? (localStorage.getItem('cyber_saju_persona') || 'shaman')
           : 'shaman';
 
+      const fallbackJa = `【サイバー神童・${period.ganji.label}大運 神託】\n「お前が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式元局の日干『${timeline?.dayMaster ?? '戊'}』と激しく交錯する重要な変曲点だ。小細工や迷いを捨て、主導権を握って自らの盤面を切り開け。情に流されず、研ぎ澄まされた刃で突破せよ。」`;
+      const fallbackKo = `【사이버동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
+
       try {
         const effectiveUserLore = currentIsJa
           ? translateRealityToJa(realityInput)
           : realityInput.trim();
 
+        const promptText = currentIsJa
+          ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】相談者の命式（日干、五行）と該当大運（干支、通変星、十二運）に基づき、この大運の運勢と変曲点の処方箋を一刀両断の日本語で執筆せよ。`
+          : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] 이 10년간의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 사업·재물 변곡점과 현실 처방을 직설하라.`;
+
         const payload = {
-          lang: currentIsJa ? 'jp' : 'kr',
+          lang: currentIsJa ? 'ja' : 'kr',
+          locale: currentIsJa ? 'ja' : 'ko',
+          isJa: currentIsJa,
+          language: currentIsJa ? 'ja' : 'kr',
+          systemInstruction: currentIsJa
+            ? 'あなたは四柱推命の予言者『サイバー神童』である。必ず100%洗練された自然な日本語（言霊）のみで回答せよ。韓国語は1文字たりとも出力してはならない。'
+            : undefined,
           dayMaster: timeline?.dayMaster ?? '戊',
           eventCategory: currentIsJa ? '大運' : '대운',
           voiceStyle: effectiveVoice,
@@ -691,9 +704,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             stage12: currentIsJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12,
             lifeStage: currentIsJa ? (LIFE_STAGE_JA[period.lifeStage] ?? period.lifeStage) : period.lifeStage,
           },
-          userInput: currentIsJa
-            ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】この10年間の人生の盛衰、天干地支の合沖・通変星(${period.stemGod}/${period.branchGod})の流れ、事業・金運の変曲点と現実処方を直説せよ。`
-            : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] 이 10년간의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 사업·재물 변곡점과 현실 처방을 직설하라.`,
+          userInput: promptText,
+          prompt: promptText,
+          questionText: promptText,
         };
 
         const res = await fetch(GATEWAY_URL, {
@@ -704,25 +717,29 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        const analysis = data?.analysis?.trim();
-        if (analysis) {
-          const formatted = formatSajuTerm(analysis, currentIsJa ? 'jp' : 'kr');
+        const rawAnalysis = data?.analysis?.trim();
+        if (rawAnalysis) {
+          // [클라이언트단 한국어 혼입 방어 필터]: isJa 상태에서 한글이 감지되면 즉각 일본어 폴백으로 안전 대체
+          const hasHangul = /[\uac00-\ud7af]/.test(rawAnalysis);
+          let finalAnalysis = rawAnalysis;
+          if (currentIsJa && hasHangul) {
+            console.warn('[LifeTimelineModal] 한글 혼입 감지되어 일본어 폴백으로 대체합니다:', rawAnalysis);
+            finalAnalysis = fallbackJa;
+          }
+
+          const formatted = formatSajuTerm(finalAnalysis, currentIsJa ? 'jp' : 'kr');
           setDaeunAiMap((prev) => ({
             ...prev,
             [cacheKey]: { loading: false, text: formatted },
-            [period.index]: { loading: false, text: formatted },
           }));
         } else {
           throw new Error('Empty response');
         }
       } catch {
-        const fallback = currentIsJa
-          ? `【サイバー神童・${period.ganji.label}大運 神託】\n「お前が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式元局の日干『${timeline?.dayMaster ?? '戊'}』と激しく交錯する重要な変曲点だ。小細工や迷いを捨て、主導権を握って自らの盤面を切り開け。情に流されず、研ぎ澄まされた刃で突破せよ。」`
-          : `【사이버동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
+        const fallback = currentIsJa ? fallbackJa : fallbackKo;
         setDaeunAiMap((prev) => ({
           ...prev,
           [cacheKey]: { loading: false, text: fallback },
-          [period.index]: { loading: false, text: fallback },
         }));
       }
     },
@@ -837,8 +854,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
     const activeLang = getActiveLanguage();
     const currentIsJa = activeLang === 'jp' || isJa;
-    const cacheKey = `${period.index}_${currentIsJa ? 'ja' : 'ko'}`;
-    const aiState = daeunAiMap[cacheKey] ?? daeunAiMap[period.index];
+    const langKey = currentIsJa ? 'ja' : 'ko';
+    const cacheKey = `${period.index}_${langKey}`;
+    const aiState = daeunAiMap[cacheKey];
 
     return (
       <TouchableOpacity
