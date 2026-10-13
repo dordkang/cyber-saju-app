@@ -512,7 +512,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
               onPress={() => handleEmotion(card.key)}
               disabled={charged}
               accessibilityRole="button"
-              accessibilityLabel={`${card.key}(${card.hanja}) ${isJa ? card.keywordJa : card.keyword}`}
+              accessibilityLabel={isJa ? `${card.hanja} ${card.keywordJa}` : `${card.key}(${card.hanja}) ${card.keyword}`}
               accessibilityState={{ selected, disabled: charged }}
               style={({ pressed }) => [
                 styles.emotionCard,
@@ -523,7 +523,7 @@ export const DailyCardDeck: React.FC<DailyCardDeckProps> = ({
             >
               <Text style={styles.emotionEmoji}>{card.emoji}</Text>
               <Text style={[styles.hanja, selected && styles.hanjaSelected]}>{card.hanja}</Text>
-              <Text style={[styles.emotionLabel, selected && styles.emotionLabelSelected]}>{card.key}</Text>
+              {!isJa && <Text style={[styles.emotionLabel, selected && styles.emotionLabelSelected]}>{card.key}</Text>}
               <Text style={styles.keyword}>{isJa ? card.keywordJa : card.keyword}</Text>
             </Pressable>
           );

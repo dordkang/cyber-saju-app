@@ -888,17 +888,17 @@ function AppContent() {
 
       <Modal visible={dailyVisible} transparent animationType="slide" onRequestClose={() => setDailyVisible(false)}>
         <View style={styles.sheetBackdrop}>
-          <Pressable style={styles.sheetDismiss} onPress={() => setDailyVisible(false)} accessibilityLabel="닫기" />
+          <Pressable style={styles.sheetDismiss} onPress={() => setDailyVisible(false)} accessibilityLabel={isJa ? '閉じる' : '닫기'} />
           <View style={styles.sheet}>
             <View style={styles.sheetHandle} />
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>3초 오행 정산</Text>
-              <Pressable onPress={() => setDailyVisible(false)} hitSlop={10} accessibilityRole="button" accessibilityLabel="닫기">
+              <Text style={styles.sheetTitle}>{isJa ? '3秒 五行精算' : '3초 오행 정산'}</Text>
+              <Pressable onPress={() => setDailyVisible(false)} hitSlop={10} accessibilityRole="button" accessibilityLabel={isJa ? '閉じる' : '닫기'}>
                 <Text style={styles.sheetClose}>✕</Text>
               </Pressable>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetBody}>
-              {saju && <ElementCircuit elementsRatio={saju.elementsRatio} />}
+              {saju && <ElementCircuit elementsRatio={saju.elementsRatio} isJa={isJa} />}
               <DailyCardDeck
                 onSave={handleSaveDailyCard}
                 onEventCategorySelect={handleEventCategorySelect}

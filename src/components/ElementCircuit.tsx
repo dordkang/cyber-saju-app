@@ -5,6 +5,7 @@ import type { FiveElement } from '../engine/types';
 
 interface ElementCircuitProps {
   elementsRatio: Record<FiveElement, number>;
+  isJa?: boolean;
 }
 
 const ELEMENT_ORDER: readonly FiveElement[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
@@ -22,10 +23,10 @@ function glowStyle(glow: string): ViewStyle | null {
   return Platform.OS === 'web' ? ({ boxShadow: `0 0 8px 1px ${glow}` } as unknown as ViewStyle) : null;
 }
 
-export const ElementCircuit: React.FC<ElementCircuitProps> = ({ elementsRatio }) => {
+export const ElementCircuit: React.FC<ElementCircuitProps> = ({ elementsRatio, isJa = false }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>[오행 기운 회로]</Text>
+      <Text style={styles.title}>{isJa ? '[五行気運回路]' : '[오행 기운 회로]'}</Text>
       {ELEMENT_ORDER.map((el) => {
         const config = ELEMENT_CONFIG[el];
         const raw = elementsRatio?.[el];
@@ -33,10 +34,15 @@ export const ElementCircuit: React.FC<ElementCircuitProps> = ({ elementsRatio })
         const isDeficient = ratio === 0;
 
         return (
-          <View key={el} style={styles.row} accessible accessibilityLabel={`${config.label} ${ratio.toFixed(1)}퍼센트${isDeficient ? ' 결핍' : ''}`}>
+          <View
+            key={el}
+            style={styles.row}
+            accessible
+            accessibilityLabel={`${isJa ? config.hanja : config.label} ${ratio.toFixed(1)}${isJa ? 'パーセント' : '퍼센트'}${isDeficient ? (isJa ? ' 欠乏' : ' 결핍') : ''}`}
+          >
             <View style={styles.labelBox}>
               <Text style={[styles.hanjaText, { color: config.color }]}>{config.hanja}</Text>
-              <Text style={styles.labelText}>{config.label}</Text>
+              {!isJa && <Text style={styles.labelText}>{config.label}</Text>}
             </View>
             <View style={styles.barTrack}>
               <View
@@ -51,7 +57,7 @@ export const ElementCircuit: React.FC<ElementCircuitProps> = ({ elementsRatio })
               />
             </View>
             <Text style={[styles.ratioText, isDeficient && styles.deficientText]}>
-              {ratio.toFixed(1)}%{isDeficient ? ' 결핍' : ''}
+              {ratio.toFixed(1)}%{isDeficient ? (isJa ? ' 欠乏' : ' 결핍') : ''}
             </Text>
           </View>
         );
