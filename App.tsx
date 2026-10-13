@@ -264,6 +264,17 @@ function AppContent() {
   const [mbtiVisible, setMbtiVisible] = useState(false);
   const [talismanVisible, setTalismanVisible] = useState(false);
   const [exitModalVisible, setExitModalVisible] = useState(false);
+  const isExitingRef = useRef(false);
+  const popstateListenerRef = useRef<((e: PopStateEvent) => void) | null>(null);
+
+  /** 브라우저 히스토리 트랩 무한 재장전 (Re-arm) */
+  const trapHistory = useCallback(() => {
+    try {
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState({ trap: true }, '', window.location.href);
+      }
+    } catch {}
+  }, []);
 
   const activeModalRef = useRef({
     exit: false,
@@ -311,147 +322,117 @@ function AppContent() {
   ]);
 
   const handleBackAction = useCallback(() => {
+    if (isExitingRef.current) return false;
+
+    // [중요: 무한 재장전] popstate로 히스토리가 1칸 소모된 즉시 히스토리 스택을 즉각 복구
+    trapHistory();
+
     const modals = activeModalRef.current;
 
     // 1단계: 종료 확인 모달이 이미 열려 있다면 닫기
     if (modals.exit) {
       setExitModalVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
 
     // 1단계: 현재 열려 있는 활성 모달이 있으면 해당 모달 우선 닫기
     if (modals.daily) {
       setDailyVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.report) {
       setReportVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.partner) {
       setPartnerVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.timeline) {
       setTimelineVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.profile) {
       setProfileVisible(false);
       setOnboarding(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.mbti) {
       setMbtiVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.celebrity) {
       setCelebrityVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.persona) {
       setPersonaVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.backup) {
       setBackupVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.talisman) {
       setTalismanVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
     if (modals.settings) {
       setSettingsVisible(false);
-      if (typeof window !== 'undefined' && window.history) {
-        window.history.pushState(null, '', window.location.href);
-      }
       return true;
     }
 
-    // 2단계: 열려 있는 모달이 없으면 종료 확인 모달 띄우기 + 페이지 이탈 방어
+    // 2단계: 열려 있는 모달이 없으면 종료 확인 모달 띄우기 및 유지
     setExitModalVisible(true);
-    if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState(null, '', window.location.href);
-    }
     return true;
-  }, []);
+  }, [trapHistory]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState(null, '', window.location.href);
+    // 1) 초기 진입 시 히스토리 트랩 장전
+    trapHistory();
 
-      const onPopState = () => {
-        handleBackAction();
-      };
+    const onPopState = () => {
+      if (isExitingRef.current) return;
+      handleBackAction();
+    };
 
+    popstateListenerRef.current = onPopState;
+
+    if (typeof window !== 'undefined') {
       window.addEventListener('popstate', onPopState);
-
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        return handleBackAction();
-      });
-
-      return () => {
-        window.removeEventListener('popstate', onPopState);
-        backHandler.remove();
-      };
-    } else {
-      const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        return handleBackAction();
-      });
-      return () => {
-        backHandler.remove();
-      };
     }
-  }, [handleBackAction]);
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBackAction();
+      return true; // React Native 하드웨어 뒤로가기 기본 동작 무조건 무효화
+    });
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('popstate', onPopState);
+      }
+      backHandler.remove();
+    };
+  }, [handleBackAction, trapHistory]);
 
   const handleStay = useCallback(() => {
     setExitModalVisible(false);
-    if (typeof window !== 'undefined' && window.history) {
-      window.history.pushState(null, '', window.location.href);
-    }
-  }, []);
+    trapHistory(); // 안전을 위해 한 번 더 재장전
+  }, [trapHistory]);
 
   const handleExitApp = useCallback(() => {
+    isExitingRef.current = true;
     setExitModalVisible(false);
+
     if (Platform.OS !== 'web') {
       BackHandler.exitApp();
       return;
     }
+
     if (typeof window !== 'undefined') {
+      if (popstateListenerRef.current) {
+        window.removeEventListener('popstate', popstateListenerRef.current);
+      }
       try {
         if (window.history.length > 2) {
           window.history.go(-2);
