@@ -10,10 +10,15 @@ export interface PrescriptionSection {
 }
 
 export interface PartnerPrescription {
+  title?: string;
+  prescriptionLabel?: string;
   sections: PrescriptionSection[];
   actions: string[];
   verdict: string;
 }
+
+export const PRESCRIPTION_LABEL_KO = '사이버동자 처방';
+export const PRESCRIPTION_LABEL_JA = 'サイバー神童処方';
 
 type PillarKey = 'year' | 'month' | 'day' | 'time';
 
@@ -172,7 +177,7 @@ function formatMonthsJa(months: number[]): string {
 }
 
 /**
- * 상대 사주와 딴마음 지수로 옥동자 심층 처방 리포트를 만든다.
+ * 상대 사주와 딴마음 지수로 사이버동자(サイバー神童) 심층 처방 리포트를 만든다.
  * 도화 위치, 위험한 달(도화 달 + 배우자 자리를 치는 달), 연락 패턴, 행동 강령을 모두 로컬 규칙으로 구성한다.
  */
 export function buildPartnerPrescription(
@@ -261,14 +266,10 @@ export function buildPartnerPrescription(
   }
 
   const contactLines: string[] = isJa
-    ? radar.level === '안정'
-      ? [
-          '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
-        ]
-      : [
-          ...LEVEL_COPY_JA[radar.level].contactPattern,
-          `心が離れ始め、${ELEMENT_TRAIT_JA[element]?.leak ?? '一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します'}。`,
-        ]
+    ? [
+        ...LEVEL_COPY_JA[radar.level].contactPattern,
+        `心が離れ始め、${ELEMENT_TRAIT_JA[element]?.leak ?? '一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します'}。`,
+      ]
     : [
         ...LEVEL_COPY[radar.level].contactPattern,
         `마음이 움직이기 시작하면 ${trait.leak}.`,
@@ -288,7 +289,12 @@ export function buildPartnerPrescription(
     ? LEVEL_COPY_JA[radar.level].verdict
     : LEVEL_COPY[radar.level].verdict;
 
+  const prescriptionLabel = isJa ? PRESCRIPTION_LABEL_JA : PRESCRIPTION_LABEL_KO;
+  const prescriptionTitle = isJa ? `${PRESCRIPTION_LABEL_JA}・自分から実践すべき3つの行動` : `${PRESCRIPTION_LABEL_KO} · 내가 먼저 할 행동 3가지`;
+
   return {
+    title: prescriptionTitle,
+    prescriptionLabel,
     sections,
     actions,
     verdict,

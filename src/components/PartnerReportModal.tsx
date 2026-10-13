@@ -30,7 +30,7 @@ const LOCKED_ITEMS: ReadonlyArray<{ title: string; hint: string }> = [
   { title: '도화 분석 · 이 사람의 끌림 구조', hint: '어느 자리에 도화가 앉았는지, 그게 무슨 뜻인지 짚어 드려요.' },
   { title: '딴마음이 올라오는 시기', hint: '올해 달마다 조심해야 할 시기를 짚어 드려요.' },
   { title: '연락이 뜸해지는 패턴', hint: '이런 신호가 보이면 이미 마음이 흔들린 거예요.' },
-  { title: '옥통자 처방 · 내가 먼저 할 행동 3가지', hint: '붙잡는 법, 확인하는 법, 놓아야 할 때까지.' },
+  { title: '사이버동자 처방 · 내가 먼저 할 행동 3가지', hint: '붙잡는 법, 확인하는 법, 놓아야 할 때까지.' },
 ];
 
 const LOCKED_ITEMS_JA: ReadonlyArray<{ title: string; hint: string }> = [
@@ -194,7 +194,7 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                   </View>
                   <Text style={[styles.sectionLine, { lineHeight: 22, color: COLORS.text }]}>
                     {isAiLoading
-                      ? (isJa ? '天機を演算中...（神託を受信しています）' : '옥통자가 상대의 사주와 기운을 관조하는 중...')
+                      ? (isJa ? '天機を演算中...（神託を受信しています）' : '사이버동자가 상대의 사주와 기운을 관조하는 중...')
                       : (aiReport
                           ? formatSajuTerm(aiReport, isJa ? 'jp' : 'kr')
                           : (isJa ? '相手の命式とあなたの関係性をAIがリアルタイムに分析中です。' : '상대의 명식과 심리를 실시간 분석 중입니다.'))}
@@ -257,7 +257,9 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
                           sectionTitle = '連絡が途絶えがちになるパターン';
                           if (radar.level === '안정' || sectionLines.some((l) => l.includes('연락이 끊기는') || l.includes('무관심이 먼저'))) {
                             sectionLines = [
-                              '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
+                              '連絡が途絶えるのは、別の相手ができたからではなく、心が冷めてしまったからです。この命式は浮気よりも無関心が先に訪れます。',
+                              '返信が短くなり近況を尋ねる言葉が消えたら、それが危険信号です。言い訳が増えるのではなく口数が減っていきます。',
+                              '心が離れ始め、一度境界線を引いてしまうと、二度と振り返らずに冷徹に整理します。',
                             ];
                           } else if (radar.level === '주의') {
                             sectionLines = [
@@ -287,9 +289,10 @@ export const PartnerReportModal: React.FC<PartnerReportModalProps> = ({
 
                     <View style={[styles.sectionCard, styles.prescriptionCard]}>
                       <Text style={[styles.sectionTitle, { color: COLORS.cyan }]}>
-                        {isJa
-                          ? 'サイバー神童処方・自分から実践すべき3つの行動'
-                          : '옥통자 처방 · 내가 먼저 할 행동 3가지'}
+                        {prescription.title ??
+                          (isJa
+                            ? 'サイバー神童処方・自分から実践すべき3つの行動'
+                            : '사이버동자 처방 · 내가 먼저 할 행동 3가지')}
                       </Text>
                       {(isJa
                         ? (PRESCRIPTION_COPY_JA[radar.level]?.actions ?? [
