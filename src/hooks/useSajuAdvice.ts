@@ -224,17 +224,29 @@ export function useSajuAdvice({
     };
   }, [autoFetch, fetchAdvice, userInput]);
 
-  // 첫 문장 추출하여 headline 생성
+  // 간결한 작전 타이틀로 headline 설정 (본문 첫 문장 중복 노출 제거)
   useEffect(() => {
-    if (!advice) {
-      setHeadline('');
-      return;
+    setHeadline(effectiveLang === 'jp' ? '【明日の作戦指針】神童の一刀両断' : '【내일의 작전 지침】옥동자 일도양단');
+  }, [effectiveLang]);
+
+  // 언어 변경 시 또는 fallbackText 갱신 시 상태 동기화 및 구 캐시 오염 차단
+  const prevLangRef = useRef(effectiveLang);
+  useEffect(() => {
+    if (prevLangRef.current !== effectiveLang) {
+      prevLangRef.current = effectiveLang;
+      setAdvice(fallbackText);
+      setIsAiGenerated(false);
     }
-    const lines = advice.split('\n').map((l) => l.trim()).filter(Boolean);
-    const firstLine = lines[0] ?? '';
-    const cleanKicker = firstLine.length > 50 ? `${firstLine.slice(0, 48)}...` : firstLine;
-    setHeadline(cleanKicker);
-  }, [advice]);
+  }, [effectiveLang, fallbackText]);
+
+  useEffect(() => {
+    if (!isAiGenerated) {
+      setAdvice(fallbackText);
+    } else if (effectiveLang === 'jp' && /[가-힣]/.test(advice)) {
+      setAdvice(fallbackText);
+      setIsAiGenerated(false);
+    }
+  }, [fallbackText, isAiGenerated, effectiveLang, advice]);
 
   return {
     advice: advice || fallbackText,

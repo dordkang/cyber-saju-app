@@ -1,6 +1,7 @@
 import { calculateSaju } from './calculator';
 import { getTenGod } from './timelineEngine';
 import type { EarthlyBranch, FiveElement, HeavenlyStem, SajuResult } from './types';
+import { formatSajuTerm } from '../utils/sajuTerms';
 
 export type CoreCategory = 'wealth' | 'love' | 'career' | 'health' | 'business';
 
@@ -29,77 +30,99 @@ const ELEMENT_TITLE_MAP: Record<FiveElement, string> = {
   Water: '흑수(黑水)의 기운',
 };
 
+const ELEMENT_TITLE_MAP_JA: Record<FiveElement, string> = {
+  Wood: '青木（木気）の気運',
+  Fire: '赤火（火気）の気運',
+  Earth: '黄土（土気）の気運',
+  Metal: '白金（金気）の気運',
+  Water: '黒水（水気）の気運',
+};
+
 const BRANCH_SHINSAL_MAP: Record<string, { dohwa: EarthlyBranch; yeokma: EarthlyBranch; hwagae: EarthlyBranch }> = {
-  寅午戌: { dohwa: '卯', yeokma: '申', hwagae: '戌' },
-  申子辰: { dohwa: '酉', yeokma: '寅', hwagae: '辰' },
-  巳酉丑: { dohwa: '午', yeokma: '亥', hwagae: '丑' },
-  亥卯未: { dohwa: '子', yeokma: '巳', hwagae: '未' },
+  '寅午戌': { dohwa: '卯', yeokma: '申', hwagae: '戌' },
+  '申子辰': { dohwa: '酉', yeokma: '寅', hwagae: '辰' },
+  '巳酉丑': { dohwa: '午', yeokma: '亥', hwagae: '丑' },
+  '亥卯未': { dohwa: '子', yeokma: '巳', hwagae: '未' },
 };
 
 const BAEKHO_LIST = new Set(['甲辰', '乙未', '丙戌', '丁丑', '戊辰', '壬戌', '癸丑']);
 const YANGIN_STEM_BRANCH: Record<string, EarthlyBranch> = {
-  甲: '卯',
-  丙: '午',
-  戊: '午',
-  庚: '酉',
-  壬: '子',
+  '甲': '卯',
+  '丙': '午',
+  '戊': '午',
+  '庚': '酉',
+  '壬': '子',
 };
 
 const STEM_COMBINES: Record<string, string> = {
-  甲: '己', 己: '甲',
-  乙: '庚', 庚: '乙',
-  丙: '辛', 辛: '丙',
-  丁: '壬', 壬: '丁',
-  戊: '癸', 癸: '戊',
+  '甲': '己', '己': '甲',
+  '乙': '庚', '庚': '乙',
+  '丙': '辛', '辛': '丙',
+  '丁': '壬', '壬': '丁',
+  '戊': '癸', '癸': '戊',
 };
 
 const BRANCH_SIX_COMBINES: Record<string, string> = {
-  子: '丑', 丑: '子',
-  寅: '亥', 亥: '寅',
-  卯: '戌', 戌: '卯',
-  辰: '酉', 酉: '辰',
-  巳: '申', 申: '巳',
-  午: '未', 未: '午',
+  '子': '丑', '丑': '子',
+  '寅': '亥', '亥': '寅',
+  '卯': '戌', '戌': '卯',
+  '辰': '酉', '酉': '辰',
+  '巳': '申', '申': '巳',
+  '午': '未', '未': '午',
 };
 
 const BRANCH_CLASHES: Record<string, string> = {
-  子: '午', 午: '子',
-  丑: '未', 未: '丑',
-  寅: '申', 申: '寅',
-  卯: '酉', 酉: '卯',
-  辰: '戌', 戌: '辰',
-  巳: '亥', 亥: '巳',
-};
-
-const BRANCH_ELEMENT: Record<EarthlyBranch, FiveElement> = {
-  子: 'Water',
-  丑: 'Earth',
-  寅: 'Wood',
-  卯: 'Wood',
-  辰: 'Earth',
-  巳: 'Fire',
-  午: 'Fire',
-  未: 'Earth',
-  申: 'Metal',
-  酉: 'Metal',
-  戌: 'Earth',
-  亥: 'Water',
+  '子': '午', '午': '子',
+  '丑': '未', '未': '丑',
+  '寅': '申', '申': '寅',
+  '卯': '酉', '酉': '卯',
+  '辰': '戌', '戌': '辰',
+  '巳': '亥', '亥': '巳',
 };
 
 const BRANCH_MAIN_STEM: Record<EarthlyBranch, HeavenlyStem> = {
-  子: '癸',
-  丑: '己',
-  寅: '甲',
-  卯: '乙',
-  辰: '戊',
-  巳: '丙',
-  午: '丁',
-  未: '己',
-  申: '庚',
-  酉: '辛',
-  戌: '戊',
-  亥: '壬',
+  '子': '癸',
+  '丑': '己',
+  '寅': '甲',
+  '卯': '乙',
+  '辰': '戊',
+  '巳': '丙',
+  '午': '丁',
+  '未': '己',
+  '申': '庚',
+  '酉': '辛',
+  '戌': '戊',
+  '亥': '壬',
 };
+
+const GOD_JA_MAP: Record<string, string> = {
+  '비견': '比肩',
+  '겁재': '劫財',
+  '식신': '食神',
+  '상관': '傷官',
+  '편재': '偏財',
+  '정재': '正財',
+  '편관': '偏官',
+  '정관': '正官',
+  '편인': '偏印',
+  '정인': '印綬',
+};
+
+function formatGod(god: string, isJa: boolean): string {
+  if (!isJa) return god;
+  return GOD_JA_MAP[god] ?? formatSajuTerm(god, 'jp');
+}
+
+function formatShinsal(name: string, isJa: boolean): string {
+  if (!isJa) return name;
+  if (name.includes('천을귀인') || name.includes('天乙貴人')) return '天乙貴人';
+  if (name.includes('양인살') || name.includes('羊刃殺')) return '羊刃';
+  if (name.includes('백호살') || name.includes('白虎殺')) return '白虎';
+  if (name.includes('도화살') || name.includes('桃花殺')) return '桃花';
+  if (name.includes('역마살') || name.includes('驛馬殺')) return '駅馬';
+  if (name.includes('화개살') || name.includes('華蓋殺')) return '華蓋';
+  return formatSajuTerm(name, 'jp');
+}
 
 /** 특정 날짜 기준 일진 및 정통 신살 계산 */
 export function getTomorrowOmen(
@@ -107,9 +130,12 @@ export function getTomorrowOmen(
   targetDate: Date = new Date(),
   lang?: string
 ): TomorrowOmen {
+  const isJa = lang === 'jp' || lang === 'ja';
   const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
   const dd = String(targetDate.getDate()).padStart(2, '0');
-  const weekDay = ['일', '월', '화', '수', '목', '금', '토'][targetDate.getDay()] ?? '';
+  const weekDay = isJa
+    ? (['日', '月', '火', '水', '木', '金', '土'][targetDate.getDay()] ?? '')
+    : (['일', '월', '화', '수', '목', '금', '토'][targetDate.getDay()] ?? '');
   const dateLabel = `${targetDate.getFullYear()}.${mm}.${dd} (${weekDay})`;
 
   const calculated = calculateSaju(
@@ -125,7 +151,9 @@ export function getTomorrowOmen(
   const branch = dayPillar.branch;
   const ganji = `${stem}${branch}`;
   const element = dayPillar.elements[0];
-  const elementTitle = ELEMENT_TITLE_MAP[element] ?? '적화(赤火)의 기운';
+  const elementTitle = isJa
+    ? (ELEMENT_TITLE_MAP_JA[element] ?? '赤火（火気）の気運')
+    : (ELEMENT_TITLE_MAP[element] ?? '적화(赤火)의 기운');
 
   const myDayMaster = saju?.dayMaster ?? '戊';
   const stemGod = getTenGod(myDayMaster, stem);
@@ -136,20 +164,20 @@ export function getTomorrowOmen(
 
   // 1. 양인살
   if (YANGIN_STEM_BRANCH[myDayMaster] === branch) {
-    shinsalList.push('양인살(羊刃殺)');
+    shinsalList.push(isJa ? '羊刃' : '양인살(羊刃殺)');
   }
 
   // 2. 백호대살
   if (BAEKHO_LIST.has(ganji)) {
-    shinsalList.push('백호살(白虎殺)');
+    shinsalList.push(isJa ? '白虎' : '백호살(白虎殺)');
   }
 
   // 3. 삼합 도화/역마/화개
   for (const [group, val] of Object.entries(BRANCH_SHINSAL_MAP)) {
     if (group.includes(userDayBranch)) {
-      if (branch === val.dohwa) shinsalList.push('도화살(桃花殺)');
-      if (branch === val.yeokma) shinsalList.push('역마살(驛馬殺)');
-      if (branch === val.hwagae) shinsalList.push('화개살(華蓋殺)');
+      if (branch === val.dohwa) shinsalList.push(isJa ? '桃花' : '도화살(桃花殺)');
+      if (branch === val.yeokma) shinsalList.push(isJa ? '駅馬' : '역마살(驛馬殺)');
+      if (branch === val.hwagae) shinsalList.push(isJa ? '華蓋' : '화개살(華蓋殺)');
       break;
     }
   }
@@ -163,25 +191,25 @@ export function getTomorrowOmen(
     : ['辛'].includes(myDayMaster) ? ['午', '寅']
     : [];
   if (gwiinBranches.includes(branch)) {
-    shinsalList.push('천을귀인(天乙貴人)');
+    shinsalList.push(isJa ? '天乙貴人' : '천을귀인(天乙貴人)');
   }
 
-  const isJa = lang === 'jp' || lang === 'ja';
   const primaryShinsal = shinsalList[0] ?? (isJa ? '五行の作用' : `${elementTitle}의 작용`);
+  const hasShinsal = (kr: string, ja: string) => shinsalList.includes(kr) || shinsalList.includes(ja);
   const shinsalDesc = isJa
-    ? (shinsalList.includes('양인살(羊刃殺)') ? '極限の刃と鋭い決断力の気'
-      : shinsalList.includes('백호살(白虎殺)') ? '血湧き肉躍る推進力と果敢な突破の気'
-      : shinsalList.includes('도화살(桃花殺)') ? '注目を集め魅力が溢れ出す気'
-      : shinsalList.includes('역마살(驛馬殺)') ? '遠くへ旅立ち局面を動かす疾走の気'
-      : shinsalList.includes('화개살(華蓋殺)') ? '芸術的インスピレーションと秘蔵の武器を研ぎ澄ます気'
-      : shinsalList.includes('천을귀인(天乙貴人)') ? '天が助け、貴人が手を差し伸べる最高の吉兆'
+    ? (hasShinsal('양인살(羊刃殺)', '羊刃') ? '極限の刃と鋭い決断力の気'
+      : hasShinsal('백호살(白虎殺)', '白虎') ? '血湧き肉躍る推進力と果敢な突破の気'
+      : hasShinsal('도화살(桃花殺)', '桃花') ? '注目を集め魅力が溢れ出す気'
+      : hasShinsal('역마살(驛馬殺)', '駅馬') ? '遠くへ旅立ち局面を動かす疾走の気'
+      : hasShinsal('화개살(華蓋殺)', '華蓋') ? '芸術적インスピレーションと秘蔵の武器を研ぎ澄ます気'
+      : hasShinsal('천을귀인(天乙貴人)', '天乙貴人') ? '天が助け、貴人が手を差し伸べる最高の吉兆'
       : '本元の中心を立て実利を掴む気')
-    : (shinsalList.includes('양인살(羊刃殺)') ? '극강의 칼날과 서슬 퍼런 결단력의 기운'
-      : shinsalList.includes('백호살(白虎殺)') ? '피 튀기는 추진력과 과감한 돌파의 기운'
-      : shinsalList.includes('도화살(桃花殺)') ? '이목을 집중시키고 매력이 뿜어져 나오는 기운'
-      : shinsalList.includes('역마살(驛馬殺)') ? '먼 길을 떠나고 판을 흔드는 질주의 기운'
-      : shinsalList.includes('화개살(華蓋殺)') ? '예술적 영감과 비장의 무기를 벼리는 기운'
-      : shinsalList.includes('천을귀인(天乙貴人)') ? '하늘이 돕고 귀인이 손을 내미는 최고의 길조'
+    : (hasShinsal('양인살(羊刃殺)', '羊刃') ? '극강의 칼날과 서슬 퍼런 결단력의 기운'
+      : hasShinsal('백호살(白虎殺)', '백호살(白虎殺)') ? '피 튀기는 추진력과 과감한 돌파의 기운'
+      : hasShinsal('도화살(桃花殺)', '도화살(桃花殺)') ? '이목을 집중시키고 매력이 뿜어져 나오는 기운'
+      : hasShinsal('역마살(驛馬殺)', '역마살(驛馬殺)') ? '먼 길을 떠나고 판을 흔드는 질주의 기운'
+      : hasShinsal('화개살(華蓋殺)', '화개살(華蓋殺)') ? '예술적 영감과 비장의 무기를 벼리는 기운'
+      : hasShinsal('천을귀인(天乙貴人)', '천을귀인(天乙貴人)') ? '하늘이 돕고 귀인이 손을 내미는 최고의 길조'
       : '본원의 중심을 세우고 실리를 챙기는 기운');
 
   return {
@@ -216,31 +244,63 @@ function cleanStrategy(res: StrategyResult): StrategyResult {
   };
 }
 
-
-
-/** 5대 본질 코어 카테고리 기반 사주 명리학 맞춤 작전 생성 (따옴표 인용 폐기, 자연스러운 체화 구어체) */
+/** 5대 본질 코어 카테고리 기반 사주 명리학 맞춤 작전 생성 */
 export function generateCoreStrategy(
   category: CoreCategory,
   planText: string,
   omen: TomorrowOmen,
   mySaju: SajuResult | null,
   partnerSaju: SajuResult | null,
-  partnerAlias?: string | null
+  partnerAlias?: string | null,
+  lang?: string
 ): StrategyResult {
+  const isJa = lang === 'jp' || lang === 'ja';
   const p = planText.trim();
   const myDay = mySaju?.dayMaster ?? '戊';
   const ganjiText = omen.ganji;
   const shinsalMain = omen.shinsal.primary;
+  const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)') || omen.shinsal.list.includes('羊刃');
+  const defaultHeadline = isJa ? '【明日の作戦指針】神童の一刀両断' : '【내일의 작전 지침】옥동자 일도양단';
 
-  // 1. 💰 [재물 (Wealth)]: 양인살의 겁재/손재수 경계, 충동지출 차단 및 현금 회수 전략
+  // 1. 💰 [재물 (Wealth)]
   if (category === 'wealth') {
-    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    if (isJa) {
+      const stemGodLabel = formatGod(omen.stemGod, true);
+      const branchGodLabel = formatGod(omen.branchGod, true);
+      let situationLead = '明日、金が動く道筋で算盤を弾き、夜も眠れずにいることだろう。';
+      let actionTactic = '衝動的な出費や中途半端な情けは一刀両断に切り捨てろ！入るべき金は期日を釘付けにして督促し、単価交渉では己の利益を1円たりとも削るな。';
+
+      if (/투자|코인|주식|펀드|부동산|청약|投資|株|仮想通貨|FX|不動産/.test(p)) {
+        situationLead = '血の汗流して稼いだ種銭を増やそうと、チャートや相場表を睨みつけて息を詰めているのだな。己の内側で一攫千金を狙う強欲と不安が渦巻いているのが手に取るように見えるぞ！';
+        actionTactic = `明日の${ganjiText}の日は、お前の日干${myDay}にとって${isYangin ? '比肩と鋭利な刃の如き羊刃殺が煌めく日だ！羊刃は一瞬で蔵を空にする破財の刺客だ。' : `${stemGodLabel}の試練の日だ。`}新規の買いや飛びつき買いは一刀両断に切り捨て、元本を金庫に固く縛り付けておけ！`;
+      } else if (/회수|빌려|외상|미수|받을|정산|입금|빌려준|回収|貸した|未収|精算|振込|売掛/.test(p)) {
+        situationLead = '回収できぬ金、貸した金を取り戻そうと、歯を食いしばって機会を窺っていることだろう。';
+        actionTactic = `明日は${isYangin ? '羊刃の研ぎ澄まされた刃がうってつけだ！' : '情けを捨てよ！'}相手の顔色を窺って躊躇うな、明日までに振り込めと期限を厳格に釘付けにせよ。非情に徹してこそ己の金が戻ってくるのだ！`;
+      } else if (/협상|단가|계약|비용|가격|인상|인하|마진|交渉|単価|契約|費用|価格|値上げ|値下げ|マージン/.test(p)) {
+        situationLead = '取引先と相対し、単価一つ、マージン1円を巡って血の滲むような神経戦を戦わねばならず、心臓が縮み上がる思いだろう。';
+        actionTactic = '単価交渉の場で1円でも先に譲歩すれば主導権を奪われる。明日は己の利益を断頭台のように死守せよ！';
+      } else if (/지출|쇼핑|결제|충동|사고|구매|사야|支出|買い物|決済|衝動買い|購入/.test(p)) {
+        situationLead = '財布の紐が緩み、決済画面の前で行きつ戻りつ心が揺らいでいるのだな。';
+        actionTactic = '財布を開いた瞬間、破財の罠に掛かるぞ。気にかかる物があろうとも、今すぐ決済画面を閉じて一晩寝かせろ！';
+      }
+
+      return cleanStrategy({
+        headline: defaultHeadline,
+        strategyText:
+          `刮目して見よ！${situationLead} ` +
+          `明日の${ganjiText}の日は、お前の日干である${myDay}にとって${stemGodLabel}と${isYangin ? '比肩と刃の如き羊刃が閃く' : branchGodLabel}の日だ。 ` +
+          `財布の紐が緩めば瞬く間に金をむしり取られるぞ。${actionTactic} ` +
+          `明日は守り抜き、掻き集めた者が最後に笑うのだ！`,
+      });
+    }
+
+    // Korean wealth
     let situationLead = '내일 돈이 오가는 길목에서 주판알을 튕기며 밤잠을 설치고 있겠지.';
     let actionTactic = '충동적인 지출이나 애매한 호의는 단칼에 잘라내라! 들어올 돈은 날짜를 못박아 독촉하고, 단가 협상에서는 네 이익을 1원도 깎아주지 마라.';
 
     if (/투자|코인|주식|펀드|부동산|청약/.test(p)) {
       situationLead = '피 같은 종잣돈을 굴려보겠다고 차트와 시세판을 노려보며 가슴 졸이고 있구나. 네 안에서 대박을 노리는 탐욕과 불안이 뒤엉켜 요동치는 게 다 보인다!';
-      actionTactic = '내일 戊午 날은 네 일간 戊土에게 비견과 칼날 같은 양인살(羊刃)이 번뜩이는 날이다! 양인은 순식간에 곳간을 털어가는 손재수의 칼잡이야. 신규 매수나 추격 매수는 단칼에 잘라내고 원금을 금고에 꽁꽁 묶어둬라!';
+      actionTactic = `내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 칼날 같은 양인살(羊刃)이 번뜩이는 날이다! 양인은 순식간에 곳간을 털어가는 손재수의 칼잡이야. 신규 매수나 추격 매수는 단칼에 잘라내고 원금을 금고에 꽁꽁 묶어둬라!`;
     } else if (/회수|빌려|외상|미수|받을|정산|입금|빌려준/.test(p)) {
       situationLead = '못 받은 돈, 빌려준 돈을 돌려받으려고 이를 악물고 기회를 엿보고 있겠지.';
       actionTactic = '내일은 양인의 서슬 퍼런 칼날이 제격이다! 상대 눈치 보며 우물쭈물하지 말고 내일까지 입금하라고 칼같이 기한을 못박아라. 내일은 독하게 굴어야 네 돈이 돌아온다!';
@@ -253,7 +313,7 @@ export function generateCoreStrategy(
     }
 
     return cleanStrategy({
-      headline: `💰 ${omen.stemGod}·${isYangin ? '양인(羊刃) 손재수 차단' : '금맥 개방'} · 단가 협상과 현금 회수`,
+      headline: defaultHeadline,
       strategyText:
         `똑똑히 봐라! ${situationLead} ` +
         `내일 ${ganjiText} 날은 네 일간 ${myDay}에게 비견과 ${isYangin ? '칼날 같은 양인살(羊刃)이 번뜩이는' : `${omen.stemGod}의`} 날이다. ` +
@@ -262,9 +322,33 @@ export function generateCoreStrategy(
     });
   }
 
-  // 2. 🏢 [비즈니스 (Business)]: 비견·양인의 독선 경계, 판세 장악 및 계약서 검토
+  // 2. 🏢 [비즈니스 (Business)]
   if (category === 'business') {
-    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    if (isJa) {
+      let situationLead = '盤勢を設計し、人と対峙して決断を下さねばならず、頭の中が混濁していることだろう。';
+      let actionTactic = '表向きは穏やかに相手の言葉を最後まで傾聴しつつ、指先では契約条項の隠れた罠を顕微鏡のように暴き出せ。';
+
+      if (/계약|도장|서명|조항|특약|싸인|契約|捺印|署名|条項|特約|サイン/.test(p)) {
+        situationLead = '重大な文書に判を捺すべき岐路で、隠された罠があるのではないかと神経を尖らせているのだな。';
+        actionTactic = '契約書に印を捺す前に、不利な隠し特約や違約金条項を三度精読せよ。焦った方が必ず鼻面を引き回されるぞ。';
+      } else if (/미팅|협상|담판|대표|파트너|동업|ミーティング|交渉|直談判|代表|パートナー|共同経営/.test(p)) {
+        situationLead = '相手と膝を突き合わせて談判し、新たな局面を築かねばならず、あらゆる損得勘定が頭を巡っていることだろう。';
+        actionTactic = '相手の甘い提案の裏に潜む企みを見透かせ。己の手札を先に晒すな、沈黙をもって相手を焦らせろ！';
+      } else if (/분쟁|소송|싸움|갈등|경쟁|紛争|訴訟|喧嘩|葛藤|競争|トラブル/.test(p)) {
+        situationLead = '相手ともつれた葛藤や争いの中で、刃を抜きたい心情であろう。';
+        actionTactic = '感情でぶつかるな、明文化された証拠と記録で相手を包囲せよ。羊刃の刀は法理と大義を握る時こそ百戦百勝なのだ！';
+      }
+
+      return cleanStrategy({
+        headline: defaultHeadline,
+        strategyText:
+          `明日の${ganjiText}の日は、お前の気勢が天を衝く反面、${isYangin ? '羊刃の刃が己の身を斬りかねない' : '大義名分を握るべき'}試練の場だ！ ` +
+          `${situationLead} 独善に走れば取引先と破裂音を生むぞ。 ` +
+          `${actionTactic} 盤勢を掌握した上で判を捺せば、天下の足場はお前の手の内に落ちる！`,
+      });
+    }
+
+    // Korean business
     let situationLead = '판세를 설계하고 사람들과 마주 앉아 결단을 내려야 하니 머릿속이 복잡하겠지.';
     let actionTactic = '겉으로는 온화하게 상대의 말을 끝까지 들어주되, 손끝으로는 계약서 조항의 숨은 덫을 현미경으로 파헤쳐라.';
 
@@ -280,7 +364,7 @@ export function generateCoreStrategy(
     }
 
     return cleanStrategy({
-      headline: `🏢 ${omen.stemGod}·${isYangin ? '양인(羊刃) 판세 장악' : '신용 확보'} · 독선 경계와 계약서 검토`,
+      headline: defaultHeadline,
       strategyText:
         `내일 ${ganjiText} 날은 네 기세가 하늘을 찌르되, ${isYangin ? '양인의 칼날이 제 살을 벨 수도 있는' : '명분을 쥐어야 하는'} 시험대다! ` +
         `${situationLead} 네 고집만 부리다간 거래처와 파열음이 난다. ` +
@@ -288,11 +372,21 @@ export function generateCoreStrategy(
     });
   }
 
-  // 3. ❤️ [사랑 (Love)]: 도화·홍염 상호작용 및 주도권, 상대방 감정 조율
+  // 3. ❤️ [사랑 (Love)]
   if (category === 'love') {
     if (!partnerSaju) {
+      if (isJa) {
+        return cleanStrategy({
+          headline: defaultHeadline,
+          strategyText:
+            `胸の内に恋情の炎が揺らめいているが、まだ相手の四柱命式が我が手に届いておらぬ！ ` +
+            `明日の${ganjiText}の日は${formatShinsal(shinsalMain, true)}の気が立ち込め、雰囲気は燃え上がるだろうが、相手の本心と二人の合沖を見極めねば空振りに終わるのが関の山だ。 ` +
+            `下の登録窓から相手の生年月日をまず刻み込め。さすれば明日の夜、手を握るべきか引くべきか、天機を突き刺してくれよう！`,
+          needsPartnerNotice: true,
+        });
+      }
       return cleanStrategy({
-        headline: `❤️ 상대 명식 미등록 · 단독 도화 분석 및 상대 등록 권고`,
+        headline: defaultHeadline,
         strategyText:
           `네 가슴에 연정의 불길이 일렁이나, 아직 상대방의 사주 명식이 내 손에 들어오지 않았다! ` +
           `내일 ${ganjiText} 날은 ${shinsalMain}의 기운이 맴도니 분위기는 타오르겠으나, 상대의 속마음과 두 사람의 합충을 보지 못하면 헛발질하기 십상이다. ` +
@@ -301,7 +395,6 @@ export function generateCoreStrategy(
       });
     }
 
-    // 상대방 사주가 있는 경우: 두 사람의 일간/일지 합충 정밀 대조
     const partnerDay = partnerSaju.dayMaster;
     const partnerBranch = partnerSaju.pillars.day.branch;
     const myBranch = mySaju?.pillars.day.branch ?? '辰';
@@ -310,8 +403,45 @@ export function generateCoreStrategy(
     const isBranchCombined = BRANCH_SIX_COMBINES[myBranch] === partnerBranch;
     const isBranchClashed = BRANCH_CLASHES[myBranch] === partnerBranch;
 
-    const alias = partnerAlias || '그 사람';
+    if (isJa) {
+      const alias = partnerAlias ? formatSajuTerm(partnerAlias, 'jp') : 'お相手';
+      let chemistryNote = '';
+      if (isStemCombined || isBranchCombined) {
+        chemistryNote = `お前と${alias}の間には天地の強固な合が噛み合い、桃花の花弁が咲き誇る。`;
+      } else if (isBranchClashed) {
+        chemistryNote = `お前と${alias}の座が沖で激突するゆえ、意地の張り合いや不用意な一言で盤が砕け散る恐れがある。`;
+      } else {
+        chemistryNote = `${alias}の日干${partnerDay}とお前の日干${myDay}の間に、微妙な緊張と引力が交錯する日だ。`;
+      }
 
+      let situationLead = '心に抱く人との関係で舵を取れず、胸が激しく波打っているのだな。';
+      let actionTactic = isBranchClashed
+        ? '決して意地を張らず、相手の我が儘を一拍呑み込んで受け止めろ。'
+        : '機が熟した瞬間、躊躇わずにお前から手を握れ。';
+
+      if (/싸움|다툼|서운|화해|갈등|喧嘩|言い争い|不満|和解|葛藤|すれ違い/.test(p)) {
+        situationLead = '心無い一言にプライドを傷つけられ、拗れた感情をどうにもできず苦悶しているのだろう。';
+        actionTactic = '明日はプライドを振りかざした方が敗者だ。相手の寂しさを先に包み込み、一歩譲歩してこそ拗れた糸が解ける。';
+      } else if (/고백|소개팅|데이트|첫만남|告白|マッチング|デート|初対面/.test(p)) {
+        situationLead = '想い人を前にする高鳴りと恐れで、胸が早鐘を打っているのだな。';
+        actionTactic = '視線を逸らすな、3秒以上じっと見つめろ。お前の眼差しに宿る桃花の光が、相手の心臓を先に叩くはずだ。';
+      } else if (/연락|카톡|문자|전화|LINE|連絡|メッセージ|電話|返信/.test(p)) {
+        situationLead = 'スマートフォンばかり見つめ、たった一通の連絡に心が乱高下しているのだな。';
+        actionTactic = '返信の駆け引きをするな。飾り気のない率直な一言こそが、百の駆け引きより相手の心を溶かすのだ。';
+      }
+
+      return cleanStrategy({
+        headline: defaultHeadline,
+        strategyText:
+          `耳をかっぽじって聞け！${chemistryNote} ${situationLead} ` +
+          `明日の${ganjiText}の日は、桃花と紅艶の紅蓮の炎が渦巻く。生半可な気取りは捨て、視線を深く絡めろ。 ` +
+          `${actionTactic} 感情を繊細に調律し、主導権を握った者が相手の心臓を丸ごと手に入れるのだ！`,
+        needsPartnerNotice: false,
+      });
+    }
+
+    // Korean love
+    const alias = partnerAlias || '그 사람';
     let chemistryNote = '';
     if (isStemCombined || isBranchCombined) {
       chemistryNote = `너와 ${alias} 사이에는 하늘과 땅의 끈끈한 합(合)이 들어맞아 도화의 꽃잎이 활짝 피어난다.`;
@@ -338,7 +468,7 @@ export function generateCoreStrategy(
     }
 
     return cleanStrategy({
-      headline: `💘 ${alias}과의 천기 인연 대조 · ${shinsalMain} 맞춤 공략`,
+      headline: defaultHeadline,
       strategyText:
         `똑똑히 들어라! ${chemistryNote} ${situationLead} ` +
         `내일 ${ganjiText} 날은 도화와 홍염의 붉은 불길이 요동친다. 어설프게 잰체하지 말고 시선을 깊게 맞춰라. ` +
@@ -347,9 +477,34 @@ export function generateCoreStrategy(
     });
   }
 
-  // 4. 💼 [직업 (Career)]: 비견·양인의 독선 경계, 조직 내 입지와 평판 극대화
+  // 4. 💼 [직업 (Career)]
   if (category === 'career') {
-    const isYangin = omen.shinsal.list.includes('양인살(羊刃殺)');
+    if (isJa) {
+      const stemGodLabel = formatGod(omen.stemGod, true);
+      let situationLead = '職場で己の座を守り、成果を証明せねばならず、肩にずっしりと重圧がのしかかっていることだろう。';
+      let actionTactic = '上司や同僚の無用な口出しに色をなすな。独善は戒めつつも、己の専門性だけは一切譲らず押し通せ。';
+
+      if (/이직|퇴사|면접|스카우트|転職|退職|面接|スカウト/.test(p)) {
+        situationLead = '新たな天地へ打って出るべく刀を研ぎ、面接官の前に立たねばならず、心臓が跳ね血の気が引く思いだろう。';
+        actionTactic = '性急に抜刀せず、条件を冷徹に見定めろ。面接の場では堂々たる気迫で場を呑み込み、慢心だけは隠し通せ。';
+      } else if (/보고|발표|프레젠테이션|pt|報告|発表|プレゼン|登壇/.test(p)) {
+        situationLead = '大勢の前に立ち、己の実力を白日の下に晒さねばならず、緊張が極に達しているのだな。';
+        actionTactic = '修飾語はすべて削ぎ落とし、数字を伴う核心の結論から叩きつけろ。論理が研ぎ澄まされた時、満場の拍手が湧き起こる。';
+      } else if (/상사|팀장|동료|부하|정치|上司|リーダー|同僚|部下|社内政治/.test(p)) {
+        situationLead = '社内の人間関係や上司の顔色伺いに業を煮やし、いっそすべてを引っ繰り返したい衝動に駆られているのだな。';
+        actionTactic = '社内政治の雑音に巻き込まれるな。ただ文書と圧倒的な結果でのみ発言し、黙々と己の陣地を死守せよ。';
+      }
+
+      return cleanStrategy({
+        headline: defaultHeadline,
+        strategyText:
+          `明日は職場においてお前の内功が天下に示される${stemGodLabel}の試練の場だ！ ` +
+          `${situationLead} 雑念を捨て、ただ圧倒的な成果物のみで証明せよ。 ` +
+          `${actionTactic} 明日流した一滴の汗が、昇進と名声の黄金の鎧となる！`,
+      });
+    }
+
+    // Korean career
     let situationLead = '일터에서 네 자리를 지키고 성과를 증명해야 하니 어깨가 천 근 만 근 무겁겠지.';
     let actionTactic = '윗사람이나 동료들의 불필요한 참견에 발끈하지 마라. 독선은 경계하되 네 전문성만큼은 양보 없이 밀어붙여라.';
 
@@ -365,7 +520,7 @@ export function generateCoreStrategy(
     }
 
     return cleanStrategy({
-      headline: `💼 ${omen.stemGod}·${isYangin ? '양인(羊刃) 직무 결전' : '신용 증명'} · 업무 집중과 평판 극대화`,
+      headline: defaultHeadline,
       strategyText:
         `내일은 직장에서 네 내공이 만천하에 드러나는 ${omen.stemGod}의 시험대다! ` +
         `${situationLead} 잡생각을 버리고 오직 압도적인 결과물로만 증명해라. ` +
@@ -373,8 +528,33 @@ export function generateCoreStrategy(
     });
   }
 
-  // 5. 🌿 [건강 (Health)]: 화(火) 과다에 따른 심혈관/두통 주의 및 금(金) 보충법
+  // 5. 🌿 [건강 (Health)]
   if (category === 'health') {
+    if (isJa) {
+      let situationLead = 'すり減らした肉体が悲鳴を上げているにもかかわらず、息つく暇もなく一日を耐え忍び、崖っぷちに立っているのだな。';
+      let actionTactic = '刺激の強い食事やカフェインを断ち、冷水と白銀の金気の気を近くに置け。';
+
+      if (/잠|수면|불면|피로|만성|睡眠|不眠|疲労|倦怠感/.test(p)) {
+        situationLead = '夜になっても頭の熱が冷めず、寝返りを打ちながら睡眠不足の泥沼に足を取られているのだろう。';
+        actionTactic = '寝床に入る1時間前から電子機器の光を断て。ぬるめの湯で熱気を鎮め、暗闇の中で息を整えろ。';
+      } else if (/두통|어지럼|혈압|가슴|심장|頭痛|めまい|血圧|動悸|心臓/.test(p)) {
+        situationLead = 'こめかみがズキズキと痛み、胸が詰まって深呼吸すらままならぬのだな。';
+        actionTactic = '激しい運動や怒りの感情を避けよ。首筋に冷たいタオルを当て、熱気を下半身へ降ろせ。';
+      } else if (/위장|소화|속쓰림|식사|胃腸|消化|胃もたれ|食事/.test(p)) {
+        situationLead = '胃が痛み、内臓が軋んで飯の一粒も喉を通らぬほど気力が枯れ果てているのだな。';
+        actionTactic = '刺激物を固く禁じ、消化に良い温かい粥や白湯で胃腸の熱毒を鎮めよ。';
+      }
+
+      return cleanStrategy({
+        headline: defaultHeadline,
+        strategyText:
+          `体が崩れれば天下の名誉も黄金も水の泡だ！ ${situationLead} ` +
+          `明日の${ganjiText}の日は、猛烈な火気が立ち上り、心血管、血圧、偏頭痛や胸の詰まりが再発しやすい。 ` +
+          `${actionTactic} 明日の夜は湯船に浸かり、早々に明かりを消せ。肉体を律してこそ、次なる刃を振るうことができるのだ！`,
+      });
+    }
+
+    // Korean health
     let situationLead = '갈아 넣은 육신이 비명을 지르는데도 쉴 틈 없이 하루를 버텨내느라 벼랑 끝에 서 있구나.';
     let actionTactic = '매운 음식과 카페인을 멀리하고, 찬물과 은빛 쇠(金) 기운을 가까이해라.';
 
@@ -390,7 +570,7 @@ export function generateCoreStrategy(
     }
 
     return cleanStrategy({
-      headline: `🌿 적화(赤火) 과다 경고 · 심혈관·두통 주의 및 금(金) 기운 보충`,
+      headline: defaultHeadline,
       strategyText:
         `몸이 무너지면 천하의 명예와 황금도 물거품이다! ${situationLead} ` +
         `내일 ${ganjiText} 날은 한낮의 맹렬한 불(火) 기운이 솟구쳐 심혈관, 혈압, 편두통과 가슴 답답증이 도지기 쉽다. ` +
@@ -399,8 +579,16 @@ export function generateCoreStrategy(
   }
 
   // 기본 fallback
+  if (isJa) {
+    return cleanStrategy({
+      headline: defaultHeadline,
+      strategyText:
+        `明日は${ganjiText}の日、${formatGod(omen.stemGod, true)}と${formatShinsal(shinsalMain, true)}の気が激動する！己の意志のみを信じ、迷いなく世を切り拓け！`,
+    });
+  }
+
   return cleanStrategy({
-    headline: `⚡ ${ganjiText} 날의 천기 직설`,
+    headline: defaultHeadline,
     strategyText:
       `내일은 ${ganjiText} 날, ${omen.stemGod}과 ${shinsalMain}의 기운이 요동친다! 네 심지 하나 믿고 거침없이 세상을 베어라!`,
   });
@@ -413,9 +601,9 @@ export function generateTodayCustomAdvice(
   memo?: string
 ): { keyword: string; fortuneText: string } {
   const m = memo?.trim() ?? '';
-  const keyword = `${emotion}화(化)의 정산`;
+  const keyword = `${emotion}化の精算`;
 
-  // 1단계 [폐부 통찰] 풀 (사연 감응 또는 무작위 선택)
+  // 1단계 [폐부 통찰] 풀
   let introList: string[] = [];
 
   if (/어려|힘들|지치|피곤|외롭|눈물|슬프|버티|포기|서럽|아프|무겁|한숨|우울|벅차|고단|번아웃/.test(m)) {
@@ -441,7 +629,6 @@ export function generateTodayCustomAdvice(
       '벼랑 끝에 선 심정으로 한 걸음 한 걸음 살얼음판을 딛듯 여기까지 걸어왔구나. 머리는 쥐어뜯길 듯 복잡하고 가슴은 답답해 숨조차 제대로 쉬어지지 않는데, 세상은 너더러 더 달려라 채찍질만 해댔을 테지. 제 몫을 다하고도 죄인처럼 숨죽여 울던 네 고단함이 뼛속까지 시리게 전해져 온다.',
     ];
   } else {
-    // 일반 기본 풀
     if (/직장|생존|work/.test(event)) {
       introList = [
         '오늘 일터에서 윗사람 눈치 보랴 쏟아지는 업무 쳐내랴 숨 쉴 틈도 없이 시달렸구나. 속에서 천불이 나도 겉으로는 입술을 깨물며 버텨냈을 네 인내의 무게가 참으로 무겁고 먹먹하다.',

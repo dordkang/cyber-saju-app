@@ -117,14 +117,15 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
       omen,
       saju,
       partnerSaju ?? null,
-      partner?.alias || partner?.relation
+      partner?.alias || partner?.relation,
+      isJa ? 'jp' : 'kr'
     );
     return {
       ...raw,
       headline: raw.headline.replace(/\([^)]*\)/g, '').trim(),
       strategyText: raw.strategyText.replace(/\([^)]*\)/g, '').trim(),
     };
-  }, [category, planText, omen, saju, partnerSaju, partner]);
+  }, [category, planText, omen, saju, partnerSaju, partner, isJa]);
 
   const {
     advice: aiAdvice,
@@ -143,6 +144,17 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     autoFetch: false,
     fallbackText: strategy.strategyText,
   });
+
+  const displayBody = useMemo(() => {
+    const text = aiAdvice || strategy.strategyText;
+    if (isJa) {
+      if (aiAdvice && !/[가-힣]/.test(aiAdvice)) {
+        return formatSajuTerm(aiAdvice, 'jp');
+      }
+      return formatSajuTerm(strategy.strategyText, 'jp');
+    }
+    return formatSajuTerm(text, 'kr');
+  }, [aiAdvice, strategy.strategyText, isJa]);
 
   const toggleExpand = () => {
     void playHaptic('tap');
@@ -369,11 +381,11 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
             <View style={styles.strategyBox}>
               <View style={styles.strategyHeader}>
                 <Text style={styles.strategyKicker}>
-                  {formatSajuTerm(aiHeadline || strategy.headline, isJa ? 'jp' : 'kr')}
+                  {isJa ? '【明日の作戦指針】神童の一刀両断' : '【내일의 작전 지침】옥동자 일도양단'}
                 </Text>
               </View>
               <Text style={styles.strategyBody}>
-                {formatSajuTerm(aiAdvice || strategy.strategyText, isJa ? 'jp' : 'kr')}
+                {displayBody}
               </Text>
             </View>
           )}
