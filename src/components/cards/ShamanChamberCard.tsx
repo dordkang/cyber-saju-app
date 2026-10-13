@@ -194,16 +194,20 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     const day = saju?.dayMaster ?? '甲';
     const dGanji = currentDaewoon?.ganji ?? '辛巳';
     const dAge = currentDaewoon?.ageRange ?? (isJa ? '46~55歳' : '46~55세');
+    const storedUserName = typeof localStorage !== 'undefined' ? (localStorage.getItem('cyber_saju_user_name') || '') : '';
+    const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
+    const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
+
     if (isBrother) {
       if (isJa) {
-        return `【深夜の兄弟子・痛烈な直言】\n「おい、お前の生まれ持った日干『${day}』と現在通過中の${dGanji}大運(${dAge})の気運を見ろよ。盤勢はもうギリギリの瀬戸際だぜ。酒でも飲んで腹を割って聞け。小細工なんて捨てて、お前が真っ先に仕掛けて主導権を握るんだ。情に流されてグズグズしてたら全部かっさらわれるぞ。今夜は腹を決めて、明日から堂々と己の道を突き進め！」`;
+        return `【深夜の兄弟子・温かな指針】\n${userHonorificJa}、生まれ持った日干『${day}』と現在通過中の${dGanji}大運(${dAge})の気運を拝見いたしました。これまで一人で重圧を抱え、本当によく耐えてこられましたね。決してご自身を責める必要はありません。運気の流れが激動の変曲点を迎えている今だからこそ、心と体を休め、ご自身のペースで一歩ずつ前へお進みください。`;
       }
-      return `【심야 사형의 뼈 때리는 직설】\n「야 인마, 네 타고난 일간 '${day}'과 지금 지나고 있는 ${dGanji} 대운(${dAge})의 기운을 보니까 판세가 이미 벼랑 끝 변곡점이다. 소주 한잔 마시고 내 말 똑똑히 새겨들어라. 잔머리 굴리지 말고 네가 먼저 칼자루 쥐고 밥상 엎어야 살아남는다. 미련 떨지 말고 가차 없이 쳐내라. 내일 날 밝으면 고개 바짝 들고 네 판 당당하게 깔아라!」`;
+      return `【심야 사형의 따뜻한 조언】\n${userHonorificKo}, 타고난 일간 '${day}'과 지금 지나고 계신 ${dGanji} 대운(${dAge})의 기운을 깊이 살펴보았습니다. 그동안 혼자서 감당하기 어려운 무게를 버텨내시느라 참으로 애쓰셨고 고생 많으셨습니다. 결코 ${userHonorificKo}께서 부족해서가 아닙니다. 지금은 운의 계절이 새로운 길을 준비하는 변곡점이니, 스스로를 자책하지 마시고 당당히 걸어가시길 바랍니다.`;
     }
     if (isJa) {
-      return `【サイバー神童・天機直説】\n「お前が現在通過している${dGanji}大運(${dAge})と日干『${day}』の気運を見るに、盤勢は既に臨界点に達している。小細工や迷いで逃げ道を塞ぐな。今はお前が主導権を握り、妥協を拒絶して自らの盤面を切り開くべき刻限だ。情に流されて優柔不断を晒せば、その隙を突かれて全てを奪われる。刃を研ぎ澄まし、即座に決断せよ。」`;
+      return `【サイバー神童・四柱推命 心理鑑定】\n${userHonorificJa}が現在通過していらっしゃる${dGanji}大運(${dAge})と日干『${day}』の気運を見通すに、これまでの孤独な葛藤と努力が深く伝わってまいります。これまでのご苦労は決して無駄ではなく、新しい飛躍のための大切な準備期間でした。どうかご自身を信じ、心穏やかに前へ歩みを進めてください。`;
     }
-    return `【옥동자 신명직설(神明直說)】\n「네가 지금 지나고 있는 ${dGanji} 대운(${dAge})의 기운과 타고난 일간 '${day}'의 원국을 해부해 보니, 판세는 이미 벼랑 끝 변곡점에 닿아 있다. 잔머리 굴리며 간 보지 마라. 지금은 남 눈치 보며 맞춰줄 때가 아니라, 네가 먼저 밥상을 엎고 칼자루를 쥐어야 살아남는 국면이다. 썩은 인연과 미련을 가차 없이 도려내고 단도직입으로 쐐기를 박아라!」`;
+    return `【사이버 신동 · 명리 심리 카운슬링】\n${userHonorificKo}께서 지금 지나고 계신 ${dGanji} 대운(${dAge})의 기운과 일간 '${day}'의 원국을 깊이 헤아려 보았습니다. 남들에게 털어놓지 못한 채 홀로 삼켜온 고단함과 마음고생이 얼마나 깊으셨을지 고스란히 느껴집니다. 결코 ${userHonorificKo}의 잘못이 아니며 운의 흐름이 거칠었을 뿐입니다. 이제 새로운 도약의 문이 열리고 있으니 용기를 내어 나아가십시오.`;
   }, [saju?.dayMaster, isJa, isBrother, currentDaewoon]);
 
   const displayAdvice = aiAdvice

@@ -919,14 +919,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               <View style={styles.aiLoadingBox}>
                 <ActivityIndicator size="small" color={accent} />
                 <Text style={[styles.aiLoadingText, { color: accent }]}>
-                  {currentIsJa ? '神童が該当大運の天機を演算中...' : '사이버동자가 해당 대운의 천기를 짚어내는 중...'}
+                  {currentIsJa ? '神童が該当大運の運勢を解読中...' : '사이버 신동이 해당 대운의 운세를 깊이 헤아리는 중...'}
                 </Text>
               </View>
             ) : aiState?.text ? (
               <View style={styles.aiResultBox}>
                 <View style={[styles.aiBadge, { borderColor: accent }]}>
                   <Text style={[styles.aiBadgeText, { color: accent }]}>
-                    {currentIsJa ? '🔮 サイバー神童 大運神託' : '🔮 사이버동자 대운 신명직설'}
+                    {currentIsJa ? '🔮 サイバー神童 大運 心理鑑定' : '🔮 사이버 신동 대운 심리 상담'}
                   </Text>
                 </View>
                 <Text style={styles.aiResultText}>{aiState.text}</Text>
@@ -935,7 +935,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               <View style={styles.aiLoadingBox}>
                 <ActivityIndicator size="small" color={accent} />
                 <Text style={[styles.aiLoadingText, { color: accent }]}>
-                  {currentIsJa ? '神童が該当大運の天機を演算中...' : '사이버동자가 해당 대운의 천기를 짚어내는 중...'}
+                  {currentIsJa ? '神童が該当大運の運勢を解読中...' : '사이버 신동이 해당 대운의 운세를 깊이 헤아리는 중...'}
                 </Text>
               </View>
             )}
