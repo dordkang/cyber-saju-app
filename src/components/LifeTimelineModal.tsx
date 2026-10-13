@@ -146,6 +146,48 @@ export const REALITY_PRESETS: RealityPreset[] = [
   { id: 'burnout', icon: '🌿', kr: '극심한 번아웃과 기운 고갈 상태', jp: '深刻なバーンアウトと気力枯渇' },
 ];
 
+/**
+ * 현실 배경 데이터를 100% 일본어로 안전 변환하는 헬퍼 함수
+ */
+export function translateRealityToJa(input: string): string {
+  if (!input) return '';
+  const trimmed = input.trim();
+
+  // 1. 프리셋 정확 매칭 및 포함 검사
+  const matched = REALITY_PRESETS.find(
+    (p) => p.kr === trimmed || p.id === trimmed || trimmed.includes(p.kr)
+  );
+  if (matched) return matched.jp;
+
+  // 2. 주요 비즈니스 및 현실 키워드 매핑
+  if (/사업\s*확장|신규\s*아이템/.test(trimmed)) {
+    return '事業拡大および新規事業の推進中';
+  }
+  if (/현금\s*(회전|흐름)|자금\s*(유동성|회수|방어)/.test(trimmed)) {
+    return 'キャッシュフロー防衛および資金回収に集中';
+  }
+  if (/조직\s*독립|퇴사|이직|창업/.test(trimmed)) {
+    return '転職・独立・新規創業の準備中';
+  }
+  if (/동업|거래처|계약\s*갈등/.test(trimmed)) {
+    return '共同事業者・取引先との契約摩擦';
+  }
+  if (/배우자|연인|불화|거리두기/.test(trimmed)) {
+    return '配偶者・恋人との不和・距離感';
+  }
+  if (/번아웃|기운\s*고갈|피로/.test(trimmed)) {
+    return '深刻なバーンアウトと気力枯渇';
+  }
+
+  // 3. 만약 한글이 포함되어 있다면 안전한 일본어 현실 문구로 치환
+  if (/[\uac00-\ud7a3]/.test(trimmed)) {
+    return '人生の転換期における選択と現実的な突破口の模索';
+  }
+
+  return trimmed;
+}
+
+
 export const DAEUN_INTEREST_FOCUS_MAP: Record<InterestKey, { kr: string; jp: string }> = {
   wealth: {
     kr: '💰 [재물/자금맥]: 지지 금고의 열림 상태와 현금 흐름 점검',
@@ -456,8 +498,13 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   const [dragging, setDragging] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
-  const [daeunAiMap, setDaeunAiMap] = useState<Record<number, { loading: boolean; text?: string; error?: string }>>({});
+  const [daeunAiMap, setDaeunAiMap] = useState<Record<string | number, { loading: boolean; text?: string; error?: string }>>({});
   const [now, setNow] = useState<Date>(() => new Date());
+
+  // [언어 전환 캐시 초기화]: isJa가 바뀔 때 이전 언어로 저장된 대운 AI 점사 캐시 즉시 비움
+  useEffect(() => {
+    setDaeunAiMap({});
+  }, [isJa]);
   const [tmMode, setTmMode] = useState<Exclude<TimeSliderMode, 'day'>>('year');
   const [tmYear, setTmYear] = useState(DEFAULT_TARGET_YEAR);
   const [tmMonth, setTmMonth] = useState(1);
@@ -598,26 +645,36 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
   const fetchDaeunAi = useCallback(
     async (period: DaeunPeriod) => {
-      setDaeunAiMap((prev) => {
-        if (prev[period.index]?.loading || prev[period.index]?.text) return prev;
-        return { ...prev, [period.index]: { loading: true } };
-      });
-
       const activeLang = getActiveLanguage();
       const currentIsJa = activeLang === 'jp' || isJa;
+      const cacheKey = `${period.index}_${currentIsJa ? 'ja' : 'ko'}`;
+
+      setDaeunAiMap((prev) => {
+        if (prev[cacheKey]?.loading || prev[cacheKey]?.text) return prev;
+        return {
+          ...prev,
+          [cacheKey]: { loading: true },
+          [period.index]: { loading: true },
+        };
+      });
+
       const effectiveVoice =
         typeof localStorage !== 'undefined'
           ? (localStorage.getItem('cyber_saju_persona') || 'shaman')
           : 'shaman';
 
       try {
+        const effectiveUserLore = currentIsJa
+          ? translateRealityToJa(realityInput)
+          : realityInput.trim();
+
         const payload = {
           lang: currentIsJa ? 'jp' : 'kr',
           dayMaster: timeline?.dayMaster ?? '戊',
           eventCategory: currentIsJa ? '大運' : '대운',
           voiceStyle: effectiveVoice,
           agentType: effectiveVoice === 'COMRADE' || effectiveVoice === 'brother' ? 'COMRADE' : 'DOKSA',
-          userLore: realityInput.trim(),
+          userLore: effectiveUserLore,
           pillars: timeline?.natalPillars,
           currentDaewoon: {
             ganji: period.ganji.label,
@@ -652,6 +709,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           const formatted = formatSajuTerm(analysis, currentIsJa ? 'jp' : 'kr');
           setDaeunAiMap((prev) => ({
             ...prev,
+            [cacheKey]: { loading: false, text: formatted },
             [period.index]: { loading: false, text: formatted },
           }));
         } else {
@@ -660,9 +718,10 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       } catch {
         const fallback = currentIsJa
           ? `【サイバー神童・${period.ganji.label}大運 神託】\n「お前が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式元局の日干『${timeline?.dayMaster ?? '戊'}』と激しく交錯する重要な変曲点だ。小細工や迷いを捨て、主導権を握って自らの盤面を切り開け。情に流されず、研ぎ澄まされた刃で突破せよ。」`
-          : `【옥동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
+          : `【사이버동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
         setDaeunAiMap((prev) => ({
           ...prev,
+          [cacheKey]: { loading: false, text: fallback },
           [period.index]: { loading: false, text: fallback },
         }));
       }
@@ -692,7 +751,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     if (currentPeriod) {
       void fetchDaeunAi(currentPeriod);
     }
-  }, [timeline, fetchDaeunAi]);
+  }, [timeline, fetchDaeunAi, isJa]);
 
   const handleStep = (delta: number) => {
     const next = clampPercent(syncRatio + delta);
@@ -776,10 +835,10 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
     const branchGod = isJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod;
     const stage12 = isJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12;
 
-    const aiState = daeunAiMap[period.index];
-    const aiPreview = aiState?.text
-      ? aiState.text.split('\n').map((l) => l.trim()).filter(Boolean)[0] || ''
-      : '';
+    const activeLang = getActiveLanguage();
+    const currentIsJa = activeLang === 'jp' || isJa;
+    const cacheKey = `${period.index}_${currentIsJa ? 'ja' : 'ko'}`;
+    const aiState = daeunAiMap[cacheKey] ?? daeunAiMap[period.index];
 
     return (
       <TouchableOpacity
@@ -823,11 +882,9 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         </View>
 
         <Text style={[styles.daeunHeadline, { color: accent }]}>
-          {aiPreview
-            ? aiPreview
-            : (isJa
-                ? `【${period.ganji.label}大運】天干地支・通変星の気運解断`
-                : `【${period.ganji.label} 대운】천간지지·십신 기운 해단`)}
+          {currentIsJa
+            ? `【${period.ganji.label} 大運変曲点】天干地支の気運解断`
+            : `【${period.ganji.label} 대운 변곡점】천간지지의 기운 해단`}
         </Text>
 
         {isOpen && (
@@ -836,14 +893,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               <View style={styles.aiLoadingBox}>
                 <ActivityIndicator size="small" color={accent} />
                 <Text style={[styles.aiLoadingText, { color: accent }]}>
-                  {isJa ? '神童が該当大運の天機を演算中...' : '옥동자가 해당 대운의 천기를 짚어내는 중...'}
+                  {currentIsJa ? '神童が該当大運の天機を演算中...' : '사이버동자가 해당 대운의 천기를 짚어내는 중...'}
                 </Text>
               </View>
             ) : aiState?.text ? (
               <View style={styles.aiResultBox}>
                 <View style={[styles.aiBadge, { borderColor: accent }]}>
                   <Text style={[styles.aiBadgeText, { color: accent }]}>
-                    {isJa ? '🔮 サイバー神童 大運神託' : '🔮 옥동자 대운 신명직설'}
+                    {currentIsJa ? '🔮 サイバー神童 大運神託' : '🔮 사이버동자 대운 신명직설'}
                   </Text>
                 </View>
                 <Text style={styles.aiResultText}>{aiState.text}</Text>
@@ -852,7 +909,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
               <View style={styles.aiLoadingBox}>
                 <ActivityIndicator size="small" color={accent} />
                 <Text style={[styles.aiLoadingText, { color: accent }]}>
-                  {isJa ? '神童が該当大運の天機を演算中...' : '옥동자가 해당 대운의 천기를 짚어내는 중...'}
+                  {currentIsJa ? '神童が該当大運の天機を演算中...' : '사이버동자가 해당 대운의 천기를 짚어내는 중...'}
                 </Text>
               </View>
             )}

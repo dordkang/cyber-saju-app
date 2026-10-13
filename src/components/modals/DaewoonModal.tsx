@@ -6,6 +6,7 @@ export {
   LifeTimelineModal as DaewoonModal,
   REALITY_PRESETS,
   DAEUN_INTEREST_FOCUS_MAP,
+  translateRealityToJa,
 } from '../LifeTimelineModal';
 
 export type {
