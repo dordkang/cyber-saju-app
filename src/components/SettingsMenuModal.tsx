@@ -1,5 +1,5 @@
-import React from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
 export interface SettingsMenuModalProps {
@@ -60,6 +60,26 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
 }) => {
   const { isJa } = useLocale();
 
+  const [userName, setUserName] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem('cyber_saju_user_name') || '';
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    if (visible && typeof window !== 'undefined' && window.localStorage) {
+      setUserName(window.localStorage.getItem('cyber_saju_user_name') || '');
+    }
+  }, [visible]);
+
+  const handleUserNameChange = (text: string) => {
+    setUserName(text);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('cyber_saju_user_name', text);
+    }
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -95,6 +115,26 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
             caption={isJa ? `現在は ${personaLabel}` : `지금은 ${personaLabel}`}
             onPress={onOpenPersona}
           />
+
+          {/* 불리고 싶은 이름 / 닉네임 입력 필드 */}
+          <View style={[styles.row, styles.inputRow]}>
+            <Text style={styles.rowIcon}>👤</Text>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>
+                {isJa ? 'お名前・ニックネーム' : '불리고 싶은 이름 / 닉네임'}
+              </Text>
+              <TextInput
+                value={userName}
+                onChangeText={handleUserNameChange}
+                placeholder={isJa ? '呼ばれたいお名前を入力してください' : '이름을 입력하세요 (예: 진훈)'}
+                placeholderTextColor="#5E6E85"
+                style={styles.textInput}
+                maxLength={20}
+                autoCorrect={false}
+                accessibilityLabel={isJa ? 'お名前・ニックネーム' : '불리고 싶은 이름 / 닉네임'}
+              />
+            </View>
+          </View>
 
           <View style={styles.row}>
             <Text style={styles.rowIcon}>🌐</Text>
@@ -158,6 +198,21 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, marginBottom: 4 },
   title: { color: '#00FFCC', fontSize: 16, fontWeight: '900' },
   close: { color: '#8A99AD', fontSize: 20, fontWeight: '700', padding: 4 },
+  inputRow: {
+    paddingVertical: 12,
+  },
+  textInput: {
+    marginTop: 6,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#0D1424',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 255, 204, 0.35)',
+    color: '#00FFCC',
+    fontSize: 14,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+  },
   row: {
     minHeight: 64,
     flexDirection: 'row',

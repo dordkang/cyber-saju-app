@@ -663,8 +663,15 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           ? (localStorage.getItem('cyber_saju_persona') || 'shaman')
           : 'shaman';
 
-      const fallbackJa = `【サイバー神童・${period.ganji.label}大運 神託】\n「お前が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式元局の日干『${timeline?.dayMaster ?? '戊'}』と激しく交錯する重要な変曲点だ。小細工や迷いを捨て、主導権を握って自らの盤面を切り開け。情に流されず、研ぎ澄まされた刃で突破せよ。」`;
-      const fallbackKo = `【사이버동자 · ${period.ganji.label} 대운 신명직설】\n「네가 지나거나 맞이하는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 격렬히 교차하는 인생의 승부처다. 잔머리 굴리며 주저하지 말고, 네가 먼저 밥상을 엎고 칼자루를 쥐어라. 썩은 미련을 쳐내고 단도직입으로 판을 깔아라!」`;
+      const storedUserName =
+        typeof localStorage !== 'undefined'
+          ? (localStorage.getItem('cyber_saju_user_name') || '')
+          : '';
+      const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
+      const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
+
+      const fallbackJa = `【サイバー神童・${period.ganji.label}大運 心理鑑定】\n${userHonorificJa}が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式の日干『${timeline?.dayMaster ?? '戊'}』と深く響き合う大切な変曲点です。これまで抱えてこられた重圧や迷いを手放し、ご自身の可能性を信じて歩みを進めてください。運気の巡りは必ず${userHonorificJa}の味方となります。`;
+      const fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운 심리 상담】\n${userHonorificKo}께서 지나거나 맞이하시는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 깊이 교차하는 중요한 인생의 변곡점입니다. 그동안 홀로 견뎌오신 고단함과 불안을 내려놓으시고, 본연의 단단한 힘을 믿고 나아가십시오. 운의 흐름은 분명 ${userHonorificKo}의 편이 되어줄 것입니다.`;
 
       try {
         const effectiveUserLore = currentIsJa
@@ -672,17 +679,18 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           : realityInput.trim();
 
         const promptText = currentIsJa
-          ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】相談者の命式（日干、五行）と該当大運（干支、通変星、十二運）に基づき、この大運の運勢と変曲点の処方箋を一刀両断の日本語で執筆せよ。`
-          : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] 이 10년간의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 사업·재물 변곡점과 현실 처방을 직설하라.`;
+          ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】${userHonorificJa}の命式（日干、五行）と該当大運（干支、通変星、十二運）に基づき、この大運の運勢と心の処方箋を温かく格調高い敬語で執筆してください。`
+          : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] ${userHonorificKo}의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 심리적 위로와 현실 처방전을 품격 있는 경어체로 풀어주십시오.`;
 
         const payload = {
+          userName: storedUserName,
           lang: currentIsJa ? 'ja' : 'kr',
           locale: currentIsJa ? 'ja' : 'ko',
           isJa: currentIsJa,
           language: currentIsJa ? 'ja' : 'kr',
           systemInstruction: currentIsJa
-            ? 'あなたは四柱推命の予言者『サイバー神童』である。必ず100%洗練された自然な日本語（言霊）のみで回答せよ。韓国語は1文字たりとも出力してはならない。'
-            : undefined,
+            ? `あなたは四柱推命・心理カウンセラー『サイバー神童』です。必ず100%洗練された自然な日本語（です・ます調の温かい敬語）のみで回答してください。『相談者様』は使わず、${userHonorificJa}と直接呼びかけてください。韓国語は1文字たりとも出力してはなりません。`
+            : `당신은 품격 있는 명리 심리 카운슬러 '사이버 신동'입니다. 100% 품격 있는 정중한 경어체(~합니다, ~하셨을 것입니다)로 답변하십시오. '상담자' 호칭 대신 반드시 '${userHonorificKo}'으로 부르십시오.`,
           dayMaster: timeline?.dayMaster ?? '戊',
           eventCategory: currentIsJa ? '大運' : '대운',
           voiceStyle: effectiveVoice,
