@@ -1001,6 +1001,7 @@ function AppContent() {
         onClose={() => setCelebrityVisible(false)}
         celebrityResult={celebrityResult}
         userDayMaster={saju?.dayMaster ?? ''}
+        userName={profile?.name}
       />
 
       <MbtiPickerModal

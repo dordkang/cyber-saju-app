@@ -1,4 +1,18 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+/**
+ * [CYBER-SAJU] 영혼의 공명 10인 셀럽 매칭 & 9:16 바이럴 공유 모달
+ * (src/components/CelebrityShareModal.tsx)
+ * 
+ * - 한·일·글로벌 10대 레전드 셀럽 공명 DB (src/data/celebrityResonance.ts) 연동
+ * - 60% ~ 99% 주파수 라디오 튜너 슬라이더 (150ms 디바운스 부드러운 전환)
+ * - 9:16 인스타/LINE 스토리 최적화 규격 네온 포토카드
+ * - 원클릭 바이럴 3종 액션:
+ *   1) 📸 이미지 저장 (html-to-image 캡처 & Web Share API)
+ *   2) 𝕏 (Twitter) 인텐트 공유 (#사이버사주 #영혼의공명)
+ *   3) 🔗 결과 요약 및 링크 클립보드 복사
+ * - kr / jp 완벽 분리 및 [이름] 님 / [名前]様 호칭 규칙 준수
+ */
+
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Alert,
   Modal,
@@ -12,171 +26,27 @@ import {
   View,
 } from 'react-native';
 import type { TextStyle, ViewStyle } from 'react-native';
-import type { CelebrityMatchResult } from '../engine/celebrityEngine';
 import { playHaptic } from './reels/haptics';
-import { useLocale, openTwitterShare, type Locale } from '../locales';
+import { useLocale } from '../locales';
+import {
+  CELEBRITY_RESONANCE_DATASET,
+  formatResonanceMessage,
+  type CelebrityData,
+} from '../data/celebrityResonance';
+import { getActiveLanguage } from '../utils/langManager';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
+const CARD_RATIO = 9 / 16;
+const WATERMARK_URL = 'cyber-saju-app.pages.dev';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  celebrityResult: CelebrityMatchResult | null;
-  userDayMaster: string;
+  celebrityResult?: any;
+  userDayMaster?: string;
+  userName?: string | null;
 }
-
-interface TunerCelebrity {
-  id: string;
-  name: string;
-  title: string;
-  sajuFact: string;
-  archetype: string;
-  quote: string;
-  accentColor: string;
-  glowColor: string;
-  badgeBg: string;
-  originDestiny: string;
-  realityAction: string;
-}
-
-const TUNER_CELEBRITIES: Record<'musk' | 'jobs' | 'huang' | 'buffett', TunerCelebrity> = {
-  musk: {
-    id: 'elon-musk',
-    name: '일론 머스크',
-    title: '테슬라·스페이스X CEO / 화성을 향한 승부사',
-    sajuFact: '戊土 × 偏官 돌파형 개척자',
-    archetype: '확률을 깨는 돌파형 개척자',
-    quote: '중요한 일이라면, 확률이 내 편이 아니어도 해야 한다.',
-    accentColor: '#FF2A4B',
-    glowColor: 'rgba(255, 42, 75, 0.75)',
-    badgeBg: 'rgba(255, 42, 75, 0.14)',
-    originDestiny:
-      '거대한 태산(戊土) 같은 뚝심 위에 극도의 중압감을 뚫어내는 편관(偏官)의 칼날을 품었습니다. 남들이 무모하다고 비웃는 불가능의 영역을 홀로 정면 돌파하는 사주적 기세를 지닙니다.',
-    realityAction:
-      '자본과 파산의 벼랑 끝에서도 계산기 대신 파괴적 혁신에 올인하는 극단적 승부사 기질이 당신의 영혼 코어와 90% 이상 완벽히 동기화되어 있습니다.',
-  },
-  jobs: {
-    id: 'steve-jobs',
-    name: '스티브 잡스',
-    title: '애플 창업자 / 혁신적 비전가',
-    sajuFact: '丙火 × 傷官 세상을 바꾼 직관',
-    archetype: '미학을 밀어붙이는 비전가',
-    quote: '늘 갈망하고, 우직하게 나아가라. (Stay hungry, stay foolish.)',
-    accentColor: '#00F0FF',
-    glowColor: 'rgba(0, 240, 255, 0.75)',
-    badgeBg: 'rgba(0, 240, 255, 0.14)',
-    originDestiny:
-      '세상을 환하게 비추는 태양(丙火)의 열정 위에 기존의 틀과 권위를 과감히 깨부수는 상관(傷官)의 천재적 직관이 결합되었습니다. 완벽한 디테일과 타협 없는 미학을 끝까지 밀어붙입니다.',
-    realityAction:
-      '논리와 시장 조사보다는 내면의 직관과 결단을 믿으며, 세상의 기준을 나에게 맞추어 재창조하려는 강력한 현실 왜곡장(Reality Distortion)이 당신과 깊게 공명합니다.',
-  },
-  huang: {
-    id: 'jensen-huang',
-    name: '젠슨 황',
-    title: '엔비디아 CEO / 가죽자켓의 AI 연금술사',
-    sajuFact: '庚金 × 偏財 판을 읽는 집념',
-    archetype: '판을 읽는 끈질긴 집념',
-    quote: '위대함은 지능에서 오지 않는다. 위대함은 고통을 견디는 품격에서 나온다.',
-    accentColor: '#00FF88',
-    glowColor: 'rgba(0, 255, 136, 0.75)',
-    badgeBg: 'rgba(0, 255, 136, 0.14)',
-    originDestiny:
-      '단단한 원석과 칼날(庚金)의 냉철함 위에 거대한 판의 흐름을 꿰뚫어보는 편재(偏財)의 사업적 육감이 장착되었습니다. 10년을 앞서 내다보고 묵묵히 칼을 가는 끈기를 보입니다.',
-    realityAction:
-      '모두가 외면하던 시기에도 흔들리지 않고 거대한 흐름의 길목을 선점하여 독점적 영역을 구축하는 고통을 견디는 승부수가 당신의 기운과 70% 이상 일치합니다.',
-  },
-  buffett: {
-    id: 'warren-buffett',
-    name: '워런 버핏',
-    title: '버크셔 해서웨이 회장 / 오마하의 현인',
-    sajuFact: '己土 × 正財 복리의 거인',
-    archetype: '복리를 굴리는 인내의 현인',
-    quote: '남들이 탐욕을 부릴 때 두려워하고, 남들이 두려워할 때 탐욕을 가져라.',
-    accentColor: '#FFB800',
-    glowColor: 'rgba(255, 184, 0, 0.75)',
-    badgeBg: 'rgba(255, 184, 0, 0.14)',
-    originDestiny:
-      '만물을 품고 키워내는 비옥한 전답(己土)의 끈기 위에 티끌 모아 태산을 이루는 정재(正財)의 치밀한 관리력이 극대화된 명식입니다. 일시적 유행에 흔들리지 않는 뿌리 깊은 안정성을 자랑합니다.',
-    realityAction:
-      '감정적 충동을 철저히 배제하고 시간의 힘을 아군으로 만들어 결국 마지막에 웃는 느리지만 가장 확실한 복리의 법칙이 당신의 방어적 기질과 일치합니다.',
-  },
-};
-
-const TUNER_CELEBRITIES_JA: Record<'musk' | 'jobs' | 'huang' | 'buffett', TunerCelebrity> = {
-  musk: {
-    id: 'elon-musk',
-    name: 'イーロン・マスク',
-    title: 'テスラ・スペースX CEO / 火星を目指す勝負師',
-    sajuFact: '戊土 × 偏官 突破型開拓者',
-    archetype: '確率を超える突破型開拓者',
-    quote: '重要なことなら、確率が味方でなくてもやるべきだ。',
-    accentColor: '#FF2A4B',
-    glowColor: 'rgba(255, 42, 75, 0.75)',
-    badgeBg: 'rgba(255, 42, 75, 0.14)',
-    originDestiny:
-      '巨大な泰山(戊土)のような粘り強さの上に、極限のプレッシャーを切り裂く偏官の刃を宿しています。不可能と笑われる領域を単身で正面突破する圧倒的な気勢を持ちます。',
-    realityAction:
-      '破産の危機に直面しても破壊的革新にオールインする極限の勝負師の気質が、あなたの魂の核と90%以上同調しています。',
-  },
-  jobs: {
-    id: 'steve-jobs',
-    name: 'スティーブ・ジョブズ',
-    title: 'アップル創業者 / 革新的ビジョナリー',
-    sajuFact: '丙火 × 傷官 世界を変えた直感',
-    archetype: '美学を貫くビジョナリー',
-    quote: 'Stay hungry, stay foolish. (ハングリーであれ、愚かであれ)',
-    accentColor: '#00F0FF',
-    glowColor: 'rgba(0, 240, 255, 0.75)',
-    badgeBg: 'rgba(0, 240, 255, 0.14)',
-    originDestiny:
-      '世界を照らす太陽(丙火)の情熱の上に、既成概念を打破する傷官の天才的直感が融合。完璧なディテールと妥協なき美学を最後まで貫きます。',
-    realityAction:
-      '市場調査よりも内なる直感を信じ、世界の基準を自分に合わせようとする強烈な現実歪曲フィールドがあなたと深く共鳴しています。',
-  },
-  huang: {
-    id: 'jensen-huang',
-    name: 'ジェンスン・フアン',
-    title: 'NVIDIA CEO / 革ジャンのAI錬金術師',
-    sajuFact: '庚金 × 偏財 潮目を読む執念',
-    archetype: '潮目を読む不屈の執念',
-    quote: '偉大さは知性からではなく、痛みに耐える品格から生まれる。',
-    accentColor: '#00FF88',
-    glowColor: 'rgba(0, 255, 136, 0.75)',
-    badgeBg: 'rgba(0, 255, 136, 0.14)',
-    originDestiny:
-      '硬い原石と刃(庚金)の冷徹さの上に、巨大な市場の流れを見抜く偏財のビジネス第六感を装備。10年先を見据えて刃を研ぎ続ける粘り強さを誇ります。',
-    realityAction:
-      '誰もが目を向けない時期でもブレずに巨大な潮流の要所を先回りし、独占的領域を築く痛みに耐える勝負手があなたの気運と70%以上一致します。',
-  },
-  buffett: {
-    id: 'warren-buffett',
-    name: 'ウォーレン・バフェット',
-    title: 'バークシャー・ハサウェイ会長 / オマハの賢人',
-    sajuFact: '己土 × 正財 複利の巨人',
-    archetype: '複利を育てる忍耐の賢人',
-    quote: '他人が貪欲なときに恐れ、他人が恐れているときに貪欲であれ。',
-    accentColor: '#FFB800',
-    glowColor: 'rgba(255, 184, 0, 0.75)',
-    badgeBg: 'rgba(255, 184, 0, 0.14)',
-    originDestiny:
-      '万物を育てる肥沃な田畑(己土)の粘り強さに、塵を積もらせ山とする正財の緻密な管理力が極大化。一時の流行に惑わされない根深い安定性を誇ります。',
-    realityAction:
-      '感情的衝動を徹底して排除し時間の力を味方にして最後に笑う、遅くとも最も確実な複利の法則があなたの資質と一致します。',
-  },
-};
-
-function getCelebByFreq(freq: number, locale: Locale = 'ko'): TunerCelebrity {
-  const table = locale === 'ja' ? TUNER_CELEBRITIES_JA : TUNER_CELEBRITIES;
-  if (freq >= 90) return table.musk;
-  if (freq >= 80) return table.jobs;
-  if (freq >= 70) return table.huang;
-  return table.buffett;
-}
-
-const CARD_RATIO = 9 / 16;
-const BUTTON_AREA_HEIGHT = 110;
-const SCREEN_PADDING = 16;
 
 function formatToday(): string {
   const now = new Date();
@@ -185,50 +55,111 @@ function formatToday(): string {
   return `${now.getFullYear()}.${mm}.${dd}`;
 }
 
-export function CelebrityShareModal({ visible, onClose, celebrityResult, userDayMaster }: Props) {
+export function CelebrityShareModal({
+  visible,
+  onClose,
+  celebrityResult,
+  userDayMaster = '甲',
+  userName,
+}: Props) {
   const { width, height } = useWindowDimensions();
-  const [isSharing, setIsSharing] = useState(false);
   const { locale } = useLocale();
+  const currentLang = getActiveLanguage() === 'jp' || locale === 'ja' ? 'jp' : 'kr';
+  const isJa = currentLang === 'jp';
 
-  // 기본 주파수 슬라이더 초기값 (사용자 사주 기반 syncRate 반영, 60~99% 범위)
+  const [isSharing, setIsSharing] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  // 기본 주파수 슬라이더 초기값 (60~99% 범위)
   const initialFreq = useMemo(() => {
-    const raw = celebrityResult?.syncRate ? Math.round(celebrityResult.syncRate) : 81;
+    const raw = celebrityResult?.syncRate ? Math.round(celebrityResult.syncRate) : 95;
     return Math.max(60, Math.min(99, raw));
   }, [celebrityResult]);
 
   const [sliderFreq, setSliderFreq] = useState<number>(initialFreq);
+  const [selectedCelebId, setSelectedCelebId] = useState<string>('elon-musk');
 
-  // 모달이 열릴 때마다 기본 일치율로 동기화
+  // 모달 열릴 때 초기화
   useEffect(() => {
     if (visible) {
       setSliderFreq(initialFreq);
+      // 가장 가까운 셀럽 검색
+      let closest = CELEBRITY_RESONANCE_DATASET[0];
+      let minDiff = 999;
+      CELEBRITY_RESONANCE_DATASET.forEach((c) => {
+        const diff = Math.abs(c.baseFrequency - initialFreq);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = c;
+        }
+      });
+      setSelectedCelebId(closest.id);
     }
   }, [visible, initialFreq]);
 
-  const currentCeleb = useMemo(() => getCelebByFreq(sliderFreq, locale), [sliderFreq, locale]);
+  // 150ms 디바운스 라디오 튜너
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleTwitterShare = () => {
+  const handleSliderChange = useCallback((newFreq: number) => {
+    setSliderFreq(newFreq);
     void playHaptic('tap');
-    openTwitterShare({
-      celebName: currentCeleb.name,
-      rate: sliderFreq,
-      locale,
-    });
-  };
 
-  if (!visible) {
-    return null;
-  }
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
-  const maxHeight = Math.max(380, height - BUTTON_AREA_HEIGHT);
-  const maxWidth = Math.min(420, Math.max(220, width - SCREEN_PADDING * 2));
-  const cardWidth = Math.min(maxWidth, maxHeight * CARD_RATIO);
-  const cardHeight = Math.min(maxHeight, cardWidth / CARD_RATIO);
-  const scale = Math.min(1, Math.max(0.78, cardWidth / 340));
+    debounceRef.current = setTimeout(() => {
+      let closest = CELEBRITY_RESONANCE_DATASET[0];
+      let minDiff = 999;
+      CELEBRITY_RESONANCE_DATASET.forEach((c) => {
+        const diff = Math.abs(c.baseFrequency - newFreq);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = c;
+        }
+      });
+      setSelectedCelebId(closest.id);
+    }, 150);
+  }, []);
+
+  const handleSelectCelebDirect = useCallback((celeb: CelebrityData) => {
+    void playHaptic('tap');
+    setSelectedCelebId(celeb.id);
+    setSliderFreq(celeb.baseFrequency);
+  }, []);
+
+  const currentCeleb = useMemo(() => {
+    const found = CELEBRITY_RESONANCE_DATASET.find((c) => c.id === selectedCelebId);
+    return found || CELEBRITY_RESONANCE_DATASET[0];
+  }, [selectedCelebId]);
+
+  if (!visible) return null;
+
+  // 9:16 인스타 스토리 규격 비율 계산
+  const maxCardHeight = Math.min(620, Math.max(380, height * 0.72));
+  const maxCardWidth = Math.min(360, Math.max(220, width - 36));
+  const cardWidth = Math.min(maxCardWidth, maxCardHeight * CARD_RATIO);
+  const cardHeight = cardWidth / CARD_RATIO;
+  const scale = Math.min(1, Math.max(0.72, cardWidth / 330));
   const circleSize = Math.round(92 * scale);
 
-  // 인스타 스토리에 공유하기 (서버비 0원 클라이언트 캡처 & Web Share API)
-  const handleShare = async () => {
+  // 사용자 호칭
+  const defaultUser = isJa ? 'ご縁者' : '인연자';
+  const honorific = isJa ? '様' : ' 님';
+  const userDisplayName = `${(userName && userName.trim()) || defaultUser}${honorific}`;
+
+  const celebName = isJa ? currentCeleb.name.jp : currentCeleb.name.kr;
+  const celebTitle = isJa ? currentCeleb.title.jp : currentCeleb.title.kr;
+  const celebTenGod = isJa ? currentCeleb.tenGod.jp : currentCeleb.tenGod.kr;
+  const celebCoreKeyword = isJa ? currentCeleb.coreKeyword.jp : currentCeleb.coreKeyword.kr;
+  const resonanceBody = formatResonanceMessage(
+    isJa ? currentCeleb.resonanceMessage.jp : currentCeleb.resonanceMessage.kr,
+    userName,
+    currentLang
+  );
+
+  // 1) 📸 이미지 저장 액션 (인스타/LINE 스토리용)
+  const handleSaveImage = async () => {
     if (isSharing) return;
     setIsSharing(true);
     void playHaptic('tap');
@@ -237,19 +168,20 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
       if (IS_WEB) {
         const node = document.getElementById('soul-frequency-card');
         if (!node) {
-          Alert.alert('공유 실패', '카드 요소를 찾을 수 없습니다.');
+          Alert.alert(
+            isJa ? '保存エラー' : '저장 실패',
+            isJa ? 'カード要素が見つかりません。' : '카드 요소를 찾을 수 없습니다.'
+          );
           return;
         }
 
-        // html-to-image 동적 import 및 9:16 인스타 스토리 캡처
         const { toBlob, toPng } = await import('html-to-image');
 
-        // 모바일 Web Share API 체크
         if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
           try {
             const blob = await toBlob(node, {
-              quality: 0.95,
-              pixelRatio: 2,
+              quality: 0.98,
+              pixelRatio: 2.5,
             });
             if (blob) {
               const file = new File(
@@ -260,8 +192,12 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
               if (navigator.canShare({ files: [file] })) {
                 await navigator.share({
                   files: [file],
-                  title: `사이버 사주 // 영혼의 공명 [${currentCeleb.name}]`,
-                  text: `나와 영혼 주파수가 ${sliderFreq}% 일치하는 인물: ${currentCeleb.name} (${currentCeleb.sajuFact})`,
+                  title: isJa
+                    ? `サイバー四柱推命 // 魂の共鳴 [${celebName}]`
+                    : `사이버 사주 // 영혼의 공명 [${celebName}]`,
+                  text: isJa
+                    ? `${userDisplayName}の魂の周波数 ${sliderFreq}% 同調レジェンド: ${celebName} (${celebTitle})`
+                    : `${userDisplayName}의 영혼 주파수 ${sliderFreq}% 동조 레전드: ${celebName} (${celebTitle})`,
                 });
                 return;
               }
@@ -272,70 +208,140 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
           }
         }
 
-        // PC 환경 또는 Web Share 미지원 시 PNG 직접 다운로드
         const dataUrl = await toPng(node, {
-          quality: 0.95,
-          pixelRatio: 2,
+          quality: 0.98,
+          pixelRatio: 2.5,
         });
         const link = document.createElement('a');
-        link.download = `cyber-saju-${currentCeleb.id}-${sliderFreq}pct.png`;
+        link.download = `cyber-saju-resonance-${currentCeleb.id}-${sliderFreq}pct.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
         Alert.alert(
-          '📸 인스타 스토리 카드 저장 완료',
-          '네온 카드가 저장되었습니다. 인스타그램 스토리(9:16)에 공유해 보세요!'
+          isJa ? '📸 ストーリー画像保存完了' : '📸 인스타 스토리 카드 저장 완료',
+          isJa
+            ? '高解像度9:16ネオンカードが保存されました。InstagramやLINEのストーリーでシェアしてください！'
+            : '고해상도 9:16 네온 카드가 저장되었습니다. 인스타그램이나 LINE 스토리에 공유해 보세요!'
         );
       } else {
-        Alert.alert('안내', '현재 브라우저 환경에서 인스타 카드 저장이 지원됩니다.');
+        Alert.alert(
+          isJa ? 'ご案内' : '안내',
+          isJa ? 'ウェブブラウザ環境でカードの保存がサポートされています。' : '웹 브라우저 환경에서 카드 저장이 지원됩니다.'
+        );
       }
-    } catch (err: any) {
-      console.error('인스타 공유 오류:', err);
-      Alert.alert('공유 오류', '이미지 생성 중 문제가 발생했습니다.');
+    } catch (err) {
+      console.error('Image capture error:', err);
+      Alert.alert(
+        isJa ? 'エラー' : '오류',
+        isJa ? '画像の生成中に問題が発生しました。' : '이미지 생성 중 문제가 발생했습니다.'
+      );
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  // 2) 𝕏 (Twitter) 공유 액션
+  const handleTwitterShare = () => {
+    void playHaptic('tap');
+    const shareText = isJa
+      ? `【サイバー四柱推命 // 魂の共鳴】\n${userDisplayName}の魂の周波数と${sliderFreq}%同調する歴史的レジェンドは【${celebName}】(${celebTitle})です。\n\n「${celebCoreKeyword}」\n\nあなたと共鳴する英雄を今すぐスキャン⚡\n`
+      : `[사이버 사주 // 영혼의 공명]\n${userDisplayName}의 영혼 주파수와 ${sliderFreq}% 동조하는 역사적 레전드는 【${celebName}】(${celebTitle})입니다.\n\n"${celebCoreKeyword}"\n\n당신과 공명하는 영웅을 지금 스캔해 보세요⚡\n`;
+
+    const hashtags = isJa
+      ? 'サイバー四柱推命,魂の共鳴,四柱推命'
+      : '사이버사주,영혼의공명,사주팔자';
+
+    const shareUrl = `https://${WATERMARK_URL}`;
+    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      shareText
+    )}&hashtags=${encodeURIComponent(hashtags)}&url=${encodeURIComponent(shareUrl)}`;
+
+    if (typeof window !== 'undefined') {
+      window.open(intentUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  // 3) 🔗 클립보드 링크 복사 액션
+  const handleCopyLink = async () => {
+    void playHaptic('tap');
+    const copyText = isJa
+      ? `[サイバー四柱推命 // 魂の共鳴]\n${userDisplayName} × ${celebName} (${sliderFreq}% SYNC)\n${celebCoreKeyword}\nhttps://${WATERMARK_URL}`
+      : `[사이버 사주 // 영혼의 공명]\n${userDisplayName} × ${celebName} (${sliderFreq}% SYNC)\n${celebCoreKeyword}\nhttps://${WATERMARK_URL}`;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(copyText);
+        setCopiedToast(true);
+        setTimeout(() => setCopiedToast(false), 2400);
+      } else {
+        Alert.alert(isJa ? 'コピー完了' : '링크 복사 완료', copyText);
+      }
+    } catch {
+      Alert.alert(isJa ? 'リンク' : '링크', `https://${WATERMARK_URL}`);
     }
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        {/* 인스타 스토리 9:16 네온 캡처 대상 카드 */}
+        {/* 상단 닫기 헤더 바 */}
+        <View style={[styles.topBar, { width: cardWidth }]}>
+          <Text style={styles.topBarTitle}>
+            {isJa ? '⚡ 魂の共鳴 (SOUL FREQUENCY)' : '⚡ 영혼의 공명 (SOUL FREQUENCY)'}
+          </Text>
+          <TouchableOpacity onPress={onClose} hitSlop={12} style={styles.closeIconButton}>
+            <Text style={styles.closeIconText}>✕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 9:16 인스타/LINE 스토리 캡처 대상 네온 카드 */}
         <View
-          // @ts-ignore (React Native Web id attribute)
+          // @ts-ignore
           id="soul-frequency-card"
           style={[
             styles.card,
             {
               width: cardWidth,
               height: cardHeight,
-              borderColor: currentCeleb.accentColor,
-              shadowColor: currentCeleb.accentColor,
+              borderColor: currentCeleb.themeColor,
+              shadowColor: currentCeleb.themeColor,
             },
             IS_WEB
               ? ({
-                  boxShadow: `0 0 24px ${currentCeleb.glowColor}`,
+                  boxShadow: `0 0 32px ${currentCeleb.glowColor}, inset 0 0 16px rgba(0,0,0,0.6)`,
                 } as unknown as ViewStyle)
               : null,
           ]}
         >
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.cardScroll, { padding: Math.round(12 * scale) }]}
+            contentContainerStyle={[styles.cardScroll, { padding: Math.round(14 * scale) }]}
           >
             {/* 1. 상단 사이버 헤더 */}
             <View style={styles.header}>
-              <Text style={[styles.headerTitle, { color: currentCeleb.accentColor }]} numberOfLines={1}>
-                {locale === 'ja'
-                  ? 'CYBER-推命 // 魂の周波数マトリクス'
-                  : 'CYBER-SAJU // SOUL FREQUENCY MATRIX'}
-              </Text>
+              <View style={styles.headerBadge}>
+                <Text style={[styles.headerTitle, { color: currentCeleb.themeColor }]} numberOfLines={1}>
+                  CYBER-SAJU // SOUL FREQUENCY MATRIX
+                </Text>
+              </View>
               <Text style={styles.headerDate}>{formatToday()}</Text>
             </View>
 
-            {/* 2. 원형 일치율 게이지 */}
+            {/* 2. 사용자 호칭 & 사주 요약 */}
+            <View style={styles.userSection}>
+              <Text style={[styles.userNameText, KEEP_ALL]}>{userDisplayName}</Text>
+              <View style={styles.userSajuPill}>
+                <Text style={styles.userSajuText}>
+                  {isJa
+                    ? `本元 ${userDayMaster} (${currentCeleb.element}の気) × 波動同調`
+                    : `일간 ${userDayMaster} (${currentCeleb.element} 기운) × 파동 동조`}
+                </Text>
+              </View>
+            </View>
+
+            {/* 3. 원형 일치율 네온 게이지 */}
             <View style={styles.syncWrap}>
               <View
                 style={[
@@ -344,22 +350,22 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
                     width: circleSize,
                     height: circleSize,
                     borderRadius: circleSize / 2,
-                    borderColor: currentCeleb.accentColor,
+                    borderColor: currentCeleb.themeColor,
                   },
                   IS_WEB
                     ? ({
-                        boxShadow: `0 0 18px ${currentCeleb.glowColor}`,
+                        boxShadow: `0 0 24px ${currentCeleb.glowColor}`,
                       } as unknown as ViewStyle)
                     : null,
                 ]}
               >
-                <Text style={styles.syncBolt}>⚡</Text>
+                <Text style={styles.syncIcon}>{currentCeleb.emojiIcon}</Text>
                 <Text
                   style={[
                     styles.syncValue,
                     {
                       fontSize: Math.round(26 * scale),
-                      color: currentCeleb.accentColor,
+                      color: currentCeleb.themeColor,
                       textShadowColor: currentCeleb.glowColor,
                     },
                   ]}
@@ -367,16 +373,16 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
                   {sliderFreq}%
                 </Text>
                 <Text style={styles.syncLabel}>
-                  {locale === 'ja' ? '周波数同調' : '주파수 동조'}
+                  {isJa ? '周波数同調' : '주파수 동조'}
                 </Text>
               </View>
             </View>
 
-            {/* 3. [신규] 세련된 네온 주파수 라디오 슬라이더 (<input type="range">) */}
+            {/* 4. 라디오 주파수 튜너 슬라이더 */}
             <View style={styles.sliderSection}>
               <View style={styles.sliderHeaderRow}>
                 <Text style={styles.sliderHeaderLabel}>TUNER FREQUENCY</Text>
-                <Text style={[styles.sliderHeaderFreq, { color: currentCeleb.accentColor }]}>
+                <Text style={[styles.sliderHeaderFreq, { color: currentCeleb.themeColor }]}>
                   {sliderFreq}Hz / %
                 </Text>
               </View>
@@ -389,19 +395,15 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
                     max={99}
                     step={1}
                     value={sliderFreq}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setSliderFreq(val);
-                      void playHaptic('tap');
-                    }}
+                    onChange={(e) => handleSliderChange(Number(e.target.value))}
                     style={{
                       width: '100%',
                       height: 8,
                       borderRadius: 4,
                       outline: 'none',
-                      background: `linear-gradient(90deg, #FFB800 0%, #00FF88 33%, #00F0FF 66%, #FF2A4B 100%)`,
+                      background: `linear-gradient(90deg, #A855F7 0%, #00F5D4 35%, #00F0FF 65%, #FFB800 85%, #FF2A4B 100%)`,
                       cursor: 'pointer',
-                      accentColor: currentCeleb.accentColor,
+                      accentColor: currentCeleb.themeColor,
                     }}
                   />
                 </View>
@@ -412,135 +414,152 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
                       styles.mobileSliderFill,
                       {
                         width: `${((sliderFreq - 60) / 39) * 100}%`,
-                        backgroundColor: currentCeleb.accentColor,
+                        backgroundColor: currentCeleb.themeColor,
                       },
                     ]}
                   />
                 </View>
               )}
 
-              {/* 주파수 대역 인물 힌트 */}
-              <View style={styles.sliderTickLabels}>
-                <Pressable onPress={() => setSliderFreq(65)}>
-                  <Text style={[styles.sliderTickText, sliderFreq < 70 && styles.sliderTickActive]}>
-                    60% 버핏
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => setSliderFreq(75)}>
-                  <Text
-                    style={[
-                      styles.sliderTickText,
-                      sliderFreq >= 70 && sliderFreq < 80 && styles.sliderTickActive,
-                    ]}
-                  >
-                    70% 젠슨황
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => setSliderFreq(85)}>
-                  <Text
-                    style={[
-                      styles.sliderTickText,
-                      sliderFreq >= 80 && sliderFreq < 90 && styles.sliderTickActive,
-                    ]}
-                  >
-                    80% 잡스
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => setSliderFreq(95)}>
-                  <Text style={[styles.sliderTickText, sliderFreq >= 90 && styles.sliderTickActive]}>
-                    90%+ 머스크
-                  </Text>
-                </Pressable>
-              </View>
+              {/* 퀵 칩 리스트 */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickChipsScroll}
+              >
+                {CELEBRITY_RESONANCE_DATASET.map((c) => {
+                  const isActive = c.id === currentCeleb.id;
+                  const cName = isJa ? c.name.jp : c.name.kr;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[
+                        styles.quickChip,
+                        isActive && {
+                          borderColor: c.themeColor,
+                          backgroundColor: `${c.themeColor}22`,
+                        },
+                      ]}
+                      onPress={() => handleSelectCelebDirect(c)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.quickChipEmoji}>{c.emojiIcon}</Text>
+                      <Text
+                        style={[
+                          styles.quickChipName,
+                          isActive && { color: c.themeColor, fontWeight: '900' },
+                        ]}
+                      >
+                        {cName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
             </View>
 
-            {/* 4. 인물 정보 & 사주 팩트 뱃지 */}
+            {/* 5. 인물 정보 & 십신 뱃지 */}
             <View style={styles.identity}>
               <Text style={[styles.name, { fontSize: Math.round(20 * scale) }]} numberOfLines={1}>
-                {currentCeleb.name}
+                {celebName}
               </Text>
               <Text style={styles.title} numberOfLines={1}>
-                {currentCeleb.title}
+                {celebTitle}
               </Text>
               <View
                 style={[
                   styles.tag,
                   {
-                    borderColor: currentCeleb.accentColor,
-                    backgroundColor: currentCeleb.badgeBg,
+                    borderColor: currentCeleb.themeColor,
+                    backgroundColor: `${currentCeleb.themeColor}18`,
                   },
                 ]}
               >
-                <Text style={[styles.tagText, { color: currentCeleb.accentColor }]}>
-                  ⚡ {currentCeleb.sajuFact}
+                <Text style={[styles.tagText, { color: currentCeleb.themeColor }]}>
+                  ⚡ {celebTenGod}
                 </Text>
               </View>
             </View>
 
-            {/* 5. 명언 카드 */}
-            <View style={styles.quoteBox}>
-              <Text style={[styles.quoteText, { fontSize: Math.round(11 * scale) }]}>
-                ❝ {currentCeleb.quote} ❞
+            {/* 6. 핵심 킬러 키워드 1줄 요약 */}
+            <View style={[styles.keywordBox, { borderColor: `${currentCeleb.themeColor}40` }]}>
+              <Text style={[styles.keywordTitle, { color: currentCeleb.themeColor }]}>
+                {isJa ? '【核心共鳴コード】' : '【핵심 공명 코드】'}
+              </Text>
+              <Text style={[styles.keywordBody, KEEP_ALL]}>
+                "{celebCoreKeyword}"
               </Text>
             </View>
 
-            {/* 6. [신규] 사주적 일치 이유 심층 해단 (2대 단락) */}
-            <View style={styles.deepAnalysisBox}>
-              {/* 1) 본원과 십신의 결 */}
-              <View style={styles.analysisItem}>
-                <View style={styles.analysisItemHeader}>
-                  <Text style={[styles.analysisItemTitle, { color: currentCeleb.accentColor }]}>
-                    {locale === 'ja' ? '☯️ 本元と十神の性質' : '☯️ 본원과 십신의 결'}
-                  </Text>
-                </View>
-                <Text style={styles.analysisItemBody}>{currentCeleb.originDestiny}</Text>
-              </View>
-
-              {/* 2) 현실 행동 동기화 */}
-              <View style={styles.analysisItem}>
-                <View style={styles.analysisItemHeader}>
-                  <Text style={[styles.analysisItemTitle, { color: currentCeleb.accentColor }]}>
-                    {locale === 'ja' ? '⚡ 現実行動の同期' : '⚡ 현실 행동 동기화'}
-                  </Text>
-                </View>
-                <Text style={styles.analysisItemBody}>{currentCeleb.realityAction}</Text>
-              </View>
+            {/* 7. 1:1 공명 메시지 박스 */}
+            <View style={styles.counselingBox}>
+              <Text style={[styles.counselingBody, KEEP_ALL]} numberOfLines={4}>
+                {resonanceBody}
+              </Text>
             </View>
 
-            {/* 7. 푸터 */}
+            {/* 8. 하단 워터마크 */}
             <View style={styles.footer}>
               <Text style={styles.footerBrand}>
-                {locale === 'ja' ? 'CYBER-推命' : 'CYBER-SAJU'} // {userDayMaster ? `${userDayMaster} ${locale === 'ja' ? '日干共鳴' : '일간 공명'}` : 'LOCAL EDGE AI'}
+                CYBER-SAJU // LOCAL EDGE MATRIX
               </Text>
-              <Text style={styles.footerCta}>INSTAGRAM STORY SPEC // 9:16</Text>
+              <Text style={[styles.watermarkUrl, { color: currentCeleb.themeColor }]}>
+                ⚡ {WATERMARK_URL}
+              </Text>
             </View>
           </ScrollView>
         </View>
 
-        {/* 하단 컨트롤 버튼 영역 */}
-        <View style={[styles.buttonRow, { width: cardWidth }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-            <Text style={styles.closeBtnText}>{locale === 'ja' ? '閉じる' : '닫기'}</Text>
-          </TouchableOpacity>
+        {/* 토스트 배너 */}
+        {copiedToast && (
+          <View style={styles.toastBanner}>
+            <Text style={styles.toastText}>
+              {isJa ? '✓ 結果とURLをコピーしました' : '✓ 결과 요약과 링크가 복사되었습니다'}
+            </Text>
+          </View>
+        )}
+
+        {/* 하단 바이럴 액션 버튼 3종 */}
+        <View style={[styles.actionRow, { width: cardWidth }]}>
           <TouchableOpacity
-            style={[styles.shareBtn, { backgroundColor: currentCeleb.accentColor }]}
-            onPress={handleShare}
+            style={[
+              styles.actionButton,
+              styles.saveButton,
+              { backgroundColor: currentCeleb.themeColor },
+              IS_WEB
+                ? ({
+                    boxShadow: `0 0 16px ${currentCeleb.glowColor}`,
+                  } as unknown as ViewStyle)
+                : null,
+            ]}
+            onPress={handleSaveImage}
             disabled={isSharing}
             activeOpacity={0.8}
           >
-            <Text style={styles.shareBtnText} numberOfLines={1}>
+            <Text style={styles.saveButtonText} numberOfLines={1}>
               {isSharing
-                ? (locale === 'ja' ? '📸 キャプチャ中...' : '📸 캡처 중...')
-                : (locale === 'ja' ? '📲 Instagram 共有' : '📲 인스타 공유')}
+                ? (isJa ? '📸 保存中...' : '📸 캡처 중...')
+                : (isJa ? '📸 画像を保存 (ストーリー)' : '📸 이미지 저장 (스토리용)')}
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={styles.twitterBtn}
+            style={[styles.actionButton, styles.twitterButton]}
             onPress={handleTwitterShare}
             activeOpacity={0.8}
           >
-            <Text style={styles.twitterBtnText} numberOfLines={1}>
-              {locale === 'ja' ? '𝕏 ポスト' : '𝕏 포스트하기'}
+            <Text style={styles.twitterButtonText} numberOfLines={1}>
+              {isJa ? '𝕏 でシェア' : '𝕏 공유'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionButton, styles.linkButton]}
+            onPress={handleCopyLink}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.linkButtonText} numberOfLines={1}>
+              {isJa ? '🔗 コピー' : '🔗 복사'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -552,53 +571,106 @@ export function CelebrityShareModal({ visible, onClose, celebrityResult, userDay
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.92)',
+    backgroundColor: 'rgba(5, 5, 10, 0.94)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  topBarTitle: {
+    color: '#E2E8F0',
+    fontSize: 12.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  closeIconButton: {
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  closeIconText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   card: {
-    backgroundColor: '#0A0F1D',
-    borderRadius: 18,
+    backgroundColor: '#090D1A',
+    borderRadius: 20,
     borderWidth: 1.5,
     overflow: 'hidden',
   },
   cardScroll: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
     gap: 8,
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 6,
+    paddingBottom: 4,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
+  headerBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+  },
   headerTitle: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
   headerDate: {
     color: '#64748B',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '700',
     marginTop: 2,
     letterSpacing: 1,
   },
-
-  /* 싱크로율 원형 게이지 */
+  userSection: {
+    alignItems: 'center',
+    marginTop: 1,
+  },
+  userNameText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+  },
+  userSajuPill: {
+    marginTop: 2,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  userSajuText: {
+    color: '#94A3B8',
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
   syncWrap: {
     alignItems: 'center',
-    marginTop: 2,
+    marginVertical: 2,
   },
   syncCircle: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2.5,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(5, 8, 18, 0.85)',
   },
-  syncBolt: {
-    fontSize: 10,
-    color: '#FFFFFF',
+  syncIcon: {
+    fontSize: 14,
+    marginBottom: -2,
   },
   syncValue: {
     fontWeight: '900',
@@ -606,38 +678,36 @@ const styles = StyleSheet.create({
   },
   syncLabel: {
     color: '#94A3B8',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '800',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
-
-  /* 라디오 슬라이더 섹션 */
   sliderSection: {
     backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    borderRadius: 12,
-    padding: 8,
+    borderRadius: 10,
+    padding: 7,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 5,
   },
   sliderHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
   },
   sliderHeaderLabel: {
     color: '#64748B',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   sliderHeaderFreq: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '900',
   },
   rangeInputContainer: {
     width: '100%',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   mobileSliderTrack: {
     width: '100%',
@@ -648,172 +718,160 @@ const styles = StyleSheet.create({
   },
   mobileSliderFill: {
     height: '100%',
-    borderRadius: 4,
   },
-  sliderTickLabels: {
+  quickChipsScroll: {
+    gap: 6,
+    paddingVertical: 2,
+  },
+  quickChip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 6,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  sliderTickText: {
-    color: '#64748B',
-    fontSize: 9,
+  quickChipEmoji: {
+    fontSize: 10,
+  },
+  quickChipName: {
+    color: '#CBD5E1',
+    fontSize: 10,
     fontWeight: '700',
   },
-  sliderTickActive: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-
-  /* 인물 아이덴티티 */
   identity: {
     alignItems: 'center',
-    marginTop: 2,
+    gap: 2,
   },
   name: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: '900',
+    letterSpacing: 0.6,
   },
   title: {
     color: '#94A3B8',
-    fontSize: 10.5,
-    textAlign: 'center',
-    marginTop: 2,
+    fontSize: 9.5,
+    fontWeight: '600',
   },
   tag: {
-    marginTop: 5,
-    paddingVertical: 3,
+    paddingVertical: 2,
     paddingHorizontal: 8,
-    borderRadius: 999,
+    borderRadius: 5,
     borderWidth: 1,
+    marginTop: 2,
   },
   tagText: {
-    fontSize: 10.5,
+    fontSize: 9,
     fontWeight: '800',
   },
-
-  /* 명언 박스 */
-  quoteBox: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  keywordBox: {
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderLeftWidth: 2,
-    borderLeftColor: '#64748B',
+    padding: 7,
+    borderWidth: 1,
+    alignItems: 'center',
   },
-  quoteText: {
-    color: '#E2E8F0',
-    fontStyle: 'italic',
+  keywordTitle: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  keywordBody: {
+    color: '#F8FAFC',
+    fontSize: 10,
+    fontWeight: '800',
     textAlign: 'center',
-    lineHeight: 15,
-    ...KEEP_ALL,
+    lineHeight: 14,
   },
-
-  /* 사주 심층 해단 (2대 단락) */
-  deepAnalysisBox: {
-    backgroundColor: 'rgba(10, 15, 30, 0.75)',
-    borderRadius: 10,
+  counselingBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    borderRadius: 8,
     padding: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-    gap: 6,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  analysisItem: {
-    gap: 2,
-  },
-  analysisItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  analysisItemTitle: {
-    fontSize: 10.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  analysisItemBody: {
+  counselingBody: {
     color: '#CBD5E1',
-    fontSize: 10,
-    lineHeight: 14.5,
-    ...KEEP_ALL,
+    fontSize: 9,
+    lineHeight: 14,
+    textAlign: 'center',
   },
-
-  /* 푸터 */
   footer: {
     alignItems: 'center',
-    paddingTop: 6,
+    paddingTop: 3,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.07)',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   footerBrand: {
-    color: '#64748B',
-    fontSize: 8.5,
+    color: '#475569',
+    fontSize: 7.5,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
-  footerCta: {
-    color: '#94A3B8',
-    fontSize: 8,
-    fontWeight: '700',
+  watermarkUrl: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
     marginTop: 1,
   },
-
-  /* 하단 액션 버튼 */
-  buttonRow: {
+  toastBanner: {
+    position: 'absolute',
+    top: 50,
+    backgroundColor: 'rgba(16, 185, 129, 0.95)',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    zIndex: 9999,
+  },
+  toastText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  actionRow: {
     flexDirection: 'row',
     gap: 8,
     marginTop: 10,
   },
-  closeBtn: {
-    flex: 0.85,
-    minHeight: 44,
-    borderRadius: 10,
+  actionButton: {
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButton: {
+    flex: 2,
+  },
+  saveButtonText: {
+    color: '#000000',
+    fontSize: 11.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  twitterButton: {
+    flex: 1.1,
+    backgroundColor: '#000000',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  twitterButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  linkButton: {
+    flex: 1,
     backgroundColor: '#1E293B',
     borderWidth: 1,
-    borderColor: '#334155',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  closeBtnText: {
-    color: '#94A3B8',
-    fontSize: 12.5,
-    fontWeight: 'bold',
-  },
-  shareBtn: {
-    flex: 1.55,
-    minHeight: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  shareBtnText: {
-    color: '#090D16',
-    fontSize: 12.5,
-    fontWeight: '900',
-    letterSpacing: 0.2,
-  },
-  twitterBtn: {
-    flex: 1.45,
-    minHeight: 44,
-    borderRadius: 10,
-    backgroundColor: '#000000',
-    borderWidth: 1.2,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    ...(IS_WEB
-      ? ({
-          boxShadow: '0 0 14px rgba(255, 255, 255, 0.15)',
-        } as unknown as ViewStyle)
-      : null),
-  },
-  twitterBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '900',
-    letterSpacing: 0.2,
+  linkButtonText: {
+    color: '#E2E8F0',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

@@ -125,7 +125,11 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   backdropDismiss: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   card: {
     width: '100%',
@@ -164,7 +168,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: -0.3,
     marginBottom: 10,
-    wordBreak: 'keep-all',
+    ...(Platform.OS === 'web' ? ({ wordBreak: 'keep-all' } as any) : null),
   },
   description: {
     color: '#d6a8b2',
@@ -174,7 +178,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 8,
-    wordBreak: 'keep-all',
+    ...(Platform.OS === 'web' ? ({ wordBreak: 'keep-all' } as any) : null),
   },
   buttonGroup: {
     width: '100%',

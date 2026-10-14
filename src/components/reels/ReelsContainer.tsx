@@ -23,6 +23,7 @@ import { TodayMoneyCard } from '../cards/TodayMoneyCard';
 import { TodayMbtiCard } from '../cards/TodayMbtiCard';
 import { TodayCircuitCard } from '../cards/TodayCircuitCard';
 import { ShamanChamberCard } from '../cards/ShamanChamberCard';
+import { SoulResonanceCard } from '../cards/SoulResonanceCard';
 import { useLocale } from '../../locales';
 import { CARDS_JA } from '../../locales/cards_ja';
 import {
@@ -609,6 +610,29 @@ export const ReelsContainer: React.FC<ReelsContainerProps> = ({
             active={active}
             height={pageHeight}
             saju={context.saju}
+          />
+        </View>
+      );
+    }
+
+    if (item.id === 'celebrity') {
+      return (
+        <View
+          nativeID="section-celebrity"
+          style={[styles.page, WEB_SNAP_ITEM, { height: pageHeight }]}
+          {...({
+            id: 'section-celebrity',
+            'data-section': '05',
+            className: 'card-section w-full h-full snap-start snap-always overflow-hidden',
+          } as any)}
+        >
+          <SoulResonanceCard
+            active={active}
+            height={pageHeight}
+            saju={context.saju}
+            userProfile={context.userProfile}
+            onOpenCelebrityModal={actions.onOpenCelebrity}
+            lang={isJa ? 'jp' : 'kr'}
           />
         </View>
       );
