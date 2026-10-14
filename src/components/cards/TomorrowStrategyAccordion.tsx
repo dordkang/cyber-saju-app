@@ -34,6 +34,7 @@ interface TomorrowStrategyAccordionProps {
 import { useLocale } from '../../locales';
 import { formatSajuTerm } from '../../utils/sajuTerms';
 import { useSajuAdvice } from '../../hooks/useSajuAdvice';
+import { useTypewriterStream } from '../../utils/streamAndVip';
 
 const CORE_CATEGORIES: Array<{ key: CoreCategory; label: string; labelJa: string; icon: string }> = [
   { key: 'wealth', label: '재물', labelJa: '金運', icon: '💰' },
@@ -155,6 +156,17 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
     }
     return formatSajuTerm(text, 'kr');
   }, [aiAdvice, strategy.strategyText, isJa]);
+
+  // 실시간 AI 타자기 스트리밍 훅 연동
+  const {
+    displayedText: streamedTactics,
+    isStreaming: isTacticsStreaming,
+    skip: skipTacticsStream,
+  } = useTypewriterStream(displayBody, {
+    enabled: hasCalculated && !isLoading && !isAiLoading,
+    speed: 18,
+    charsPerTick: 2,
+  });
 
   const toggleExpand = () => {
     void playHaptic('tap');
@@ -378,16 +390,22 @@ export const TomorrowStrategyAccordion = memo(function TomorrowStrategyAccordion
 
           {/* 연산 완료 후 정통 명리 작전 해단 카드 */}
           {hasCalculated && !isLoading && !isAiLoading && (
-            <View style={styles.strategyBox}>
+            <Pressable onPress={skipTacticsStream} style={styles.strategyBox}>
               <View style={styles.strategyHeader}>
                 <Text style={styles.strategyKicker}>
                   {isJa ? '【明日の作戦指針】神童の一刀両断' : '【내일의 작전 지침】옥동자 일도양단'}
                 </Text>
               </View>
               <Text style={styles.strategyBody}>
-                {displayBody}
+                {streamedTactics}
+                {isTacticsStreaming && <Text style={{ color: '#FF2A4B', fontWeight: '900' }}>▍</Text>}
               </Text>
-            </View>
+              {isTacticsStreaming && (
+                <Text style={styles.skipHintText}>
+                  {isJa ? '（タップして全文を即時表示）' : '(화면을 터치하면 즉시 전체 문장이 표시됩니다)'}
+                </Text>
+              )}
+            </Pressable>
           )}
 
           {!hasCalculated && !isLoading && !isAiLoading && (
@@ -752,6 +770,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 6,
     ...KEEP_ALL,
+  },
+  skipHintText: {
+    color: '#8A636C',
+    fontSize: 10.5,
+    marginTop: 6,
+    textAlign: 'right',
   },
   pressed: {
     opacity: 0.8,

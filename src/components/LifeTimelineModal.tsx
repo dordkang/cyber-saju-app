@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,6 +9,7 @@ import {
   PanResponder,
   PanResponderGestureState,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -45,6 +46,25 @@ import { updateUserOnboardingData, saveUserProfile, getUserProfile } from '../da
 import { useLocale } from '../locales';
 import { getActiveLanguage } from '../utils/langManager';
 import { formatSajuTerm } from '../utils/sajuTerms';
+import { useTypewriterStream } from '../utils/streamAndVip';
+
+const StreamingAnalysisText = memo(function StreamingAnalysisText({
+  text,
+  style,
+}: {
+  text: string;
+  style: any;
+}) {
+  const { displayedText, isStreaming, skip } = useTypewriterStream(text, { speed: 16, charsPerTick: 3 });
+  return (
+    <Pressable onPress={skip}>
+      <Text style={style}>
+        {displayedText}
+        {isStreaming && <Text style={{ color: '#00F0FF', fontWeight: '900' }}>▍</Text>}
+      </Text>
+    </Pressable>
+  );
+});
 
 const GATEWAY_URL = 'https://saju-edge-gateway.cybersaju.workers.dev';
 
@@ -929,7 +949,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                     {currentIsJa ? '🔮 サイバー神童 大運 心理鑑定' : '🔮 사이버 신동 대운 심리 상담'}
                   </Text>
                 </View>
-                <Text style={styles.aiResultText}>{aiState.text}</Text>
+                <StreamingAnalysisText text={aiState.text} style={styles.aiResultText} />
               </View>
             ) : (
               <View style={styles.aiLoadingBox}>

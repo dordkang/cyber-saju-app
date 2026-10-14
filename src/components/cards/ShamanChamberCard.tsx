@@ -20,6 +20,8 @@ import { useSajuAdvice } from '../../hooks/useSajuAdvice';
 import { formatSajuTerm } from '../../utils/sajuTerms';
 import { calculateDaewoonTimeline } from '../../utils/daewoonGraph';
 import { getActiveLanguage } from '../../utils/langManager';
+import { isVipMember, useTypewriterStream, listenVipAndCredits } from '../../utils/streamAndVip';
+import { PaywallModal } from '../modals/PaywallModal';
 
 const IS_WEB = Platform.OS === 'web';
 const KEEP_ALL = { wordBreak: 'keep-all' } as unknown as TextStyle;
@@ -76,6 +78,9 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
 
   const countStorageKey = `cyber_saju_chamber_count_${todayKeyStr}`;
 
+  const [isVip, setIsVip] = useState<boolean>(() => isVipMember());
+  const [paywallVisible, setPaywallVisible] = useState<boolean>(false);
+
   const [usedCount, setUsedCount] = useState<number>(() => {
     try {
       if (typeof localStorage !== 'undefined') {
@@ -86,8 +91,22 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     return 0;
   });
 
-  const remainingQuestions = Math.max(0, MAX_DAILY_QUESTIONS - usedCount);
-  const isExhausted = remainingQuestions <= 0;
+  // VIP 및 복채 충전 실시간 감지
+  React.useEffect(() => {
+    const unlisten = listenVipAndCredits(() => {
+      setIsVip(isVipMember());
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const val = localStorage.getItem(countStorageKey);
+          setUsedCount(val ? Math.min(MAX_DAILY_QUESTIONS, Math.max(0, parseInt(val, 10) || 0)) : 0);
+        }
+      } catch {}
+    });
+    return unlisten;
+  }, [countStorageKey]);
+
+  const remainingQuestions = isVip ? 999 : Math.max(0, MAX_DAILY_QUESTIONS - usedCount);
+  const isExhausted = !isVip && remainingQuestions <= 0;
 
   // 설정된 도사 말투(Persona) 감지
   const currentPersona = useMemo(() => {
@@ -168,15 +187,22 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
 
   // 즉문즉답 전송 핸들러
   const handleSubmit = async () => {
-    if (!questionText.trim() || isExhausted || isAiLoading) return;
+    if (!questionText.trim() || isAiLoading) return;
+    if (isExhausted) {
+      void playHaptic('snap');
+      setPaywallVisible(true);
+      return;
+    }
     void playHaptic('snap');
-    const nextCount = usedCount + 1;
-    setUsedCount(nextCount);
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(countStorageKey, String(nextCount));
-      }
-    } catch {}
+    if (!isVip) {
+      const nextCount = usedCount + 1;
+      setUsedCount(nextCount);
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(countStorageKey, String(nextCount));
+        }
+      } catch {}
+    }
     setHasSubmitted(true);
     await fetchAiAdvice();
   };
@@ -214,6 +240,17 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     ? formatSajuTerm(aiAdvice, isJa ? 'jp' : 'kr')
     : fallbackOracle;
 
+  // 실시간 AI 타자기 스트리밍 훅 연동
+  const {
+    displayedText: streamedAdvice,
+    isStreaming: isAdviceStreaming,
+    skip: skipAdviceStream,
+  } = useTypewriterStream(displayAdvice, {
+    enabled: hasSubmitted && !isAiLoading,
+    speed: 18,
+    charsPerTick: 2,
+  });
+
   return (
     <View style={[styles.root, { height }]}>
       <LinearGradient
@@ -244,15 +281,33 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
           </Text>
         </View>
 
-        {/* 1일 5회 한정 잔여 카운터 배지 */}
+        {/* 1일 5회 한정 잔여 카운터 배지 or VIP 배지 */}
         <View style={styles.limitBadgeRow}>
-          <View style={[styles.limitBadge, isExhausted && styles.limitBadgeExhausted]}>
-            <Text style={[styles.limitBadgeText, isExhausted && styles.limitBadgeTextExhausted]}>
-              {isJa
-                ? `🔥 1日5回限定の神託 (本日の残り: ${remainingQuestions}/5回)`
-                : `🔥 1일 5회 한정 천기누설 (오늘 남은 질문: ${remainingQuestions}/5회)`}
-            </Text>
-          </View>
+          {isVip ? (
+            <View style={[styles.limitBadge, styles.limitBadgeVip]}>
+              <Text style={styles.limitBadgeTextVip}>
+                {isJa ? '👑 VIP 無制限パス適用中' : '👑 VIP 무제한 천기 패스 적용 중'}
+              </Text>
+            </View>
+          ) : (
+            <Pressable
+              onPress={() => isExhausted && setPaywallVisible(true)}
+              style={[styles.limitBadge, isExhausted && styles.limitBadgeExhausted]}
+            >
+              <Text style={[styles.limitBadgeText, isExhausted && styles.limitBadgeTextExhausted]}>
+                {isJa
+                  ? `🔥 1日5回限定の神託 (本日の残り: ${remainingQuestions}/5回)`
+                  : `🔥 1일 5회 한정 천기누설 (오늘 남은 질문: ${remainingQuestions}/5회)`}
+              </Text>
+              {isExhausted && (
+                <View style={styles.openPaywallBtn}>
+                  <Text style={styles.openPaywallBtnText}>
+                    {isJa ? '⚡ 神託を追加解放' : '⚡ 추가 천기 열기'}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          )}
         </View>
 
         {/* 2. 10대 천기 질문 칩 UI (2열 그리드) */}
@@ -333,13 +388,20 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
 
           {/* 전송 버튼 */}
           <Pressable
-            onPress={handleSubmit}
-            disabled={isAiLoading || !questionText.trim() || isExhausted}
+            onPress={() => {
+              if (isExhausted) {
+                void playHaptic('snap');
+                setPaywallVisible(true);
+              } else {
+                handleSubmit();
+              }
+            }}
+            disabled={isAiLoading || (!isExhausted && !questionText.trim())}
             style={({ pressed }) => [
               styles.submitBtn,
               CRIMSON_SHADOW,
-              (!questionText.trim() || isAiLoading || isExhausted) && styles.submitBtnDisabled,
-              pressed && !isExhausted && styles.pressed,
+              (!questionText.trim() && !isExhausted) && styles.submitBtnDisabled,
+              pressed && styles.pressed,
             ]}
             accessibilityRole="button"
           >
@@ -351,11 +413,13 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
                 </Text>
               </View>
             ) : isExhausted ? (
-              <Text style={[styles.submitBtnText, styles.submitBtnTextExhausted]}>
-                {isJa
-                  ? '本日の神託はすべて消費されました (深夜0時に回復)'
-                  : '오늘의 천기가 모두 소진되었습니다 (자정에 충전)'}
-              </Text>
+              <View style={styles.exhaustedBtnContent}>
+                <Text style={[styles.submitBtnText, styles.submitBtnTextExhausted]}>
+                  {isJa
+                    ? '⚡ 神託を追加解放 (タップして解放)'
+                    : '⚡ 추가 천기 열기 (터치하여 해금)'}
+                </Text>
+              </View>
             ) : (
               <Text style={styles.submitBtnText}>
                 {isJa
@@ -366,7 +430,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
           </Pressable>
         </View>
 
-        {/* 4. AI 답변 출력 카드 */}
+        {/* 4. AI 답변 출력 카드 (실시간 타자기 스트리밍) */}
         {hasSubmitted && (
           <View style={[styles.answerCard, LUXURY_GLASS]}>
             <View style={styles.answerHeader}>
@@ -390,13 +454,29 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
                 </Text>
               </View>
             ) : (
-              <View style={styles.answerContent}>
-                <Text style={styles.answerBody}>{displayAdvice}</Text>
-              </View>
+              <Pressable onPress={skipAdviceStream} style={styles.answerContent}>
+                <Text style={styles.answerBody}>
+                  {streamedAdvice}
+                  {isAdviceStreaming && <Text style={styles.cursorBlink}>▍</Text>}
+                </Text>
+                {isAdviceStreaming && (
+                  <Text style={styles.skipHintText}>
+                    {isJa ? '（タップして全文を即時表示）' : '(화면을 터치하면 즉시 전체 문장이 표시됩니다)'}
+                  </Text>
+                )}
+              </Pressable>
             )}
           </View>
         )}
       </ScrollView>
+
+      {/* 하이브리드 수익화 페이월 모달 */}
+      <PaywallModal
+        visible={paywallVisible}
+        onClose={() => setPaywallVisible(false)}
+        userName={userProfile?.name}
+        lang={isJa ? 'jp' : 'kr'}
+      />
     </View>
   );
 });
@@ -465,6 +545,34 @@ const styles = StyleSheet.create({
   limitBadgeExhausted: {
     backgroundColor: 'rgba(107, 28, 43, 0.3)',
     borderColor: 'rgba(150, 40, 60, 0.35)',
+    alignItems: 'center',
+    gap: 4,
+  },
+  limitBadgeVip: {
+    borderColor: '#FFB800',
+    backgroundColor: 'rgba(255, 184, 0, 0.15)',
+    ...(IS_WEB
+      ? ({
+          boxShadow: '0 0 12px rgba(255, 184, 0, 0.35)',
+        } as unknown as ViewStyle)
+      : null),
+  },
+  limitBadgeTextVip: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  openPaywallBtn: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#FF2A4B',
+  },
+  openPaywallBtnText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
+    fontWeight: '900',
   },
   limitBadgeText: {
     color: '#ff6b81',
@@ -647,6 +755,20 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '600',
     ...KEEP_ALL,
+  },
+  cursorBlink: {
+    color: '#FF2A4B',
+    fontWeight: '900',
+  },
+  skipHintText: {
+    color: '#8A636C',
+    fontSize: 11,
+    marginTop: 6,
+    textAlign: 'right',
+  },
+  exhaustedBtnContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pressed: {
     opacity: 0.85,
