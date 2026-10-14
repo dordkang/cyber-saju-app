@@ -311,10 +311,8 @@ function peekCopy(meta: ReelSectionMeta, context: ReelsContext, isJa: boolean = 
       return {
         body: isJa
           ? `${CARDS_JA.c08_settings.currentVoiceTitle}\n${CARDS_JA.c08_settings.currentVoiceDesc}`
-          : (context.personaLabel
-              ? `지금 말투 · ${context.personaLabel}\n프로필 재설정, 로컬 백업, 배경음은 설정에서 다룹니다.`
-              : '도사 말투와 기기 설정은 여기서 바꿉니다.'),
-        cta: isJa ? CARDS_JA.c08_settings.openSettingsBtn : '설정 열기',
+          : '사이버 신동 1:1 천기 밀실\n가식을 버리고 가장 절박한 현실 고민을 털어놓으십시오. 사주 명식 기반으로 명쾌한 처방을 내립니다.',
+        cta: isJa ? CARDS_JA.c08_settings.openSettingsBtn : '밀실 상담 열기',
       };
     default:
       return { body: meta.subtitle, cta: isJa ? '次へ' : '계속' };

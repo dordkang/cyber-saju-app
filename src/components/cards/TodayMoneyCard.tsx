@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playHaptic } from '../reels/haptics';
 import { analyzeTodayMoney } from '../../engine/moneyEngine';
+import { getDailyTimeSlotMoneyTactics } from '../../engine/dailyMoneyTactics';
 import type { ReelsMoneyPeek } from '../../types/reels';
 import type { SajuResult } from '../../engine/types';
 import { useLocale } from '../../locales';
@@ -85,6 +86,11 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
   const rawMoney = useMemo(() => {
     return analyzeTodayMoney(saju ?? null, selectedDate);
   }, [saju, selectedDate]);
+
+  // 일진(十神) 및 일자 기반 시간대별 금전 행동 비책 동적 산출
+  const dailyTactics = useMemo(() => {
+    return getDailyTimeSlotMoneyTactics(selectedDate, rawMoney.godName, isJa);
+  }, [selectedDate, rawMoney.godName, isJa]);
 
   const money = useMemo(() => {
     if (!isJa) return rawMoney;
@@ -474,28 +480,16 @@ export const TodayMoneyCard = memo(function TodayMoneyCard({
                   {isJa ? '⏰ 時間帯別・資金行動の秘策' : '⏰ 시간대별 금전 행동 비책'}
                 </Text>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>{isJa ? '[午前 09~12時]' : '[오전 09~12시]'}</Text>
-                  <Text style={styles.timelineDesc}>
-                    {isJa
-                      ? '書類点検・支出計画の精査。決裁の即時承認は保留。'
-                      : '문서 정비 & 지출 계획 검토. 결재창 즉시 승인 보류.'}
-                  </Text>
+                  <Text style={styles.timelineHour}>{dailyTactics.morning.hourLabel}</Text>
+                  <Text style={styles.timelineDesc}>{dailyTactics.morning.desc}</Text>
                 </View>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>{isJa ? '[午後 13~17時]' : '[오후 13~17시]'}</Text>
-                  <Text style={styles.timelineDesc}>
-                    {isJa
-                      ? '交渉および単価の確定に集中。明確な数字のみで語れ。'
-                      : '협상 및 단가 확정 집중. 명확한 숫자로만 대화할 것.'}
-                  </Text>
+                  <Text style={styles.timelineHour}>{dailyTactics.afternoon.hourLabel}</Text>
+                  <Text style={styles.timelineDesc}>{dailyTactics.afternoon.desc}</Text>
                 </View>
                 <View style={styles.timelineRow}>
-                  <Text style={styles.timelineHour}>{isJa ? '[夜 18~22時]' : '[저녁 18~22시]'}</Text>
-                  <Text style={styles.timelineDesc}>
-                    {isJa
-                      ? '財布を封印し口座残高を確認。酒席での気前の良さは厳禁。'
-                      : '지갑 봉인 & 계좌 잔고 확인. 술자리 호기 결제 절대 차단.'}
-                  </Text>
+                  <Text style={styles.timelineHour}>{dailyTactics.evening.hourLabel}</Text>
+                  <Text style={styles.timelineDesc}>{dailyTactics.evening.desc}</Text>
                 </View>
               </View>
 

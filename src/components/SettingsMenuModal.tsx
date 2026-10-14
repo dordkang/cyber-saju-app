@@ -5,12 +5,11 @@ import type { ViewStyle } from 'react-native';
 export interface SettingsMenuModalProps {
   visible: boolean;
   onClose: () => void;
-  /** 현재 선택된 도사 이름. 예: "⚡ 단칼의 직언" */
-  personaLabel: string;
+  personaLabel?: string;
   soundOn: boolean;
   onOpenProfile: () => void;
   onOpenBackup: () => void;
-  onOpenPersona: () => void;
+  onOpenPersona?: () => void;
   onToggleSound: (next: boolean) => void;
 }
 
@@ -51,11 +50,9 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
   visible,
   onClose,
-  personaLabel,
   soundOn,
   onOpenProfile,
   onOpenBackup,
-  onOpenPersona,
   onToggleSound,
 }) => {
   const { isJa } = useLocale();
@@ -109,12 +106,7 @@ export const SettingsMenuModal: React.FC<SettingsMenuModalProps> = ({
             }
             onPress={onOpenBackup}
           />
-          <MenuRow
-            icon="🎙️"
-            title={isJa ? '道士の口調変更' : '도사 말투 바꾸기'}
-            caption={isJa ? `現在は ${personaLabel}` : `지금은 ${personaLabel}`}
-            onPress={onOpenPersona}
-          />
+
 
           {/* 불리고 싶은 이름 / 닉네임 입력 필드 */}
           <View style={[styles.row, styles.inputRow]}>

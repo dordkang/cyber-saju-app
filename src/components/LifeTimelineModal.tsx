@@ -668,7 +668,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       const activeLang = getActiveLanguage();
       const currentIsJa = activeLang === 'jp' || isJa;
       const langKey = currentIsJa ? 'ja' : 'ko';
-      const cacheKey = `${period.index}_${langKey}`;
+      const cacheKey = `daewoon_v2_${period.index}_${langKey}`;
 
       setDaeunAiMap((prev) => {
         if (prev[cacheKey]?.loading || prev[cacheKey]?.text) return prev;
@@ -678,10 +678,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         };
       });
 
-      const effectiveVoice =
-        typeof localStorage !== 'undefined'
-          ? (localStorage.getItem('cyber_saju_persona') || 'shaman')
-          : 'shaman';
+      const effectiveVoice = 'shaman';
 
       const storedUserName =
         typeof localStorage !== 'undefined'
@@ -690,20 +687,64 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
       const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
 
-      const fallbackJa = `【サイバー神童・${period.ganji.label}大運 心理鑑定】\n${userHonorificJa}が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式の日干『${timeline?.dayMaster ?? '戊'}』と深く響き合う大切な変曲点です。これまで抱えてこられた重圧や迷いを手放し、ご自身の可能性を信じて歩みを進めてください。運気の巡りは必ず${userHonorificJa}の味方となります。`;
-      const fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운 심리 상담】\n${userHonorificKo}께서 지나거나 맞이하시는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 깊이 교차하는 중요한 인생의 변곡점입니다. 그동안 홀로 견뎌오신 고단함과 불안을 내려놓으시고, 본연의 단단한 힘을 믿고 나아가십시오. 운의 흐름은 분명 ${userHonorificKo}의 편이 되어줄 것입니다.`;
+      // 만 나이 동적 계산
+      let currentAge = 51;
+      const bDateStr = birthDate || '';
+      if (bDateStr) {
+        const bYear = parseInt(bDateStr.slice(0, 4), 10);
+        if (!isNaN(bYear) && bYear > 1900) {
+          currentAge = new Date().getFullYear() - bYear;
+        }
+      }
+
+      const isChildhood = period.endAge <= 19;
+      const isPastAdult = period.endAge < currentAge && period.endAge > 19;
+      const isCurrent = period.startAge <= currentAge && currentAge <= period.endAge;
+      const isFuture = period.startAge > currentAge;
+
+      // 4단계 생애주기별 폴백 문구
+      let fallbackJa = `【サイバー神童・${period.ganji.label}大運 心理鑑定】\n${userHonorificJa}が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式の日干『${timeline?.dayMaster ?? '戊'}』と深く響き合う大切な変曲点です。これまで抱えてこられた重圧や迷いを手放し、ご自身の可能性を信じて歩みを進めてください。運気の巡りは必ず${userHonorificJa}の味方となります。`;
+      let fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운 심리 상담】\n${userHonorificKo}께서 지나거나 맞이하시는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 깊이 교차하는 중요한 인생의 변곡점입니다. 그동안 홀로 견뎌오신 고단함과 불안을 내려놓으시고, 본연의 단단한 힘을 믿고 나아가십시오. 운의 흐름은 분명 ${userHonorificKo}의 편이 되어줄 것입니다.`;
+
+      if (isChildhood) {
+        fallbackJa = `【サイバー神童・${period.ganji.label}大運(初年運) 回顧】\n${userHonorificJa}が過ごされた満${period.startAge}〜${period.endAge}歳の幼少期・学生時代は、生まれ持った気質と感受性が培われた大切な根っこの季節でした。その頃に培われた家庭環境と学びの経験は、のちに世の荒波を乗り越える確かな内功と早熟な洞察力の糧となりました。`;
+        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(초년운) 회고】\n${userHonorificKo}께서 지나오신 만 ${period.startAge}~${period.endAge}세의 어린 시절은 타고난 성정과 감수성이 다져지던 소중한 뿌리의 계절이었습니다. 당시 겪으신 가정환경과 배움의 시간들은 훗날 거친 세상을 헤쳐 나가는 남다른 내공과 조숙한 통찰력의 든든한 밑거름이 되었습니다.`;
+      } else if (isPastAdult) {
+        fallbackJa = `【サイバー神童・${period.ganji.label}大運(青年期) 分析】\n${userHonorificJa}が懸命に歩まれた満${period.startAge}〜${period.endAge}歳の時期は、社会と向き合いながら独自の力量を磨き上げた鍛錬の時でした。当時経験された数々の試行錯誤や挑戦は決して無駄ではなく、現在の確固たる礎を築く決定的な資産となっています。`;
+        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(청년운) 분석】\n${userHonorificKo}께서 치열하게 지나오신 만 ${period.startAge}~${period.endAge}세 시절은 세상과 부딪히며 독자적인 역량을 완성해 나간 담금질의 시간이었습니다. 당시 겪으신 수많은 시행착오와 파도는 결코 헛되지 않았으며, 지금의 단단한 반석을 세우는 결정적 자산이 되었습니다.`;
+      } else if (isFuture) {
+        fallbackJa = `【サイバー神童・${period.ganji.label}大運(未来運) 展望】\n${userHonorificJa}にこれから訪れる満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、これまでの歳月の中で静かに蒔いてこられた種が黄金の実りを結ぶ時期です。財庫が開き名誉の扉が広がるため、耐え忍んだ歳月にふさわしい輝かしい福禄と安定が待っています。`;
+        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(미래운) 전망】\n${userHonorificKo}에게 앞으로 펼쳐질 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 지난 세월 묵묵히 뿌려둔 씨앗이 황금빛 결실을 맺는 시기입니다. 지지 금고가 열리고 명예의 길이 넓어지니, 지나온 인내에 걸맞은 찬란한 복록과 안정이 함께할 것입니다.`;
+      }
 
       try {
-        const effectiveUserLore = currentIsJa
-          ? translateRealityToJa(realityInput)
-          : realityInput.trim();
+        // 현재 대운일 때만 userLore(현재 사업 고민) 전달, 과거/초년 및 미래에는 엄격히 제외
+        const effectiveUserLore = isCurrent
+          ? (currentIsJa ? translateRealityToJa(realityInput) : realityInput.trim())
+          : '';
 
-        const promptText = currentIsJa
-          ? `【${period.ganji.label}大運 (${period.startAge}〜${period.endAge}歳) 運勢解断】${userHonorificJa}の命式（日干、五行）と該当大運（干支、通変星、十二運）に基づき、この大運の運勢と心の処方箋を温かく格調高い敬語で執筆してください。`
-          : `[${period.ganji.label} 대운 (만 ${period.startAge}~${period.endAge}세) 운세 해단] ${userHonorificKo}의 인생 성패, 천간지지 합충·십신(${period.stemGod}/${period.branchGod}) 흐름, 심리적 위로와 현실 처방전을 품격 있는 경어체로 풀어주십시오.`;
+        let promptText = '';
+        if (isChildhood) {
+          promptText = currentIsJa
+            ? `【初年運 (過去回想): 満${period.startAge}〜${period.endAge}歳】${userHonorificJa}の幼少期・学生時代（初年運）に対する回顧です。現在大変であるといった現在形の慰めは一切禁止します。当該大運の干支(${period.ganji.label})と十神(${TEN_GOD_JA[period.stemGod] ?? period.stemGod}/${TEN_GOD_JA[period.branchGod] ?? period.branchGod})に基づき、幼少期にどのような家庭環境や親の気運の中で育ったか、どのような性格や気質が形成され、学生時代の内面にどのような夢や早熟な一面があったかを過去回想型の敬語（〜だった時期です、〜して育たれたことでしょう）で生き生きと紐解いてください。`
+            : `[초년운 (과거 유년/학창기 회고: 만 ${period.startAge}~${period.endAge}세)] ${userHonorificKo}의 어린 시절(초년운)에 대한 회고입니다. 지금 힘들다는 식의 현재형 위로는 절대 금지합니다. 해당 대운의 간지(${period.ganji.label})와 십신(${period.stemGod}/${period.branchGod})을 바탕으로 어린 시절 어떤 가정환경과 부모의 기운 속에서 자랐는지, 어떤 성격과 기질이 형성되었고 학창 시절 내면에 어떤 꿈이나 남모를 조숙함이 있었는지를 과거 회상형 경어체(~하셨던 시기입니다, ~하며 자라나셨을 것입니다)로 생생하게 풀어주십시오.`;
+        } else if (isPastAdult) {
+          promptText = currentIsJa
+            ? `【青年・過去の軌跡: 満${period.startAge}〜${period.endAge}歳】${userHonorificJa}がすでに通り過ぎてこられた時代の過去の軌跡です。社会に出てぶつかりながらどのような試行錯誤と技術的・精神的内功を積まれたか、その時代に経験された財・人間関係の波が現在の強固な礎となったかを過去分析型の敬語で述べてください。`
+            : `[청년/과거 성년운 (이미 지나온 궤적 분석: 만 ${period.startAge}~${period.endAge}세)] ${userHonorificKo}께서 이미 지나온 시절의 과거 궤적입니다. 사회에 나와 부딪히며 어떤 시행착오와 기술적 내공을 쌓았는지, 그 시절 겪은 재물·인간관계의 파도가 지금의 단단한 밑거름이 되었는지를 과거 분석형 경어체로 서술하십시오.`;
+        } else if (isFuture) {
+          promptText = currentIsJa
+            ? `【未来の大運 (未来予測と結実): 満${period.startAge}〜${period.endAge}歳】${userHonorificJa}にこれから訪れる未来の大運です。現在大変であるといった慰めは排除し、この時期にどのような財庫と名誉の扉が開かれるのか、中年期に蒔いた種がどのように巨大な結実と晩年の福禄へと繋がっていくのか、未来予測型の敬語（〜となる時期です、〜を迎えることになります）で品格を込めて提示してください。`
+            : `[미래 대운 (앞으로 다가올 결실: 만 ${period.startAge}~${period.endAge}세)] ${userHonorificKo}에게 앞으로 다가올 미래의 대운입니다. 현재 힘들다는 위로는 배제하고, 이 시기에 어떤 재물의 금고와 명예의 문이 열리는지, 중년에 심어둔 씨앗이 어떻게 거대한 결실과 말년 복록으로 이어지는지 미래 예측형 경어체(~하게 될 시기입니다, ~을 맞이하게 됩니다)로 품격 있게 제시하십시오.`;
+        } else {
+          promptText = currentIsJa
+            ? `【現在の大運 (現在の処方箋): 満${period.startAge}〜${period.endAge}歳】${userHonorificJa}がまさに今通り抜けていらっしゃる核心の10年大運（${period.ganji.label}）です。現在の重圧や課題に温かく共感し、現在の大運干支が命式原局と出会いどのようなビジネス・財の変曲点を生み出しているのか、現在進行形の処方箋を下してください。`
+            : `[현재 대운 (지금 통과 중인 핵심 10년: 만 ${period.startAge}~${period.endAge}세)] ${userHonorificKo}께서 바로 지금 통과하고 있는 핵심 10년 대운입니다. 현재의 무게감을 따뜻하게 공감하고, 지금의 대운 간지(${period.ganji.label})가 사주 원국과 만나 어떤 비즈니스·재물 변곡점을 만들고 있는지 현재 진행형 처방을 내리십시오.`;
+        }
 
         const payload = {
           userName: storedUserName,
+          currentAge,
           lang: currentIsJa ? 'ja' : 'kr',
           locale: currentIsJa ? 'ja' : 'ko',
           isJa: currentIsJa,
@@ -713,8 +754,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             : `당신은 품격 있는 명리 심리 카운슬러 '사이버 신동'입니다. 100% 품격 있는 정중한 경어체(~합니다, ~하셨을 것입니다)로 답변하십시오. '상담자' 호칭 대신 반드시 '${userHonorificKo}'으로 부르십시오.`,
           dayMaster: timeline?.dayMaster ?? '戊',
           eventCategory: currentIsJa ? '大運' : '대운',
-          voiceStyle: effectiveVoice,
-          agentType: effectiveVoice === 'COMRADE' || effectiveVoice === 'brother' ? 'COMRADE' : 'DOKSA',
+          voiceStyle: 'shaman',
+          agentType: 'DOKSA',
           userLore: effectiveUserLore,
           pillars: timeline?.natalPillars,
           currentDaewoon: {
@@ -723,6 +764,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             stemGod: currentIsJa ? (TEN_GOD_JA[period.stemGod] ?? period.stemGod) : period.stemGod,
             branchGod: currentIsJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod,
             stage12: currentIsJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12,
+            startAge: period.startAge,
+            endAge: period.endAge,
           },
           selectedDaeun: {
             ganji: period.ganji.label,
@@ -731,6 +774,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
             branchGod: currentIsJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod,
             stage12: currentIsJa ? (STAGE12_JA[period.stage12] ?? period.stage12) : period.stage12,
             lifeStage: currentIsJa ? (LIFE_STAGE_JA[period.lifeStage] ?? period.lifeStage) : period.lifeStage,
+            startAge: period.startAge,
+            endAge: period.endAge,
           },
           userInput: promptText,
           prompt: promptText,

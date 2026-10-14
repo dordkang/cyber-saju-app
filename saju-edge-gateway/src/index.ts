@@ -83,13 +83,7 @@ function buildResponseRule(userHonorific: string, isJa: boolean): string {
 
 function buildVoiceDirective(voiceStyle: "brother" | "shaman", userHonorific: string, isJa: boolean): string {
   if (isJa) {
-    if (voiceStyle === "brother") {
-      return `【道士口調指針: 人生の良き兄貴分】人生の荒波をくぐり抜けてきた経験から、${userHonorific}の痛みに深く寄り添い、温かく誠実な敬語（です・ます調）で支えるメンターの口調。`;
-    }
     return `【道士口調指針: サイバー神童】${userHonorific}の心の奥底と運命の軌道を見通し、温かく気品ある敬語（です・ます調）で癒しと現実処方を授ける神童カウンセラーの口調。`;
-  }
-  if (voiceStyle === "brother") {
-    return `[도사 어조 지침: 심야 사형] 인생의 거친 파도를 먼저 겪어본 선배이자 멘토로서, ${userHonorific}의 아픔에 진심으로 공감하며 따뜻하고 든든한 정중 경어체(~합니다, ~하셨을 것입니다)로 이끄는 어조.`;
   }
   return `[도사 어조 지침: 사이버 신동] ${userHonorific}의 내면과 운명의 궤적을 꿰뚫어 보고 따뜻하게 어루만지는 품격 있는 명리 심리 카운슬러의 정중 경어체(~합니다, ~하셨을 것입니다, ~해 보십시오).`;
 }
@@ -751,6 +745,8 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false, u
   }
 
   const selectedDaeun = isRecord(body.selectedDaeun) ? body.selectedDaeun : (isRecord(body.currentDaewoon) ? body.currentDaewoon : null);
+  let isCurrentDaewoonStage = true;
+
   if (selectedDaeun) {
     const daewoonGanji = pickString(selectedDaeun.ganji, 10);
     const daewoonAge = pickString(selectedDaeun.ageRange, 20);
@@ -758,18 +754,76 @@ function buildUserPrompt(body: Record<string, unknown>, isJa: boolean = false, u
     const branchGod = pickString(selectedDaeun.branchGod, 10);
     const stage12 = pickString(selectedDaeun.stage12, 10);
     const lifeStage = pickString(selectedDaeun.lifeStage, 10);
-    sections.push(
-      isJa
-        ? `[分析対象の10年大運 コンテキスト]\n` +
-          `${honorific}の命式元局とともに【該当の10年大運: ${daewoonGanji} (${daewoonAge}) / 通変星: ${stemGod}·${branchGod}${stage12 ? ` / 十二運: ${stage12}` : ''}${lifeStage ? ` / 時期: ${lifeStage}` : ''}】の流れを精密に解剖せよ。\n` +
-          `この10年間の人生の盛衰、天干地支の合沖・通変星の気運が人生や事業の成敗・変曲点にどう作用するかを鋭く突き、具体的で温かい現実処方箋を丁寧な敬語（です・ます調）で授けてください。`
-        : `[분석 대상 10년 대운 컨텍스트]\n` +
-          `${honorific}의 사주 원국과 함께 [해당 10년 대운: ${daewoonGanji} (${daewoonAge}) / 십신: ${stemGod}·${branchGod}${stage12 ? ` / 12운성: ${stage12}` : ''}${lifeStage ? ` / 시기: ${lifeStage}` : ''}]의 흐름을 정밀하게 해부하라.\n` +
-          `이 10년간의 인생 성패, 천간지지 합충과 십신 기운이 인생과 사업의 변곡점에 미치는 영향을 날카롭게 짚고 구체적이고 현실적인 명리 처방전을 품격 있는 경어체로 명쾌하게 제시할 것.`
-    );
+
+    let startAge = typeof selectedDaeun.startAge === 'number' ? selectedDaeun.startAge : 0;
+    let endAge = typeof selectedDaeun.endAge === 'number' ? selectedDaeun.endAge : 0;
+    if (!startAge && !endAge && daewoonAge) {
+      const match = daewoonAge.match(/(\d+)\D+(\d+)/);
+      if (match) {
+        startAge = parseInt(match[1], 10);
+        endAge = parseInt(match[2], 10);
+      }
+    }
+
+    let currentAge = typeof body.currentAge === 'number' ? body.currentAge : 51;
+    if (typeof body.birthDate === 'string' && body.birthDate.length >= 4) {
+      const bYear = parseInt(body.birthDate.slice(0, 4), 10);
+      if (!isNaN(bYear) && bYear > 1900) {
+        currentAge = new Date().getFullYear() - bYear;
+      }
+    }
+
+    const isChildhood = endAge <= 19;
+    const isPastAdult = endAge < currentAge && endAge > 19;
+    const isCurrent = (startAge <= currentAge && currentAge <= endAge) || (!isChildhood && !isPastAdult && startAge === 0 && endAge === 0);
+    const isFuture = startAge > currentAge;
+    isCurrentDaewoonStage = isCurrent;
+
+    if (isChildhood) {
+      sections.push(
+        isJa
+          ? `[初年運 (過去 幼少期・学生時代の回顧: 満${startAge}歳〜${endAge}歳)]\n` +
+            `${honorific}の${startAge}歳〜${endAge}歳の幼少期・学生時代（初年運）に対する回顧です。現在大変であるといった現在形の慰めは一切禁止します。\n` +
+            `該当大運の干支(${daewoonGanji})と十神(${stemGod}・${branchGod}${stage12 ? ` / 十二運: ${stage12}` : ''})に基づき、幼少期にどのような家庭環境や親の気運の中で育ったか、どのような性格や気質が形成され、学生時代の内面にどのような夢や早熟な一面があったかを過去回想型の敬語（〜だった時期です、〜して育たれたことでしょう）で生き生きと紐解いてください。`
+          : `[초년운 (과거 유년/학창기 회고: 만 ${startAge}세~${endAge}세)]\n` +
+            `${honorific}의 ${startAge}세~${endAge}세 어린 시절(초년운)에 대한 회고입니다. 지금 힘들다는 식의 현재형 위로는 절대 금지합니다.\n` +
+            `해당 대운의 간지(${daewoonGanji})와 십신(${stemGod}·${branchGod}${stage12 ? ` / 12운성: ${stage12}` : ''})을 바탕으로 어린 시절 어떤 가정환경과 부모의 기운 속에서 자랐는지, 어떤 성격과 기질이 형성되었고 학창 시절 내면에 어떤 꿈이나 남모를 조숙함이 있었는지를 과거 회상형 경어체(~하셨던 시기입니다, ~하며 자라나셨을 것입니다)로 생생하게 풀어주십시오.`
+      );
+    } else if (isPastAdult) {
+      sections.push(
+        isJa
+          ? `[青年・過去の軌跡 (すでに通過した人生の歩み: 満${startAge}歳〜${endAge}歳)]\n` +
+            `${honorific}がすでに通り過ぎてこられた${startAge}歳〜${endAge}歳の過去の軌跡です。現在大変であるといった現在形の慰めは排除してください。\n` +
+            `社会に出てぶつかりながらどのような試行錯誤と技術的・精神的内功を積まれたか、その時代に経験された財・人間関係の波が現在の強固な礎となったかを過去分析型の敬語（〜だった時期です、〜の礎となりました）で述べてください。`
+          : `[청년/과거 성년운 (이미 지나온 인생 궤적 분석: 만 ${startAge}세~${endAge}세)]\n` +
+            `${honorific}께서 이미 지나온 ${startAge}세~${endAge}세 시절의 과거 궤적입니다. 현재 힘들다는 식의 위로는 배제하십시오.\n` +
+            `사회에 나와 부딪히며 어떤 시행착오와 기술적 내공을 쌓았는지, 그 시절 겪은 재물·인간관계의 파도가 지금의 단단한 밑거름이 되었는지를 과거 분석형 경어체(~하셨던 시절입니다, ~의 단초가 되었습니다)로 서술하십시오.`
+      );
+    } else if (isFuture) {
+      sections.push(
+        isJa
+          ? `[未来の大運 (これから迎える巨大な結実: 満${startAge}歳〜${endAge}歳)]\n` +
+            `${honorific}にこれから訪れる${startAge}歳〜${endAge}歳の未来の大運です。現在大変であるといった慰めは排除してください。\n` +
+            `この時期にどのような財庫と名誉の扉が開かれるのか、中年期に蒔いた種がどのように巨大な結実と晩年の福禄へと繋がっていくのか、未来予測型の敬語（〜となる時期です、〜を迎えることになります）で品格を込めて提示してください。`
+          : `[미래 대운 (앞으로 맞이할 거대한 결실: 만 ${startAge}세~${endAge}세)]\n` +
+            `${honorific}에게 앞으로 다가올 ${startAge}세~${endAge}세 미래의 대운입니다. 현재 힘들다는 위로는 배제하십시오.\n` +
+            `이 시기에 어떤 재물의 금고와 명예의 문이 열리는지, 중년에 심어둔 씨앗이 어떻게 거대한 결실과 말년 복록으로 이어지는지 미래 예측형 경어체(~하게 될 시기입니다, ~을 맞이하게 됩니다)로 품격 있게 제시하십시오.`
+      );
+    } else {
+      sections.push(
+        isJa
+          ? `[現在の大運 (まさに今通り抜けている核心の10年: 満${startAge}歳〜${endAge}歳)]\n` +
+            `${honorific}がまさに今通り抜けていらっしゃる核心の10年大運（${daewoonGanji} ${daewoonAge} / 通変星: ${stemGod}·${branchGod}${stage12 ? ` / 十二運: ${stage12}` : ''}）です。\n` +
+            `現在の重圧や課題に温かく深く共感し、現在の大運干支が命式原局と出会いどのようなビジネス・財の変曲点を生み出しているのか、現在進行形の処方箋を授けてください。`
+          : `[현재 대운 (바로 지금 통과 중인 핵심 10년: 만 ${startAge}세~${endAge}세)]\n` +
+            `${honorific}께서 바로 지금 통과하고 있는 핵심 10년 대운(${daewoonGanji} ${daewoonAge} / 십신: ${stemGod}·${branchGod}${stage12 ? ` / 12운성: ${stage12}` : ''})입니다.\n` +
+            `현재의 무게감을 따뜻하게 깊이 공감하고, 지금의 대운 간지가 사주 원국과 만나 어떤 비즈니스·재물 변곡점을 만들고 있는지 현재 진행형 처방을 내리십시오.`
+      );
+    }
   }
 
-  if (userLore) {
+  // userLore (현재 사업 고민)는 현재 대운일 때만 주입 (초년/청년 과거 및 미래에는 절대 주입하지 않음)
+  if (userLore && isCurrentDaewoonStage) {
     sections.push(
       isJa
         ? `[非公開 現実背景]\n${honorific}の現在の現実背景: [${userLore}]. ` +
@@ -961,15 +1015,9 @@ export default {
       const userHonorificJa = userName ? `${userName}様` : "ご縁者様";
       const userHonorific = isJa ? userHonorificJa : userHonorificKo;
 
-      const rawVoice = pickString(parsed.voiceStyle, 20).toLowerCase();
-      const voiceStyle: "brother" | "shaman" =
-        rawVoice === "brother" || rawVoice === "comrade" || parsed.agentType === "COMRADE"
-          ? "brother"
-          : "shaman";
-
-      const agentType = parsed.agentType
-        ? normalizeAgent(parsed.agentType)
-        : (voiceStyle === "brother" ? "COMRADE" : "DOKSA");
+      // 모든 AI 호출의 기본 화법은 '명리 심리 카운슬러 (사이버 신동 - 정중 경어체)' 단일 모드로 고정
+      const voiceStyle: "brother" | "shaman" = "shaman";
+      const agentType: AgentType = "DOKSA";
 
       const voiceDirective = buildVoiceDirective(voiceStyle, userHonorific, isJa);
 

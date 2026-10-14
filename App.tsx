@@ -53,7 +53,6 @@ import { LifeTimelineModal } from './src/components/LifeTimelineModal';
 import { MbtiPickerModal } from './src/components/MbtiPickerModal';
 import { TargetSettingModal } from './src/components/TargetSettingModal';
 import { PartnerReportModal } from './src/components/PartnerReportModal';
-import { PersonaPickerModal } from './src/components/PersonaPickerModal';
 import {
   ProfileSettingModal,
   BIRTH_TIME_UNKNOWN,
@@ -259,7 +258,6 @@ function AppContent() {
   const [dailyVisible, setDailyVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [backupVisible, setBackupVisible] = useState(false);
-  const [personaVisible, setPersonaVisible] = useState(false);
   const [celebrityVisible, setCelebrityVisible] = useState(false);
   const [mbtiVisible, setMbtiVisible] = useState(false);
   const [talismanVisible, setTalismanVisible] = useState(false);
@@ -285,7 +283,6 @@ function AppContent() {
     profile: false,
     mbti: false,
     celebrity: false,
-    persona: false,
     backup: false,
     talisman: false,
     settings: false,
@@ -301,7 +298,6 @@ function AppContent() {
       profile: profileVisible,
       mbti: mbtiVisible,
       celebrity: celebrityVisible,
-      persona: personaVisible,
       backup: backupVisible,
       talisman: talismanVisible,
       settings: settingsVisible,
@@ -315,7 +311,6 @@ function AppContent() {
     profileVisible,
     mbtiVisible,
     celebrityVisible,
-    personaVisible,
     backupVisible,
     talismanVisible,
     settingsVisible,
@@ -363,10 +358,6 @@ function AppContent() {
     }
     if (modals.celebrity) {
       setCelebrityVisible(false);
-      return true;
-    }
-    if (modals.persona) {
-      setPersonaVisible(false);
       return true;
     }
     if (modals.backup) {
@@ -843,15 +834,7 @@ function AppContent() {
     }
   };
 
-  const handleSelectPersona = async (next: AgentType) => {
-    setPersona(next);
-    setPersonaVisible(false);
-    try {
-      await savePersonaPreference(next);
-    } catch (e) {
-      Alert.alert('저장 오류', `도사 말투를 저장하지 못했습니다. ${describeError(e)}`);
-    }
-  };
+
 
   const handleOpenCelebrity = () => {
     if (!celebrityResult) {
@@ -892,7 +875,6 @@ function AppContent() {
     dailyVisible ||
     settingsVisible ||
     backupVisible ||
-    personaVisible ||
     celebrityVisible ||
     mbtiVisible ||
     talismanVisible;
@@ -947,7 +929,6 @@ function AppContent() {
             onOpenPartner={() => setPartnerVisible(true)}
             onOpenReport={handleOpenReport}
             onOpenDailyCard={() => setDailyVisible(true)}
-            onOpenPersona={() => setPersonaVisible(true)}
           />
         </View>
 
@@ -963,7 +944,6 @@ function AppContent() {
       <SettingsModal
         visible={settingsVisible}
         onClose={() => setSettingsVisible(false)}
-        personaLabel={`${AGENT_STORE[persona].emoji} ${AGENT_STORE[persona].name}`}
         soundOn={soundOn}
         onOpenProfile={() =>
           openFromSettings(() => {
@@ -972,7 +952,6 @@ function AppContent() {
           })
         }
         onOpenBackup={() => openFromSettings(() => setBackupVisible(true))}
-        onOpenPersona={() => openFromSettings(() => setPersonaVisible(true))}
         onToggleSound={handleToggleSound}
       />
 
@@ -989,12 +968,6 @@ function AppContent() {
         onRefresh={reloadAll}
       />
 
-      <PersonaPickerModal
-        visible={personaVisible}
-        selected={persona}
-        onClose={() => setPersonaVisible(false)}
-        onSelect={handleSelectPersona}
-      />
 
       <CelebrityShareModal
         visible={celebrityVisible}

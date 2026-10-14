@@ -72,14 +72,12 @@ export function useSajuAdvice({
       : activeLang;
   const isJa = effectiveLang === 'jp';
 
-  // 페르소나 말투 (voiceStyle) 판별: brother (심야 사형) vs shaman (옥동자)
-  const storedPersona = typeof localStorage !== 'undefined' ? localStorage.getItem('cyber_saju_persona') : null;
-  const rawVoice = voiceStyle || storedPersona || 'shaman';
-  const effectiveVoiceStyle = (rawVoice === 'COMRADE' || rawVoice === 'brother') ? 'brother' : 'shaman';
+  // 모든 AI 호출의 기본 화법은 '명리 심리 카운슬러 (사이버 신동 - 정중 경어체)' 단일 모드로 고정
+  const effectiveVoiceStyle = 'shaman';
 
   const loadingMessage = isJa
-    ? (effectiveVoiceStyle === 'brother' ? '兄弟子が盤勢を読み解き中...' : '神童が天機を演算中...')
-    : (effectiveVoiceStyle === 'brother' ? '심야 사형이 술잔을 기울이며 판세를 짚는 중...' : '옥동자가 신명을 불러 모으는 중...');
+    ? '神童が天機を演算中...'
+    : '사이버 신동이 천기를 연산 중...';
 
   const [advice, setAdvice] = useState<string>(fallbackText);
   const [headline, setHeadline] = useState<string>('');
@@ -155,7 +153,7 @@ export function useSajuAdvice({
         eventCategory: category,
         userLore: userInput.trim(),
         voiceStyle: effectiveVoiceStyle,
-        agentType: effectiveVoiceStyle === 'brother' ? 'COMRADE' : 'DOKSA',
+        agentType: 'DOKSA',
         currentDaewoon: currentDaewoon ?? undefined,
         currentDaewoonDirective: currentDaewoon
           ? (effectiveLang === 'jp'

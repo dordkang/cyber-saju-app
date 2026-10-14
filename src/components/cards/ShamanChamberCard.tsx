@@ -108,16 +108,8 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
   const remainingQuestions = isVip ? 999 : Math.max(0, MAX_DAILY_QUESTIONS - usedCount);
   const isExhausted = !isVip && remainingQuestions <= 0;
 
-  // 설정된 도사 말투(Persona) 감지
-  const currentPersona = useMemo(() => {
-    try {
-      return (typeof localStorage !== 'undefined' ? localStorage.getItem('cyber_saju_persona') : null) || 'DOKSA';
-    } catch {
-      return 'DOKSA';
-    }
-  }, []);
-  const isBrother = currentPersona === 'COMRADE' || currentPersona === 'brother';
-  const effectiveVoiceStyle = isBrother ? 'brother' : 'shaman';
+  // 모든 AI 호출의 기본 화법은 '명리 심리 카운슬러 (사이버 신동 - 정중 경어체)' 단일 모드로 고정
+  const effectiveVoiceStyle = 'shaman';
 
   // 로컬스토리지에서 상대방 사주 정보(cyber_saju_partner) 읽기
   const partnerProfile = useMemo(() => {
@@ -224,17 +216,11 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
     const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
     const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
 
-    if (isBrother) {
-      if (isJa) {
-        return `【深夜の兄弟子・温かな指針】\n${userHonorificJa}、生まれ持った日干『${day}』と現在通過中の${dGanji}大運(${dAge})の気運を拝見いたしました。これまで一人で重圧を抱え、本当によく耐えてこられましたね。決してご自身を責める必要はありません。運気の流れが激動の変曲点を迎えている今だからこそ、心と体を休め、ご自身のペースで一歩ずつ前へお進みください。`;
-      }
-      return `【심야 사형의 따뜻한 조언】\n${userHonorificKo}, 타고난 일간 '${day}'과 지금 지나고 계신 ${dGanji} 대운(${dAge})의 기운을 깊이 살펴보았습니다. 그동안 혼자서 감당하기 어려운 무게를 버텨내시느라 참으로 애쓰셨고 고생 많으셨습니다. 결코 ${userHonorificKo}께서 부족해서가 아닙니다. 지금은 운의 계절이 새로운 길을 준비하는 변곡점이니, 스스로를 자책하지 마시고 당당히 걸어가시길 바랍니다.`;
-    }
     if (isJa) {
       return `【サイバー神童・四柱推命 心理鑑定】\n${userHonorificJa}が現在通過していらっしゃる${dGanji}大運(${dAge})と日干『${day}』の気運を見通すに、これまでの孤独な葛藤と努力が深く伝わってまいります。これまでのご苦労は決して無駄ではなく、新しい飛躍のための大切な準備期間でした。どうかご自身を信じ、心穏やかに前へ歩みを進めてください。`;
     }
     return `【사이버 신동 · 명리 심리 카운슬링】\n${userHonorificKo}께서 지금 지나고 계신 ${dGanji} 대운(${dAge})의 기운과 일간 '${day}'의 원국을 깊이 헤아려 보았습니다. 남들에게 털어놓지 못한 채 홀로 삼켜온 고단함과 마음고생이 얼마나 깊으셨을지 고스란히 느껴집니다. 결코 ${userHonorificKo}의 잘못이 아니며 운의 흐름이 거칠었을 뿐입니다. 이제 새로운 도약의 문이 열리고 있으니 용기를 내어 나아가십시오.`;
-  }, [saju?.dayMaster, isJa, isBrother, currentDaewoon]);
+  }, [saju?.dayMaster, isJa, currentDaewoon]);
 
   const displayAdvice = aiAdvice
     ? formatSajuTerm(aiAdvice, isJa ? 'jp' : 'kr')
@@ -423,8 +409,8 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
             ) : (
               <Text style={styles.submitBtnText}>
                 {isJa
-                  ? (isBrother ? '⚡ 深夜の兄弟子の即問即答' : '⚡ サイバー神童の即問即答')
-                  : (isBrother ? '⚡ 심야 사형의 뼈 때리는 즉답' : '⚡ 옥동자 신명 즉문즉답')}
+                  ? '⚡ サイバー神童の即問即答'
+                  : '⚡ 사이버 신동의 즉문즉답'}
               </Text>
             )}
           </Pressable>
@@ -436,7 +422,7 @@ export const ShamanChamberCard = memo(function ShamanChamberCard({
             <View style={styles.answerHeader}>
               <View style={styles.answerBadge}>
                 <Text style={styles.answerBadgeText}>
-                  {isJa ? '🔮 神童の一刀両断神託' : '🔮 옥동자 신명 직설'}
+                  {isJa ? '🔮 サイバー神童・命理心理鑑定' : '🔮 사이버 신동 · 명리 심리 카운슬링'}
                 </Text>
               </View>
               <Pressable onPress={handleReset} style={styles.resetBtn}>
