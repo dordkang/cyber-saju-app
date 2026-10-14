@@ -1,0 +1,17 @@
+{
+  "short_name": "CYBER SAJU",
+  "name": "CYBER SAJU · 옥동자 천기(天氣) 해단",
+  "description": "정통 명리학 알고리즘과 네오 사이버펑크의 결합. 10년 주기 재물선 & 영혼의 공명 매칭.",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0a0507",
+  "background_color": "#0a0507",
+  "orientation": "portrait"
+}

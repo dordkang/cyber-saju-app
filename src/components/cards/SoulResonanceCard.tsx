@@ -30,6 +30,7 @@ import {
   type CelebrityMatchResult,
 } from '../../data/celebrityResonance';
 import { ViralShareModal } from '../modals/ViralShareModal';
+import { CelebrityAvatarHologram } from '../resonance/CelebrityAvatarHologram';
 import { playHaptic } from '../reels/haptics';
 import { getActiveLanguage } from '../../utils/langManager';
 
@@ -322,17 +323,10 @@ export const SoulResonanceCard = memo(function SoulResonanceCard({
         >
           {/* 셀럽 프로필 헤더 */}
           <View style={styles.celebHeader}>
-            <View
-              style={[
-                styles.avatarCircle,
-                {
-                  borderColor: currentCeleb.themeColor,
-                  backgroundColor: `${currentCeleb.themeColor}15`,
-                },
-              ]}
-            >
-              <Text style={styles.avatarEmoji}>{currentCeleb.emojiIcon}</Text>
-            </View>
+            <CelebrityAvatarHologram
+              celebrity={currentCeleb}
+              size={66}
+            />
             <View style={styles.celebMeta}>
               <View style={styles.nameRow}>
                 <Text style={styles.celebNameText}>{celebName}</Text>
