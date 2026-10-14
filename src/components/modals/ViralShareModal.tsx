@@ -110,14 +110,17 @@ export function ViralShareModal({
         }
 
         const { toBlob, toPng } = await import('html-to-image');
+        const captureOptions = {
+          quality: 0.98,
+          pixelRatio: 2.5,
+          skipFonts: true,
+          cacheBust: true,
+        };
 
         // 모바일 Web Share API 시도
         if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare) {
           try {
-            const blob = await toBlob(node, {
-              quality: 0.98,
-              pixelRatio: 2.5,
-            });
+            const blob = await toBlob(node, captureOptions);
             if (blob) {
               const file = new File(
                 [blob],
@@ -144,10 +147,7 @@ export function ViralShareModal({
         }
 
         // PC 브라우저 또는 Share 미지원 시 PNG 직접 다운로드
-        const dataUrl = await toPng(node, {
-          quality: 0.98,
-          pixelRatio: 2.5,
-        });
+        const dataUrl = await toPng(node, captureOptions);
         const link = document.createElement('a');
         link.download = `cyber-saju-resonance-${celebrity.id}-${syncRate}pct.png`;
         link.href = dataUrl;
@@ -186,8 +186,8 @@ export function ViralShareModal({
       : `[사이버 사주 // 영혼의 공명]\n${userDisplayName}의 영혼 주파수와 ${syncRate}% 동조하는 역사적 레전드는 【${celebName}】(${celebTitle})입니다.\n\n"${celebCoreKeyword}"\n\n당신과 공명하는 영웅을 지금 스캔해 보세요⚡\n`;
 
     const hashtags = isJa
-      ? 'サイバー四柱推命,魂の共鳴,四柱推命'
-      : '사이버사주,영혼의공명,사주팔자';
+      ? 'サイバー四柱推命,魂の共鳴'
+      : '사이버사주,영혼의공명';
 
     const shareUrl = `https://${WATERMARK_URL}`;
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
@@ -397,7 +397,7 @@ export function ViralShareModal({
             <Text style={styles.saveButtonText} numberOfLines={1}>
               {isCapturing
                 ? (isJa ? '📸 保存中...' : '📸 캡처 중...')
-                : (isJa ? '📸 画像を保存 (ストーリー)' : '📸 이미지 저장 (스토리용)')}
+                : (isJa ? '📸 画像を保存 (ストーリー用)' : '📸 이미지 저장 (인스타/LINE 스토리용)')}
             </Text>
           </TouchableOpacity>
 
@@ -408,7 +408,7 @@ export function ViralShareModal({
             activeOpacity={0.8}
           >
             <Text style={styles.twitterButtonText} numberOfLines={1}>
-              {isJa ? '𝕏 でシェア' : '𝕏 공유'}
+              {isJa ? '𝕏でシェアする' : '𝕏 (Twitter) 공유'}
             </Text>
           </TouchableOpacity>
 
@@ -419,7 +419,7 @@ export function ViralShareModal({
             activeOpacity={0.8}
           >
             <Text style={styles.linkButtonText} numberOfLines={1}>
-              {isJa ? '🔗 コピー' : '🔗 복사'}
+              {isJa ? '🔗 リンクをコピー' : '🔗 링크 복사'}
             </Text>
           </TouchableOpacity>
         </View>

@@ -441,15 +441,21 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
   const userStem = saju.dayMaster || '甲';
   const userElement = STEM_ELEMENT_MAP[userStem] || '木';
 
-  // 2. 사용자 최다 오행 (가장 비율이 높은 오행) 추출
+  // 2. 사용자 최다 오행 (가장 비율이 높은 오행) 및 결핍 오행 추출
   let dominantElement: SajuElementHanja = userElement;
+  let lackingElement: SajuElementHanja = '金';
   if (saju.elementsRatio) {
     let maxRatio = -1;
+    let minRatio = 999;
     (Object.keys(saju.elementsRatio) as FiveElement[]).forEach((el) => {
       const ratio = saju.elementsRatio[el] || 0;
       if (ratio > maxRatio) {
         maxRatio = ratio;
         dominantElement = FIVE_ELEMENT_EN_MAP[el] || '木';
+      }
+      if (ratio < minRatio) {
+        minRatio = ratio;
+        lackingElement = FIVE_ELEMENT_EN_MAP[el] || '金';
       }
     });
   }
@@ -458,6 +464,8 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
   const scored = CELEBRITY_RESONANCE_DATASET.map((celeb) => {
     const affinityDay = getElementAffinityScore(userElement, celeb.element);
     const affinityDom = getElementAffinityScore(dominantElement, celeb.element);
+    // 결핍 오행을 보완해주는 셀럽인 경우 보완적 시너지 가산점 (+10점)
+    const complementScore = celeb.element === lackingElement ? 10 : 0;
 
     // 개인 사주 고유 해시 (사주 원국 천간/지지 결합으로 미세 핑거프린트 생성)
     const seed =
@@ -466,12 +474,13 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
         celeb.id.charCodeAt(0) * 11) %
       7;
 
-    // 점수 합산: 기본 주파수(40%) + 일간 친화도(30%) + 최다오행 친화도(20%) + 사주 시드(10%)
+    // 점수 합산: 기본 주파수(40%) + 일간 친화도(20%) + 최다오행 친화도(15%) + 결핍오행 보완(15%) + 사주 시드(10%)
     const rawScore =
-      celeb.baseFrequency * 0.45 +
-      affinityDay * 2.1 +
-      affinityDom * 1.4 +
-      seed * 0.8;
+      celeb.baseFrequency * 0.40 +
+      affinityDay * 1.8 +
+      affinityDom * 1.2 +
+      complementScore * 1.2 +
+      seed * 0.7;
 
     return {
       celebrity: celeb,
@@ -482,7 +491,7 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
   // 점수 내림차순 정렬
   scored.sort((a, b) => b.rawScore - a.rawScore);
 
-  // 1위를 94~99% 범위의 최고 일치율로 보정하고, 나머지는 60~92% 대역으로 매끄럽게 정규화
+  // 1위를 92~99% 범위의 최고 일치율로 보정하고, 나머지는 60~91% 대역으로 매끄럽게 정규화
   const topRaw = scored[0].rawScore;
   const bottomRaw = scored[scored.length - 1].rawScore;
   const range = Math.max(1, topRaw - bottomRaw);
@@ -490,12 +499,13 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
   const allMatches: CelebrityMatchItem[] = scored.map((item, idx) => {
     let syncRate: number;
     if (idx === 0) {
-      // 1위: 94% ~ 99%
-      syncRate = Math.min(99, Math.max(94, Math.round(94 + ((item.rawScore % 5) + 0.8))));
+      // 1위: 92% ~ 99%
+      const topBonus = Math.round((item.rawScore * 3.7) % 8); // 0 ~ 7
+      syncRate = Math.min(99, Math.max(92, 92 + topBonus));
     } else {
-      // 2위 이하: 62% ~ 91%
+      // 2위 이하: 60% ~ 91%
       const normalized = (item.rawScore - bottomRaw) / range;
-      syncRate = Math.min(91, Math.max(62, Math.round(62 + normalized * 28)));
+      syncRate = Math.min(91, Math.max(60, Math.round(60 + normalized * 31)));
     }
 
     return {
@@ -505,8 +515,12 @@ export function calculateCelebrityMatches(saju: SajuResult | null | undefined): 
     };
   });
 
-  // syncRate 내림차순 재정렬 (동점 방지 위해 미세 조정)
-  allMatches.sort((a, b) => b.syncRate - a.syncRate);
+  // 2위 이하가 1위와 같거나 이전 등수보다 낮도록 정렬 보정 (동점 방지 및 주파수 계단식 보장)
+  for (let i = 1; i < allMatches.length; i++) {
+    if (allMatches[i].syncRate >= allMatches[i - 1].syncRate) {
+      allMatches[i].syncRate = Math.max(60, allMatches[i - 1].syncRate - 1);
+    }
+  }
 
   return {
     bestMatch: allMatches[0],
@@ -531,5 +545,8 @@ export function formatResonanceMessage(
   const cleanName = (userName && userName.trim()) || defaultName;
   const formattedCall = `${cleanName}${honorific}`;
 
-  return template.replace(/\$\{userName\}(\s*님|様)?/g, formattedCall);
+  if (template.includes('${userName}')) {
+    return template.replace(/\$\{userName\}(\s*님|様)?/g, formattedCall);
+  }
+  return `${formattedCall}, ${template}`;
 }

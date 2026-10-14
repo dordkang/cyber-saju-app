@@ -135,9 +135,14 @@ export const SoulResonanceCard = memo(function SoulResonanceCard({
     [matchResult]
   );
 
-  // 사용자 호칭 및 일간 정보
+  // 사용자 호칭 및 일간/오행 정보
   const userName = userProfile?.name || null;
   const userDayMaster = saju?.dayMaster || '甲';
+  const STEM_TO_HANJA: Record<string, string> = {
+    甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土',
+    己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水',
+  };
+  const userElement = STEM_TO_HANJA[userDayMaster] || '木';
   const defaultCaller = isJa ? 'ご縁者' : '인연자';
   const honorific = isJa ? '様' : ' 님';
   const userDisplayName = `${(userName && userName.trim()) || defaultCaller}${honorific}`;
@@ -154,11 +159,7 @@ export const SoulResonanceCard = memo(function SoulResonanceCard({
 
   const handleOpenShare = () => {
     void playHaptic('tap');
-    if (onOpenCelebrityModal) {
-      onOpenCelebrityModal();
-    } else {
-      setIsShareModalOpen(true);
-    }
+    setIsShareModalOpen(true);
   };
 
   return (
@@ -402,8 +403,8 @@ export const SoulResonanceCard = memo(function SoulResonanceCard({
         >
           <Text style={styles.shareCtaText}>
             {isJa
-              ? '⚡ 魂の共鳴カードを共有する (9:16 ストーリー)'
-              : '⚡ 내 영혼의 공명 카드 공유하기 (9:16 스토리)'}
+              ? '⚡ 魂の共鳴カードを共有する'
+              : '⚡ 내 영혼의 공명 카드 공유하기'}
           </Text>
           <Text style={styles.shareCtaSub}>
             INSTA / LINE STORY // 𝕏 TWITTER VIRAL
@@ -419,6 +420,7 @@ export const SoulResonanceCard = memo(function SoulResonanceCard({
         syncRate={sliderFreq}
         userName={userName}
         userDayMaster={userDayMaster}
+        userElement={userElement}
         lang={currentLang}
       />
     </View>
