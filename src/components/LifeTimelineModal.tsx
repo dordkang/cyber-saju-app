@@ -493,6 +493,52 @@ const ONBOARDING_TOAST_TEXT_JA = '運命同期完了！ 今日の日辰周波数
 const ONBOARDING_TOAST_FADE_MS = 240;
 const ONBOARDING_TOAST_HOLD_MS = 1300;
 
+function getDaeunCacheKey(period: DaeunPeriod, isJa: boolean): string {
+  const idx = typeof period?.index === 'number' && !isNaN(period.index) ? period.index : 0;
+  const ganjiLabel = period?.ganji?.label || '기본';
+  const langKey = isJa ? 'ja' : 'ko';
+  return `daewoon_v3_${idx}_${ganjiLabel}_${langKey}`;
+}
+
+function getDaeunFallbackText(
+  period: DaeunPeriod,
+  currentAge: number,
+  dayMaster: string,
+  userHonorific: string,
+  isJa: boolean
+): string {
+  const startAge = typeof period?.startAge === 'number' && !isNaN(period.startAge) ? period.startAge : 0;
+  const endAge = typeof period?.endAge === 'number' && !isNaN(period.endAge) ? period.endAge : (startAge + 9);
+  const ganjiLabel = period?.ganji?.label || '대운';
+  const isChildhood = endAge <= 19;
+  const isPastAdult = endAge < currentAge && endAge > 19;
+  const isFuture = startAge > currentAge;
+
+  if (isJa) {
+    if (isChildhood) {
+      return `【サイバー神童・${ganjiLabel}大運(初年運) 回顧】\n${userHonorific}が過ごされた満${startAge}〜${endAge}歳の幼少期・学生時代は、生まれ持った気質と感受性が培われた大切な根っこの季節でした。その頃に培われた家庭環境と学びの経験は、のちに世の荒波を乗り越える確かな内功と早熟な洞察力の糧となりました。`;
+    }
+    if (isPastAdult) {
+      return `【サイバー神童・${ganjiLabel}大運(青年期) 分析】\n${userHonorific}が懸命に歩まれた満${startAge}〜${endAge}歳の時期は、社会と向き合いながら独自の力量を磨き上げた鍛錬の時でした。当時経験された数々の試行錯誤や挑戦は決して無駄ではなく、現在の確固たる礎を築く決定的な資産となっています。`;
+    }
+    if (isFuture) {
+      return `【サイバー神童・${ganjiLabel}大運(未来運) 展望】\n${userHonorific}にこれから訪れる満${startAge}〜${endAge}歳の${ganjiLabel}大運は、これまでの歳月の中で静かに蒔いてこられた種が黄金の実りを結ぶ時期です。財庫が開き名誉の扉が広がるため、耐え忍んだ歳月にふさわしい輝かしい福禄と安定が待っています。`;
+    }
+    return `【サイバー神童・${ganjiLabel}大運 心理鑑定】\n${userHonorific}が現在迎えている満${startAge}〜${endAge}歳の${ganjiLabel}大運は、命式の日干『${dayMaster}』と深く響き合う大切な変曲点です。これまで抱えてこられた重圧や迷いを手放し、ご自身の可能性を信じて歩みを進めてください。運気の巡りは必ず${userHonorific}の味方となります。`;
+  }
+
+  if (isChildhood) {
+    return `【사이버 신동 · ${ganjiLabel} 대운(초년운) 회고】\n${userHonorific}께서 지나오신 만 ${startAge}~${endAge}세의 어린 시절은 타고난 성정과 감수성이 다져지던 소중한 뿌리의 계절이었습니다. 당시 겪으신 가정환경과 배움의 시간들은 훗날 거친 세상을 헤쳐 나가는 남다른 내공과 조숙한 통찰력의 든든한 밑거름이 되었습니다.`;
+  }
+  if (isPastAdult) {
+    return `【사이버 신동 · ${ganjiLabel} 대운(청년운) 분석】\n${userHonorific}께서 치열하게 지나오신 만 ${startAge}~${endAge}세 시절은 세상과 부딪히며 독자적인 역량을 완성해 나간 담금질의 시간이었습니다. 당시 겪으신 수많은 시행착오와 파도는 결코 헛되지 않았으며, 지금의 단단한 반석을 세우는 결정적 자산이 되었습니다.`;
+  }
+  if (isFuture) {
+    return `【사이버 신동 · ${ganjiLabel} 대운(미래운) 전망】\n${userHonorific}에게 앞으로 펼쳐질 만 ${startAge}~${endAge}세의 ${ganjiLabel} 대운은 지난 세월 묵묵히 뿌려둔 씨앗이 황금빛 결실을 맺는 시기입니다. 지지 금고가 열리고 명예의 길이 넓어지니, 지나온 인내에 걸맞은 찬란한 복록과 안정이 함께할 것입니다.`;
+  }
+  return `【사이버 신동 · ${ganjiLabel} 대운 심리 상담】\n${userHonorific}께서 지금 지나고 계신 만 ${startAge}~${endAge}세의 ${ganjiLabel} 대운은 일간 '${dayMaster}'의 원국과 깊이 교차하는 중요한 인생의 변곡점입니다. 그동안 홀로 견뎌오신 고단함과 불안을 내려놓으시고, 본연의 단단한 힘을 믿고 나아가십시오. 운의 흐름은 분명 ${userHonorific}의 편이 되어줄 것입니다.`;
+}
+
 export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
   visible,
   onClose,
@@ -665,29 +711,21 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
   const fetchDaeunAi = useCallback(
     async (period: DaeunPeriod) => {
+      if (!period) return;
       const activeLang = getActiveLanguage();
       const currentIsJa = activeLang === 'jp' || isJa;
-      const langKey = currentIsJa ? 'ja' : 'ko';
-      const cacheKey = `daewoon_v2_${period.index}_${langKey}`;
+      const cacheKey = getDaeunCacheKey(period, currentIsJa);
 
-      setDaeunAiMap((prev) => {
-        if (prev[cacheKey]?.loading || prev[cacheKey]?.text) return prev;
-        return {
-          ...prev,
-          [cacheKey]: { loading: true },
-        };
-      });
+      // 이미 로딩 중이거나 이미 완성된 텍스트가 있으면 중복 호출 스킵
+      if (daeunAiMap[cacheKey]?.loading || daeunAiMap[cacheKey]?.text) {
+        return;
+      }
 
-      const effectiveVoice = 'shaman';
+      // 나이(startAge, endAge, age) 참조 시 undefined나 NaN이 발생하지 않도록 기본값(Default fallback) 처리
+      const startAge = typeof period?.startAge === 'number' && !isNaN(period.startAge) ? period.startAge : 0;
+      const endAge = typeof period?.endAge === 'number' && !isNaN(period.endAge) ? period.endAge : (startAge + 9);
+      const ganjiLabel = period?.ganji?.label || '대운';
 
-      const storedUserName =
-        typeof localStorage !== 'undefined'
-          ? (localStorage.getItem('cyber_saju_user_name') || '')
-          : '';
-      const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
-      const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
-
-      // 만 나이 동적 계산
       let currentAge = 51;
       const bDateStr = birthDate || '';
       if (bDateStr) {
@@ -696,26 +734,31 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
           currentAge = new Date().getFullYear() - bYear;
         }
       }
+      if (isNaN(currentAge) || currentAge <= 0) currentAge = 51;
 
-      const isChildhood = period.endAge <= 19;
-      const isPastAdult = period.endAge < currentAge && period.endAge > 19;
-      const isCurrent = period.startAge <= currentAge && currentAge <= period.endAge;
-      const isFuture = period.startAge > currentAge;
+      const storedUserName =
+        typeof localStorage !== 'undefined'
+          ? (localStorage.getItem('cyber_saju_user_name') || '')
+          : '';
+      const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
+      const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
+      const userHonorific = currentIsJa ? userHonorificJa : userHonorificKo;
+      const dayMaster = timeline?.dayMaster ?? '戊';
 
-      // 4단계 생애주기별 폴백 문구
-      let fallbackJa = `【サイバー神童・${period.ganji.label}大運 心理鑑定】\n${userHonorificJa}が迎える満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、命式の日干『${timeline?.dayMaster ?? '戊'}』と深く響き合う大切な変曲点です。これまで抱えてこられた重圧や迷いを手放し、ご自身の可能性を信じて歩みを進めてください。運気の巡りは必ず${userHonorificJa}の味方となります。`;
-      let fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운 심리 상담】\n${userHonorificKo}께서 지나거나 맞이하시는 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 일간 '${timeline?.dayMaster ?? '戊'}'의 원국과 깊이 교차하는 중요한 인생의 변곡점입니다. 그동안 홀로 견뎌오신 고단함과 불안을 내려놓으시고, 본연의 단단한 힘을 믿고 나아가십시오. 운의 흐름은 분명 ${userHonorificKo}의 편이 되어줄 것입니다.`;
+      const fallbackJa = getDaeunFallbackText(period, currentAge, dayMaster, userHonorificJa, true);
+      const fallbackKo = getDaeunFallbackText(period, currentAge, dayMaster, userHonorificKo, false);
+      const fallbackText = currentIsJa ? fallbackJa : fallbackKo;
 
-      if (isChildhood) {
-        fallbackJa = `【サイバー神童・${period.ganji.label}大運(初年運) 回顧】\n${userHonorificJa}が過ごされた満${period.startAge}〜${period.endAge}歳の幼少期・学生時代は、生まれ持った気質と感受性が培われた大切な根っこの季節でした。その頃に培われた家庭環境と学びの経験は、のちに世の荒波を乗り越える確かな内功と早熟な洞察力の糧となりました。`;
-        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(초년운) 회고】\n${userHonorificKo}께서 지나오신 만 ${period.startAge}~${period.endAge}세의 어린 시절은 타고난 성정과 감수성이 다져지던 소중한 뿌리의 계절이었습니다. 당시 겪으신 가정환경과 배움의 시간들은 훗날 거친 세상을 헤쳐 나가는 남다른 내공과 조숙한 통찰력의 든든한 밑거름이 되었습니다.`;
-      } else if (isPastAdult) {
-        fallbackJa = `【サイバー神童・${period.ganji.label}大運(青年期) 分析】\n${userHonorificJa}が懸命に歩まれた満${period.startAge}〜${period.endAge}歳の時期は、社会と向き合いながら独自の力量を磨き上げた鍛錬の時でした。当時経験された数々の試行錯誤や挑戦は決して無駄ではなく、現在の確固たる礎を築く決定的な資産となっています。`;
-        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(청년운) 분석】\n${userHonorificKo}께서 치열하게 지나오신 만 ${period.startAge}~${period.endAge}세 시절은 세상과 부딪히며 독자적인 역량을 완성해 나간 담금질의 시간이었습니다. 당시 겪으신 수많은 시행착오와 파도는 결코 헛되지 않았으며, 지금의 단단한 반석을 세우는 결정적 자산이 되었습니다.`;
-      } else if (isFuture) {
-        fallbackJa = `【サイバー神童・${period.ganji.label}大運(未来運) 展望】\n${userHonorificJa}にこれから訪れる満${period.startAge}〜${period.endAge}歳の${period.ganji.label}大運は、これまでの歳月の中で静かに蒔いてこられた種が黄金の実りを結ぶ時期です。財庫が開き名誉の扉が広がるため、耐え忍んだ歳月にふさわしい輝かしい福禄と安定が待っています。`;
-        fallbackKo = `【사이버 신동 · ${period.ganji.label} 대운(미래운) 전망】\n${userHonorificKo}에게 앞으로 펼쳐질 만 ${period.startAge}~${period.endAge}세의 ${period.ganji.label} 대운은 지난 세월 묵묵히 뿌려둔 씨앗이 황금빛 결실을 맺는 시기입니다. 지지 금고가 열리고 명예의 길이 넓어지니, 지나온 인내에 걸맞은 찬란한 복록과 안정이 함께할 것입니다.`;
-      }
+      const isChildhood = endAge <= 19;
+      const isPastAdult = endAge < currentAge && endAge > 19;
+      const isCurrent = startAge <= currentAge && currentAge <= endAge;
+      const isFuture = startAge > currentAge;
+
+      // 카드별 고유 ID/간지 기준 독립 키(Key)로 로딩 상태 ON
+      setDaeunAiMap((prev) => ({
+        ...prev,
+        [cacheKey]: { loading: true, text: prev[cacheKey]?.text },
+      }));
 
       try {
         // 현재 대운일 때만 userLore(현재 사업 고민) 전달, 과거/초년 및 미래에는 엄격히 제외
@@ -808,15 +851,32 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         } else {
           throw new Error('Empty response');
         }
-      } catch {
+      } catch (err) {
+        console.warn('[LifeTimelineModal] 대운 AI 호출 실패, 로컬 즉시 안전 폴백 적용:', err);
         const fallback = currentIsJa ? fallbackJa : fallbackKo;
         setDaeunAiMap((prev) => ({
           ...prev,
-          [cacheKey]: { loading: false, text: fallback },
+          [cacheKey]: { loading: false, text: formatSajuTerm(fallback, currentIsJa ? 'jp' : 'kr') },
         }));
+      } finally {
+        // [필수]: 어떤 경우에도 해당 카드의 로딩 상태를 false로 강제 초기화하여 무한 스피너 원천 방지
+        setDaeunAiMap((prev) => {
+          const current = prev[cacheKey];
+          if (!current || current.loading) {
+            const fallback = currentIsJa ? fallbackJa : fallbackKo;
+            return {
+              ...prev,
+              [cacheKey]: {
+                loading: false,
+                text: current?.text || formatSajuTerm(fallback, currentIsJa ? 'jp' : 'kr'),
+              },
+            };
+          }
+          return prev;
+        });
       }
     },
-    [isJa, realityInput, timeline]
+    [birthDate, isJa, realityInput, timeline, daeunAiMap]
   );
 
   const toggleExpanded = useCallback(
@@ -919,7 +979,12 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
       ? (isJa ? '過去の軌跡' : '지나온 궤적')
       : (isJa ? 'これから訪れる大運' : '다가올 대운');
 
-    const ageLabel = isJa ? `満${period.startAge}歳 〜 ${period.endAge}歳` : `만 ${period.startAge}세 ~ ${period.endAge}세`;
+    // 나이 및 간지 파라미터 안전 기본값 방어
+    const startAge = typeof period?.startAge === 'number' && !isNaN(period.startAge) ? period.startAge : 0;
+    const endAge = typeof period?.endAge === 'number' && !isNaN(period.endAge) ? period.endAge : (startAge + 9);
+    const ganjiLabel = period?.ganji?.label || '대운';
+
+    const ageLabel = isJa ? `満${startAge}歳 〜 ${endAge}歳` : `만 ${startAge}세 ~ ${endAge}세`;
     const lifeStage = isJa ? (LIFE_STAGE_JA[period.lifeStage] ?? period.lifeStage) : period.lifeStage;
     const stemGod = isJa ? (TEN_GOD_JA[period.stemGod] ?? period.stemGod) : period.stemGod;
     const branchGod = isJa ? (TEN_GOD_JA[period.branchGod] ?? period.branchGod) : period.branchGod;
@@ -927,9 +992,30 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
     const activeLang = getActiveLanguage();
     const currentIsJa = activeLang === 'jp' || isJa;
-    const langKey = currentIsJa ? 'ja' : 'ko';
-    const cacheKey = `${period.index}_${langKey}`;
+    const cacheKey = getDaeunCacheKey(period, currentIsJa);
     const aiState = daeunAiMap[cacheKey];
+
+    let currentAge = 51;
+    const bDateStr = birthDate || '';
+    if (bDateStr) {
+      const bYear = parseInt(bDateStr.slice(0, 4), 10);
+      if (!isNaN(bYear) && bYear > 1900) {
+        currentAge = new Date().getFullYear() - bYear;
+      }
+    }
+    if (isNaN(currentAge) || currentAge <= 0) currentAge = 51;
+
+    const storedUserName =
+      typeof localStorage !== 'undefined'
+        ? (localStorage.getItem('cyber_saju_user_name') || '')
+        : '';
+    const userHonorificKo = storedUserName ? `${storedUserName} 님` : '인연자 님';
+    const userHonorificJa = storedUserName ? `${storedUserName}様` : 'ご縁者様';
+    const userHonorific = currentIsJa ? userHonorificJa : userHonorificKo;
+    const dayMaster = timeline?.dayMaster ?? '戊';
+
+    const fallbackText = getDaeunFallbackText(period, currentAge, dayMaster, userHonorific, currentIsJa);
+    const displayText = aiState?.text || formatSajuTerm(fallbackText, currentIsJa ? 'jp' : 'kr');
 
     return (
       <TouchableOpacity
@@ -946,7 +1032,7 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
         ]}
       >
         <View style={styles.daeunHeadRow}>
-          <Text style={[styles.daeunGanji, { color: accent }]}>{period.ganji.label}</Text>
+          <Text style={[styles.daeunGanji, { color: accent }]}>{ganjiLabel}</Text>
           <View style={styles.daeunHeadText}>
             <Text style={styles.daeunAge}>{ageLabel}</Text>
             <Text style={styles.daeunYears}>
@@ -974,8 +1060,8 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
 
         <Text style={[styles.daeunHeadline, { color: accent }]}>
           {currentIsJa
-            ? `【${period.ganji.label} 大運変曲点】天干地支の気運解断`
-            : `【${period.ganji.label} 대운 변곡점】천간지지의 기운 해단`}
+            ? `【${ganjiLabel} 大運変曲点】天干地支の気運解断`
+            : `【${ganjiLabel} 대운 변곡점】천간지지의 기운 해단`}
         </Text>
 
         {isOpen && (
@@ -987,21 +1073,14 @@ export const LifeTimelineModal: React.FC<LifeTimelineModalProps> = ({
                   {currentIsJa ? '神童が該当大運の運勢を解読中...' : '사이버 신동이 해당 대운의 운세를 깊이 헤아리는 중...'}
                 </Text>
               </View>
-            ) : aiState?.text ? (
+            ) : (
               <View style={styles.aiResultBox}>
                 <View style={[styles.aiBadge, { borderColor: accent }]}>
                   <Text style={[styles.aiBadgeText, { color: accent }]}>
                     {currentIsJa ? '🔮 サイバー神童 大運 心理鑑定' : '🔮 사이버 신동 대운 심리 상담'}
                   </Text>
                 </View>
-                <StreamingAnalysisText text={aiState.text} style={styles.aiResultText} />
-              </View>
-            ) : (
-              <View style={styles.aiLoadingBox}>
-                <ActivityIndicator size="small" color={accent} />
-                <Text style={[styles.aiLoadingText, { color: accent }]}>
-                  {currentIsJa ? '神童が該当大運の運勢を解読中...' : '사이버 신동이 해당 대운의 운세를 깊이 헤아리는 중...'}
-                </Text>
+                <StreamingAnalysisText text={displayText} style={styles.aiResultText} />
               </View>
             )}
           </View>
